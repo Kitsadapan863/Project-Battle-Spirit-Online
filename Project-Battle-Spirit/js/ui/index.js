@@ -2,10 +2,10 @@
 import { getDOMElements, createCardElement, createCoreElement } from './components.js';
 import { updateAllModals } from './modals.js';
 
-export function updateUI(gameState, myPlayerKey) {
+export function updateUI(gameState, myPlayerKey, dom, callbacks, clientState) {
     if (!gameState || !gameState.turn || !myPlayerKey) return;
 
-    const dom = getDOMElements();
+    
     const isMyTurn = gameState.turn === myPlayerKey;
     
     const opponentPlayerKey = (myPlayerKey === 'player1') ? 'player2' : 'player1';
@@ -14,12 +14,15 @@ export function updateUI(gameState, myPlayerKey) {
 
     if (!myState || !opponentState) return;
 
-    updateAllModals(gameState, myPlayerKey);
+    updateAllModals(gameState, myPlayerKey, callbacks);
 
     // My Hand (Bottom)
     dom.playerHandContainer.innerHTML = '';
-    myState.hand.forEach(card => dom.playerHandContainer.appendChild(createCardElement(card, 'hand', myPlayerKey, gameState, myPlayerKey)));
-
+    myState.hand.forEach(card => {
+        // ไม่ต้องมีเงื่อนไขซับซ้อนที่นี่ ให้ createCardElement จัดการเอง
+        const cardEl = createCardElement(card, 'hand', myPlayerKey, gameState, myPlayerKey, callbacks);
+        dom.playerHandContainer.appendChild(cardEl);
+    });
     // Opponent Hand (Top)
     dom.opponentHandContainer.innerHTML = '';
     opponentState.hand.forEach(() => {
@@ -37,7 +40,8 @@ export function updateUI(gameState, myPlayerKey) {
         const coreContainer = cardEl.querySelector('.card-core-display');
         if (card.cores && coreContainer) {
             card.cores.forEach(core => {
-                coreContainer.appendChild(createCoreElement(core, { type: 'field', spiritUid: card.uid }, gameState, myPlayerKey));
+                // ส่ง clientState ต่อไปให้ createCoreElement
+                coreContainer.appendChild(createCoreElement(core, { type: 'field', spiritUid: card.uid }, gameState, myPlayerKey, clientState));
             });
         }
         if (card.type === 'Spirit') dom.playerSpiritsContainer.appendChild(cardEl);
@@ -63,7 +67,8 @@ export function updateUI(gameState, myPlayerKey) {
     dom.playerReserveCoreContainer.innerHTML = '';
     myState.reserve.forEach(core => {
         const locationInfo = { type: 'reserve' };
-        dom.playerReserveCoreContainer.appendChild(createCoreElement(core, locationInfo, gameState, myPlayerKey));
+        // ส่ง clientState ต่อไปให้ createCoreElement
+        dom.playerReserveCoreContainer.appendChild(createCoreElement(core, locationInfo, gameState, myPlayerKey, clientState));
     });
 
     dom.opponentReserveCoreContainer.innerHTML = '';
@@ -73,19 +78,27 @@ export function updateUI(gameState, myPlayerKey) {
     });
     
     // Optional: Update Cost Trash (ทำเผื่อไว้เลย)
-    dom.playerCostTrashZone.innerHTML = '<span>Cost Trash</span>'; // Reset title
+    dom.playerCostTrashZone.innerHTML = `<span>Cost Trash (${myState.costTrash.length})</span>`; // อัปเดต Title พร้อมจำนวนนับ
+    const playerCostTrashCoreContainer = document.createElement('div');
+    playerCostTrashCoreContainer.className = 'core-container';
     myState.costTrash.forEach(core => {
-        const coreEl = createCoreElement(core, { type: 'trash' }, gameState, myPlayerKey);
-        coreEl.setAttribute('draggable', 'false'); // Cores in trash can't be moved
-        dom.playerCostTrashZone.appendChild(coreEl);
-    });
-
-    dom.opponentCostTrashZone.innerHTML = '<span>Cost Trash</span>'; // Reset title
-    opponentState.costTrash.forEach(core => {
-        const coreEl = createCoreElement(core, { type: 'trash' }, gameState, myPlayerKey);
+        const coreEl = createCoreElement(core, { type: 'trash' }, gameState, myPlayerKey, clientState);
         coreEl.setAttribute('draggable', 'false');
-        dom.opponentCostTrashZone.appendChild(coreEl);
+        playerCostTrashCoreContainer.appendChild(coreEl);
     });
+    dom.playerCostTrashZone.appendChild(playerCostTrashCoreContainer);
+
+    dom.opponentCostTrashZone.innerHTML = `<span>Cost Trash (${opponentState.costTrash.length})</span>`; // อัปเดต Title พร้อมจำนวนนับ
+    const opponentCostTrashCoreContainer = document.createElement('div');
+    opponentCostTrashCoreContainer.className = 'core-container';
+    opponentState.costTrash.forEach(core => {
+        const coreEl = createCoreElement(core, { type: 'trash' }, gameState, myPlayerKey, clientState);
+        coreEl.setAttribute('draggable', 'false');
+        opponentCostTrashCoreContainer.appendChild(coreEl);
+    });
+    dom.opponentCostTrashZone.appendChild(opponentCostTrashCoreContainer);
+
+    
 
     // Other zones...
     dom.playerLifeCirclesContainer.innerHTML = '';
@@ -118,4 +131,30 @@ export function updateUI(gameState, myPlayerKey) {
     
     const isActionable = isMyTurn && !gameState.summoningState.isSummoning && !gameState.placementState.isPlacing && !gameState.attackState.isAttacking && !gameState.flashState.isActive;
     dom.phaseBtn.disabled = !isActionable;
+ 
+    // เพิ่มการ highlight เป้าหมาย
+    if (clientState?.selectedCoreForMove) {
+        dom.playerReserveCoreContainer.parentElement.classList.add('can-be-core-target');
+        dom.playerSpiritsContainer.querySelectorAll('.card').forEach(c => c.classList.add('can-be-core-target'));
+    } else {
+        dom.playerReserveCoreContainer.parentElement.classList.remove('can-be-core-target');
+        dom.playerSpiritsContainer.querySelectorAll('.card').forEach(c => c.classList.remove('can-be-core-target'));
+    }
+
+        // Update Card Trash Previews
+    const playerTrashImageDiv = dom.playerCardTrashZone.querySelector('.latest-card-image');
+    if (myState.cardTrash.length > 0) {
+        const latestPlayerCard = myState.cardTrash[myState.cardTrash.length - 1];
+        playerTrashImageDiv.style.backgroundImage = `url('${latestPlayerCard.image}')`;
+    } else {
+        playerTrashImageDiv.style.backgroundImage = 'none';
+    }
+
+    const opponentTrashImageDiv = dom.opponentCardTrashZone.querySelector('.latest-card-image');
+    if (opponentState.cardTrash.length > 0) {
+        const latestOpponentCard = opponentState.cardTrash[opponentState.cardTrash.length - 1];
+        opponentTrashImageDiv.style.backgroundImage = `url('${latestOpponentCard.image}')`;
+    } else {
+        opponentTrashImageDiv.style.backgroundImage = 'none';
+    }
 }

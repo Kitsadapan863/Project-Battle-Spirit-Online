@@ -980,3 +980,27 @@ body {
     transform: translateY(-3px);
     box-shadow: 0 6px 20px rgba(0, 123, 255, 0.6);
 }
+
+/* Style สำหรับ Core ที่สามารถเลือกเพื่อย้ายได้ใน Main Step */
+.core.selectable-for-move {
+    cursor: pointer;
+    filter: drop-shadow(0 0 4px #00d2ff); /* แสงสีฟ้าอ่อน */
+}
+
+/* Style สำหรับ Core ที่กำลังถูกเลือกอยู่ */
+.core.selected-for-move {
+    transform: scale(1.2);
+    filter: drop-shadow(0 0 8px yellow); /* แสงสีเหลืองสด */
+}
+
+/* Style สำหรับเป้าหมาย (Spirit หรือ Reserve) ที่สามารถวาง Core ลงได้ */
+.can-be-core-target {
+    border: 2px dashed yellow !important;
+    box-shadow: 0 0 15px yellow !important;
+}
+
+.card.can-main {
+    border-color: #00d2ff;
+    box-shadow: 0 0 15px #00d2ff;
+    animation: pulse-blue 1.5s infinite;
+}

@@ -94,9 +94,9 @@ function endTurn(gameState) {
     const nextPlayerKey = (currentPlayerKey === 'player1') ? 'player2' : 'player1';
     gameState.turn = nextPlayerKey;
 
-    if (currentPlayerKey === 'player2') {
-        gameState.gameTurn++;
-    }
+    //นับ turn
+    gameState.gameTurn++;
+    
 
     // Start the next player's turn
     return startTurn(gameState, nextPlayerKey);

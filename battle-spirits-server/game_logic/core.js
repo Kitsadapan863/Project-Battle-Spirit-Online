@@ -52,14 +52,17 @@ function moveCore(gameState, playerKey, payload) {
     const coreIndex = sourceArray.findIndex(c => c.id === coreId);
     if (coreIndex === -1) return gameState;
 
-    if (sourceCard && sourceCard.type === 'Spirit' && sourceArray.length === 1) {
+    // ตรวจสอบว่า 1. เป็น Spirit, 2. มีข้อมูล Level 1, 3. จำนวน Core ปัจจุบันเท่ากับที่ Level 1 ต้องการพอดี
+    if (sourceCard && sourceCard.type === 'Spirit' && sourceCard.level['level-1'] && sourceArray.length === sourceCard.level['level-1'].core) {
         gameState.coreRemovalConfirmationState = { 
             isConfirming: true, 
             coreId: coreId, 
             from: from, 
             sourceUid: sourceCardUid,
             target: {
-                targetCardUid: targetCardUid
+                targetCardUid: targetCardUid,
+                // เพิ่ม targetZoneId สำหรับกรณีที่ย้ายไป Reserve
+                targetZoneId: targetCardUid ? null : 'player-reserve-zone' 
             }
         };
         return gameState; // Wait for confirmation

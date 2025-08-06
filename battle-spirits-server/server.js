@@ -3,6 +3,7 @@ const WebSocket = require('ws');
 const { createNewGame } = require('./game_logic/state');
 const { handleAction } = require('./game_logic/actionHandler');
 const { startTurn } = require('./game_logic/gameLoop'); 
+const { cleanupField } = require('./game_logic/card');
 const wss = new WebSocket.Server({ port: 8080 });
 
 let gameSessions = {};
@@ -75,7 +76,14 @@ wss.on('connection', (ws) => {
             console.log('Payload:', action.payload);
             console.log(`Current Turn: ${session.gameState.turn}, Current Phase: ${session.gameState.phase}`);
 
-            const updatedGameState = handleAction(session.gameState, playerKey, action);
+            let updatedGameState = handleAction(session.gameState, playerKey, action);
+            
+        // เพิ่มการเรียก cleanupField หลังประมวลผล Action ทุกครั้ง
+        // เพิ่มเงื่อนไข !updatedGameState.placementState.isPlacing
+        // เพื่อไม่ให้ cleanupField ทำงานในระหว่างที่ผู้เล่นกำลังจะวาง Core
+        if (!updatedGameState.placementState.isPlacing) {
+            updatedGameState = cleanupField(updatedGameState);
+        }
             
             session.gameState = updatedGameState;
             broadcastGameState(sessionId);

@@ -1,5 +1,7 @@
 // game_logic/card.js
 // เราจะลบ require('./gameLoop') จากข้างบนนี้
+const { getCardLevel } = require('./utils.js');
+// เพิ่ม "reason" เข้าไปเป็น parameter ตัวสุดท้าย
 
 function drawCard(gameState, playerKey) {
     // แล้วย้ายมา require ข้างในฟังก์ชันที่ใช้งานแทน
@@ -15,7 +17,7 @@ function drawCard(gameState, playerKey) {
     return gameState;
 }
 
-function destroyCard(gameState, cardUid, ownerKey) {
+function destroyCard(gameState, cardUid, ownerKey, reason = 'effect') { // กำหนด 'effect' เป็นค่า default
     const owner = gameState[ownerKey];
     if (!owner) return gameState;
 
@@ -28,9 +30,21 @@ function destroyCard(gameState, cardUid, ownerKey) {
         destroyedCard.cores = [];
     }
     owner.cardTrash.push(destroyedCard);
-    console.log(`Destroyed: ${ownerKey}'s ${destroyedCard.name}`);
+
+    // --- START: เพิ่มโค้ดส่วนนี้ ---
+    // Log เหตุผลของการทำลายเพื่อช่วยในการ Debug
+    console.log(`[DESTROY LOG] ${ownerKey}'s ${destroyedCard.name} was removed from the field. Reason: ${reason.toUpperCase()}`);
+
+    // *** จุดสำคัญสำหรับอนาคต ***
+    // นี่คือจุดที่คุณจะสามารถเพิ่ม Logic สำหรับ Triggered Effects ได้
+    if (reason === 'battle' || reason === 'effect') {
+        // gameState = resolveTriggeredEffects(gameState, destroyedCard, 'whenDestroyed', ownerKey);
+    }
+    // --- END: เพิ่มโค้ดส่วนนี้ ---
+
     return gameState;
 }
+
 
 function cleanupField(gameState) {
     const playerKeys = ['player1', 'player2'];
@@ -38,8 +52,12 @@ function cleanupField(gameState) {
         if (gameState[playerKey] && gameState[playerKey].field) {
             for (let i = gameState[playerKey].field.length - 1; i >= 0; i--) {
                 const card = gameState[playerKey].field[i];
-                if (card.type === 'Spirit' && card.cores.length === 0) {
-                    gameState = destroyCard(gameState, card.uid, playerKey);
+               // เงื่อนไขใหม่: ตรวจสอบ Level จริงๆ
+                const { level } = getCardLevel(card); // Import getCardLevel มาจาก utils.js
+
+                if (card.type === 'Spirit' && level < 1) {
+                    // เรียกใช้ destroyCard พร้อมระบุ reason เป็น 'vanish'
+                    gameState = destroyCard(gameState, card.uid, playerKey, 'vanish');
                 }
             }
         }

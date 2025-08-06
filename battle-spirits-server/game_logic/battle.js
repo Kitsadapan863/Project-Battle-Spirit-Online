@@ -78,12 +78,20 @@ function resolveBattle(gameState) {
         const blockerResult = getSpiritLevelAndBP(blocker, blockerOwner, gameState);
 
         if (attackerResult.bp > blockerResult.bp) {
-            gameState = destroyCard(gameState, blockerUid, blockerOwner);
+            // --- START: เพิ่ม 'battle' เป็น reason ---
+            gameState = destroyCard(gameState, blockerUid, blockerOwner, 'battle');
+            // gameState = resolveTriggeredEffects(gameState, attacker, 'onOpponentDestroyedInBattle', attackerOwner);
+            // --- END ---
         } else if (blockerResult.bp > attackerResult.bp) {
-            gameState = destroyCard(gameState, attackerUid, attackerOwner);
-        } else {
-            gameState = destroyCard(gameState, attackerUid, attackerOwner);
-            gameState = destroyCard(gameState, blockerUid, blockerOwner);
+            // --- START: เพิ่ม 'battle' เป็น reason ---
+            gameState = destroyCard(gameState, attackerUid, attackerOwner, 'battle');
+            // gameState = resolveTriggeredEffects(gameState, blocker, 'onOpponentDestroyedInBattle', blockerOwner);
+            // --- END ---
+        } else { // เสมอ ทำลายทั้งคู่
+            // --- START: เพิ่ม 'battle' เป็น reason ---
+            gameState = destroyCard(gameState, attackerUid, attackerOwner, 'battle');
+            gameState = destroyCard(gameState, blockerUid, blockerOwner, 'battle');
+            // --- END ---
         }
     }
     

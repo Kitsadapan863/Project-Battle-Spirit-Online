@@ -56,6 +56,8 @@ export function getDOMElements() {
     };
 }
 
+// ในไฟล์ Project-Battle-Spirit/js/ui/components.js
+
 export function createCardElement(cardData, location, owner, gameState, myPlayerKey) {
     const cardDiv = document.createElement('div');
     cardDiv.className = 'card';
@@ -63,32 +65,25 @@ export function createCardElement(cardData, location, owner, gameState, myPlayer
     cardDiv.innerHTML = `<img src="${cardData.image}" alt="${cardData.name}" draggable="false"/>`;
 
     const isMyTurn = gameState.turn === myPlayerKey;
+    const hasPriority = gameState.flashState.priority === myPlayerKey;
 
     if (location === 'hand' && owner === myPlayerKey) {
         const isMainStep = gameState.phase === 'main';
 
-        console.groupCollapsed(`[UI DEBUG] Checking Hand Card: ${cardData.name}`);
-        console.log(`- Card Owner: ${owner}, Your Key: ${myPlayerKey}`);
-        console.log(`- Is My Turn? ${isMyTurn} (Game Turn: ${gameState.turn})`);
-        console.log(`- Is Main Phase? ${isMainStep} (Game Phase: ${gameState.phase})`);
-        console.log(`- Card Type: ${cardData.type}`);
-        
-        // --- DEBUG LOG ---
-        if (isMyTurn && isMainStep) {
-            console.log(`Checking card ${cardData.name} (Type: ${cardData.type}). Is my turn: ${isMyTurn}, Is main step: ${isMainStep}`);
-        }
-
+        // เงื่อนไขสำหรับ Main Step
         if (isMyTurn && isMainStep) {
             if (cardData.type === 'Spirit' || cardData.type === 'Nexus') {
                 cardDiv.classList.add('can-summon');
-                console.log(`%c[DEBUG] Added .can-summon to ${cardData.name}`, 'color: lightgreen;');
             }
             if (cardData.type === 'Magic' && cardData.effects?.some(e => e.timing === 'main')) {
                 cardDiv.classList.add('can-main');
             }
-        } else if (gameState.flashState.isActive && hasPriority) {
+        }
+
+        // เงื่อนไขสำหรับ Flash Timing (ทำงานแยกเป็นอิสระจาก Main Step)
+        if (gameState.flashState.isActive && hasPriority) {
             if (cardData.type === 'Magic' && cardData.effects?.some(e => e.timing === 'flash')) {
-                cardDiv.classList.add('can-flash'); // เพิ่มคลาสเพื่อให้การ์ดเรืองแสงสีทอง
+                cardDiv.classList.add('can-flash');
             }
         }
         
@@ -106,8 +101,7 @@ export function createCardElement(cardData, location, owner, gameState, myPlayer
             } else {
                 if (owner === gameState.turn && isMyTurn && gameState.phase === 'attack' && !gameState.attackState.isAttacking) {
                     cardDiv.classList.add('can-attack');
-                }
-                else if (owner === myPlayerKey && gameState.attackState.isAttacking && gameState.attackState.defender === myPlayerKey && !gameState.flashState.isActive) {
+                } else if (owner === myPlayerKey && gameState.attackState.isAttacking && gameState.attackState.defender === myPlayerKey && !gameState.flashState.isActive) {
                     cardDiv.classList.add('can-block');
                 }
             }
@@ -117,23 +111,30 @@ export function createCardElement(cardData, location, owner, gameState, myPlayer
     return cardDiv;
 }
 
-export function createCoreElement(coreData, locationInfo, gameState, myPlayerKey) {
+export function createCoreElement(coreData, locationInfo, gameState, myPlayerKey, clientState ) {
     const coreDiv = document.createElement('div');
     coreDiv.className = 'core';
     coreDiv.id = coreData.id;
     const isMyTurn = gameState.turn === myPlayerKey;
+    const isMainPhase = gameState.phase === 'main';
     const isPaying = gameState.summoningState.isSummoning || gameState.magicPaymentState.isPaying;
     const isPlacing = gameState.placementState.isPlacing;
-    if (isMyTurn && (isPaying || isPlacing)) {
+    if (isMyTurn) {
         if (isPaying) {
             const paymentState = gameState.summoningState.isSummoning ? gameState.summoningState : gameState.magicPaymentState;
-            const isSelected = paymentState.selectedCores.some(c => c.coreId === coreData.id);
-            coreDiv.classList.add('selectable-for-payment');
-            if (isSelected) {
+            if (paymentState.selectedCores.some(c => c.coreId === coreData.id)) {
                 coreDiv.classList.add('selected-for-payment');
             }
-        } else {
+            coreDiv.classList.add('selectable-for-payment');
+        } else if (isPlacing) {
             coreDiv.classList.add('selectable-for-placement');
+        } else if (isMainPhase) {
+            // Logic สำหรับการย้าย Core ปกติใน Main Step
+            coreDiv.classList.add('selectable-for-move');
+            // ตรวจสอบจาก clientState ที่ส่งเข้ามา
+            if (clientState?.selectedCoreForMove?.coreId === coreData.id) {
+                coreDiv.classList.add('selected-for-move');
+            }
         }
     }
     return coreDiv;

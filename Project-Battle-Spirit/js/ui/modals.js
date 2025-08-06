@@ -5,8 +5,10 @@ import { createCardElement } from "./components.js";
 /**
  * อัปเดตการแสดงผลของ Modal ทั้งหมด
  * @param {object} gameState 
+ * @param {string} myPlayerKey 
+ * @param {object} callbacks 
  */
-export function updateAllModals(gameState, callbacks) {
+export function updateAllModals(gameState, myPlayerKey, callbacks) {
     const modals = {
         summonPaymentOverlay: document.getElementById('summon-payment-overlay'),
         magicPaymentOverlay: document.getElementById('magic-payment-overlay'),
@@ -20,119 +22,106 @@ export function updateAllModals(gameState, callbacks) {
         gameOverModal: document.getElementById('game-over-modal'),
         deckDiscardViewerModal: document.getElementById('deck-discard-viewer-modal'),
     };
-    
-    const currentPlayerKey = gameState.turn;
-    const currentPlayerState = gameState[currentPlayerKey];
 
-    // Summon Payment Modal
-    const summonState = gameState.summoningState;
-    if (summonState.isSummoning) {
-        modals.summonPaymentOverlay.classList.add('visible');
-        document.getElementById('summon-payment-title').textContent = `Summoning ${summonState.cardToSummon.name}`;
-        document.getElementById('payment-cost-value').textContent = summonState.costToPay;
-        document.getElementById('payment-selected-value').textContent = summonState.selectedCores.length;
-        document.getElementById('confirm-summon-btn').disabled = summonState.selectedCores.length < summonState.costToPay;
-    } else {
-        modals.summonPaymentOverlay.classList.remove('visible');
-    }
+    // --- 1. ซ่อน Modal ที่เป็น Action หลักทั้งหมดก่อน ---
+    modals.summonPaymentOverlay.classList.remove('visible');
+    modals.magicPaymentOverlay.classList.remove('visible');
+    modals.placementOverlay.classList.remove('visible');
+    modals.defenseOverlay.classList.remove('visible');
+    modals.flashOverlay.classList.remove('visible');
+    modals.discardOverlay.classList.remove('visible');
+    modals.coreRemovalConfirmationOverlay.classList.remove('visible');
+    modals.targetingOverlay.classList.remove('visible');
+    modals.effectChoiceModal.classList.remove('visible');
 
-    // Magic Payment Modal
-    const magicPaymentState = gameState.magicPaymentState;
-    if (magicPaymentState.isPaying) {
-        modals.magicPaymentOverlay.classList.add('visible');
-        document.getElementById('magic-payment-title').textContent = `Use Magic: ${magicPaymentState.cardToUse.name}`;
-        document.getElementById('magic-payment-cost-value').textContent = magicPaymentState.costToPay;
-        document.getElementById('magic-payment-selected-value').textContent = magicPaymentState.selectedCores.length;
-        document.getElementById('confirm-magic-btn').disabled = magicPaymentState.selectedCores.length < magicPaymentState.costToPay;
-    } else {
-        modals.magicPaymentOverlay.classList.remove('visible');
-    }
-
-    // Placement Modal
+    // --- 2. ตรวจสอบและแสดง Modal ที่ถูกต้องเพียงอันเดียว (จัดลำดับความสำคัญ) ---
+    const choiceState = gameState.effectChoiceState;
+    const discardState = gameState.discardState;
+    const flashState = gameState.flashState;
+    const attackState = gameState.attackState;
     const placementState = gameState.placementState;
-    if (placementState.isPlacing) {
+    const magicPaymentState = gameState.magicPaymentState;
+    const summonState = gameState.summoningState;
+    const coreRemovalState = gameState.coreRemovalConfirmationState;
+
+    // ลำดับ 1: Discard Modal
+    if (discardState.isDiscarding && discardState.playerKey === myPlayerKey) {
+        modals.discardOverlay.classList.add('visible');
+        document.getElementById('discard-prompt').textContent = `Please select ${discardState.count} card(s) from your hand to discard.`;
+        // สมมติว่าคุณจะจัดการ selected card ใน state อื่น
+        // document.getElementById('confirm-discard-btn').disabled = !discardState.cardToDiscard;
+    }
+    // ลำดับ 2: Effect Choice Modal
+    else if (choiceState.isChoosing && gameState.turn === myPlayerKey) {
+        modals.effectChoiceModal.classList.add('visible');
+        if (choiceState.card) {
+            document.getElementById('effect-choice-title').textContent = `Choose Effect for ${choiceState.card.name}`;
+        }
+    }
+    // ลำดับ 3: Flash Modal
+    else if (flashState.isActive && flashState.priority === myPlayerKey) {
+        modals.flashOverlay.classList.add('visible');
+        document.getElementById('flash-title').textContent = `Flash Timing (${flashState.priority}'s Priority)`;
+    }
+    // ลำดับ 4: Defense Modal
+    else if (attackState.isAttacking && attackState.defender === myPlayerKey && !flashState.isActive) {
+        modals.defenseOverlay.classList.add('visible');
+        const attackerPlayerKey = myPlayerKey === 'player1' ? 'player2' : 'player1';
+        const attacker = gameState[attackerPlayerKey]?.field.find(s => s.uid === attackState.attackerUid);
+        if (attacker) {
+            const { bp } = getSpiritLevelAndBP(attacker, attackerPlayerKey, gameState);
+            document.getElementById('defense-attacker-info').textContent = `Attacker: ${attacker.name} (BP: ${bp})`;
+        }
+    }
+    // ลำดับ 5: Placement Modal
+    else if (placementState.isPlacing && gameState.turn === myPlayerKey) {
         modals.placementOverlay.classList.add('visible');
+        const currentPlayerState = gameState[myPlayerKey];
         const targetCard = currentPlayerState.field.find(s => s.uid === placementState.targetSpiritUid);
         if (targetCard) {
             document.getElementById('placement-title').textContent = `Place Cores on ${targetCard.name}`;
             const confirmBtn = document.getElementById('confirm-placement-btn');
             confirmBtn.disabled = (targetCard.type === 'Spirit' && targetCard.cores.length === 0);
         }
-    } else {
-        modals.placementOverlay.classList.remove('visible');
     }
-
-    // --- START: โค้ดที่แก้ไข ---
-    // Defense Modal
-    const attackState = gameState.attackState;
-    // เงื่อนไขใหม่: แสดงหน้าต่างถ้ามีการโจมตี, ผู้ป้องกันเป็นมนุษย์, และจบช่วง Flash แล้ว
-    const isHumanDefender = (gameState.gameMode === 'pva' && attackState.defender === 'player') || (gameState.gameMode === 'pvp');
-
-    if (attackState.isAttacking && isHumanDefender && !gameState.flashState.isActive) {
-        modals.defenseOverlay.classList.add('visible');
-
-        const p1_key = gameState.gameMode === 'pva' ? 'player' : 'player1';
-        const p2_key = gameState.gameMode === 'pva' ? 'opponent' : 'player2';
-        const attackerPlayerKey = (attackState.defender === p1_key) ? p2_key : p1_key;
-
-        const attacker = gameState[attackerPlayerKey]?.field.find(s => s.uid === attackState.attackerUid);
-        if (attacker) {
-            const { bp } = getSpiritLevelAndBP(attacker, attackerPlayerKey, gameState);
-            document.getElementById('defense-attacker-info').textContent = `Attacker: ${attacker.name} (BP: ${bp})`;
+    // ลำดับ 6: Magic Payment Modal
+    else if (magicPaymentState.isPaying && gameState.turn === myPlayerKey) {
+        modals.magicPaymentOverlay.classList.add('visible');
+        if(magicPaymentState.cardToUse) {
+            document.getElementById('magic-payment-title').textContent = `Use Magic: ${magicPaymentState.cardToUse.name}`;
+            document.getElementById('magic-payment-cost-value').textContent = magicPaymentState.costToPay;
+            document.getElementById('magic-payment-selected-value').textContent = magicPaymentState.selectedCores.length;
+            document.getElementById('confirm-magic-btn').disabled = magicPaymentState.selectedCores.length < magicPaymentState.costToPay;
         }
-    } else {
-        modals.defenseOverlay.classList.remove('visible');
     }
-
-    // Flash Modal
-    if (gameState.flashState.isActive && !gameState.magicPaymentState.isPaying && !gameState.targetingState.isTargeting) {
-        modals.flashOverlay.classList.add('visible');
-        document.getElementById('flash-title').textContent = `Flash Timing (${gameState.flashState.priority}'s Priority)`;
-    } else {
-        modals.flashOverlay.classList.remove('visible');
+    // ลำดับ 7: Summon Payment Modal
+    else if (summonState.isSummoning && gameState.turn === myPlayerKey) {
+        modals.summonPaymentOverlay.classList.add('visible');
+        if(summonState.cardToSummon) {
+            document.getElementById('summon-payment-title').textContent = `Summoning ${summonState.cardToSummon.name}`;
+            document.getElementById('payment-cost-value').textContent = summonState.costToPay;
+            document.getElementById('payment-selected-value').textContent = summonState.selectedCores.length;
+            document.getElementById('confirm-summon-btn').disabled = summonState.selectedCores.length < summonState.costToPay;
+        }
     }
-    
-    // Discard Modal
-    const discardState = gameState.discardState;
-    if (discardState.isDiscarding) {
-        modals.discardOverlay.classList.add('visible');
-        document.getElementById('discard-prompt').textContent = `Please select ${discardState.count} card(s) from your hand to discard.`;
-        document.getElementById('confirm-discard-btn').disabled = !discardState.cardToDiscard;
-    } else {
-        modals.discardOverlay.classList.remove('visible');
-    }
-    
-    // Core Removal Confirmation Modal
-    if (gameState.coreRemovalConfirmationState.isConfirming) {
+    // ลำดับ 8: Core Removal Confirmation Modal
+    else if (coreRemovalState.isConfirming && gameState.turn === myPlayerKey) {
         modals.coreRemovalConfirmationOverlay.classList.add('visible');
-    } else {
-        modals.coreRemovalConfirmationOverlay.classList.remove('visible');
     }
 
-    // Targeting Overlay
-    if (gameState.targetingState.isTargeting) {
-        modals.targetingOverlay.classList.add('visible');
-    } else {
-        modals.targetingOverlay.classList.remove('visible');
-    }
 
-    // Effect Choice Modal
-    if (gameState.effectChoiceState.isChoosing) {
-         modals.effectChoiceModal.classList.add('visible');
-    } else {
-         modals.effectChoiceModal.classList.remove('visible');
-    }
+    // --- 3. Modal ที่ทำงานแยกต่างหาก ---
 
     // Game Over Modal
     if (gameState.gameover) {
+        modals.gameOverModal.classList.add('visible');
         let winnerText = '';
-        if (gameState.gameMode === 'pva') {
-            winnerText = `${gameState.player.life <= 0 ? 'Opponent' : 'Player'} Wins!`;
-        } else {
-            winnerText = `${gameState.player1.life <= 0 ? 'Player 2' : 'Player 1'} Wins!`;
+        if (gameState.player1.life <= 0) {
+            winnerText = 'Player 2 Wins!';
+        } else if (gameState.player2.life <= 0) {
+            winnerText = 'Player 1 Wins!';
         }
         document.getElementById('game-over-message').textContent = winnerText;
-        modals.gameOverModal.classList.add('visible');
     }
 
     // Deck Discard Viewer Modal
@@ -142,7 +131,7 @@ export function updateAllModals(gameState, callbacks) {
         const container = document.getElementById('deck-discard-viewer-container');
         container.innerHTML = '';
         discardViewerState.cards.forEach(card => {
-            const cardEl = createCardElement(card, 'viewer', discardViewerState.owner, gameState, callbacks);
+            const cardEl = createCardElement(card, 'viewer', discardViewerState.owner, gameState, myPlayerKey);
             container.appendChild(cardEl);
         });
     } else {
