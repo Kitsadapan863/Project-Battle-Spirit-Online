@@ -1,15 +1,22 @@
 // js/main.js
 import { updateUI } from './ui/index.js';
-import { setupInitialEventListeners } from './core/eventManager.js';
+import { setupInitialEventListeners, updateLocalGameState } from './core/eventManager.js';
+import { getDOMElements, formatCardEffects  } from './ui/components.js';
 
 document.addEventListener('DOMContentLoaded', () => {
     const gameBoard = document.querySelector('.game-board');
     const selectionScreen = document.getElementById('game-mode-selection');
     const statusMessage = document.querySelector('.selection-content p');
     const modeButtons = document.querySelector('.selection-buttons');
+    const dom = getDOMElements(); // สร้างตัวแปร dom
     
     let localGameState = {};
     let myPlayerKey = null;
+
+    // สร้าง object callbacks ที่จะส่งฟังก์ชันไปให้ส่วนต่างๆ
+    const callbacks = {
+        formatEffectText: formatCardEffects
+    };
 
     const ws = new WebSocket('ws://localhost:8080');
 
@@ -20,7 +27,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     ws.onmessage = (event) => {
         const message = JSON.parse(event.data);
-
+   
          // --- LOG DEBUG ---
         console.log('%c[CLIENT] Received message from server:', 'color: blue;', message);
         switch (message.type) {
@@ -33,7 +40,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (gameBoard) gameBoard.classList.remove('hidden');
                 localGameState = message.payload;
                 myPlayerKey = message.yourPlayerKey;
-                updateUI(localGameState, myPlayerKey); 
+                updateLocalGameState(localGameState);
+                updateUI(localGameState, myPlayerKey, dom, callbacks); 
                 break;
             case 'OPPONENT_DISCONNECTED':
                 alert('Your opponent has disconnected. The game has ended.');
@@ -57,6 +65,6 @@ document.addEventListener('DOMContentLoaded', () => {
             ws.send(JSON.stringify(dataToSend));
         }
     }
-
-    setupInitialEventListeners(sendActionToServer);
+    // ส่ง dom ไปให้ setupInitialEventListeners
+    setupInitialEventListeners(sendActionToServer, dom, callbacks); 
 });

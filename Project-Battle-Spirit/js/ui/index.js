@@ -92,6 +92,18 @@ export function updateUI(gameState, myPlayerKey) {
     for (let i = 0; i < myState.life; i++) dom.playerLifeCirclesContainer.innerHTML += `<div class="life-circle"></div>`;
     dom.opponentLifeCirclesContainer.innerHTML = '';
     for (let i = 0; i < opponentState.life; i++) dom.opponentLifeCirclesContainer.innerHTML += `<div class="life-circle"></div>`;
+
+    // Update zone counts
+    dom.playerReserveCoreContainer.parentElement.querySelector('span').textContent = `Your Reserve (${myState.reserve.length})`;
+    dom.opponentReserveCoreContainer.parentElement.querySelector('span').textContent = `Opponent Reserve (${opponentState.reserve.length})`;
+
+    dom.playerCostTrashZone.querySelector('span').textContent = `Cost Trash (${myState.costTrash.length})`;
+    dom.opponentCostTrashZone.querySelector('span').textContent = `Cost Trash (${opponentState.costTrash.length})`;
+
+    dom.playerCardTrashZone.querySelector('span').textContent = `Card Trash (${myState.cardTrash.length})`;
+    dom.opponentCardTrashZone.querySelector('span').textContent = `Card Trash (${opponentState.cardTrash.length})`;
+    
+
     dom.playerDeckElement.textContent = `Deck (${myState.deck.length})`;
     dom.opponentDeckElement.textContent = `Deck (${opponentState.deck.length})`;
     

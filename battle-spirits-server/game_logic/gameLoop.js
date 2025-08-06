@@ -69,7 +69,14 @@ function advancePhase(gameState, playerKey) {
     }
 
     if (gameState.phase === 'main') {
-        gameState.phase = 'attack';
+        // ถ้าเป็นเทิร์นที่ 1 และเป็นตาของผู้เล่น player1 (ผู้เล่นคนแรก)
+        console.log('[GAME LOOP] Turn:',gameState.gameTurn, "player:", playerKey);
+        if (gameState.gameTurn === 1 && playerKey === 'player1') {
+            console.log('[GAME LOOP] First player cannot attack on Turn 1. Ending turn.');
+            gameState = endTurn(gameState); // ให้จบเทิร์นทันที
+        } else {
+            gameState.phase = 'attack'; // ถ้าไม่ใช่เทิร์นแรก ก็เข้า Attack Step ได้ตามปกติ
+        }
     } else if (gameState.phase === 'attack' && !gameState.attackState.isAttacking) {
         gameState = endTurn(gameState);
     }

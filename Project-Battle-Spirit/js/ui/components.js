@@ -86,6 +86,10 @@ export function createCardElement(cardData, location, owner, gameState, myPlayer
             if (cardData.type === 'Magic' && cardData.effects?.some(e => e.timing === 'main')) {
                 cardDiv.classList.add('can-main');
             }
+        } else if (gameState.flashState.isActive && hasPriority) {
+            if (cardData.type === 'Magic' && cardData.effects?.some(e => e.timing === 'flash')) {
+                cardDiv.classList.add('can-flash'); // เพิ่มคลาสเพื่อให้การ์ดเรืองแสงสีทอง
+            }
         }
         
     } else if (location === 'field') {
@@ -135,4 +139,18 @@ export function createCoreElement(coreData, locationInfo, gameState, myPlayerKey
     return coreDiv;
 }
 
-// ... (Card Detail Viewer logic)
+export function formatCardEffects(cardData) {
+    if (!cardData.effects || cardData.effects.length === 0) {
+        return '';
+    }
+    return cardData.effects.map(effect => {
+        const description = effect.description.replace(/\\n/g, '<br>');
+        return `${description}`;
+    }).join('<br><br>');
+    // if (!card.effects || card.effects.length === 0) return '';
+    // return card.effects.map(effect => {
+    //     const timingText = `<strong>[${effect.timing.charAt(0).toUpperCase() + effect.timing.slice(1)}]</strong>`;
+    //     const description = effect.description.replace(/\\n/g, '<br>');
+    //     return `${timingText}<br>${description}`;
+    // }).join('<br><br>');
+}
