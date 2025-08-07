@@ -544,15 +544,15 @@ body {
     cursor: pointer;
     transition: all 0.2s ease;
 }
-#confirm-summon-btn, #confirm-flash-btn {
+#confirm-summon-btn, #confirm-flash-btn , #confirm-magic-btn{
     background: linear-gradient(45deg, #28a745, #20c997);
     color: white;
 }
-#confirm-summon-btn:disabled, #confirm-flash-btn:disabled {
+#confirm-summon-btn:disabled, #confirm-flash-btn:disabled , #confirm-magic-btn:disabled{
     background: #555;
     cursor: not-allowed;
 }
-#cancel-summon-btn, #cancel-flash-btn {
+#cancel-summon-btn, #cancel-flash-btn, #cancel-magic-btn {
     background: linear-gradient(45deg, #dc3545, #c82333);
     color: white;
 }
@@ -732,18 +732,6 @@ body {
     align-self: center;
 }
 
-/* (โค้ดส่วนอื่น ๆ เหมือนเดิม)... */
-/* #close-opponent-trash-viewer-btn {
-    margin-top: 15px;
-    padding: 10px 20px;
-    font-size: 1rem;
-    background: linear-gradient(45deg, #6c757d, #5a6268);
-    color: white;
-    border: none;
-    border-radius: 8px;
-    cursor: pointer;
-    align-self: center;
-} */
 
 #confirm-deck-discard-btn {
     margin-top: 15px;

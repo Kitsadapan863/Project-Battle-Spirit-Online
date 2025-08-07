@@ -114,7 +114,16 @@
     <div id="card-detail-viewer" class="card-detail-viewer"><img id="detail-card-image" src="" alt="Card Detail"><div id="detail-card-effects" class="card-effects-text"></div></div>
     <div id="targeting-overlay" class="modal-overlay"><div class="modal-content targeting-modal"><h3 id="targeting-title">Choose a Target</h3><p id="targeting-prompt">Please select a Spirit to apply the effect to.</p></div></div>
     <div id="deck-discard-viewer-modal" class="modal-overlay"><div class="modal-content trash-viewer-modal"><h3 id="deck-discard-viewer-title">Deck Discard</h3><p>The following cards were discarded from the deck:</p><div id="deck-discard-viewer-container" class="card-container"></div><button id="confirm-deck-discard-btn">OK</button></div></div>
-
+    <div id="targeting-overlay" class="modal-overlay">
+    <div class="modal-content targeting-modal">
+        <h3 id="targeting-title">Choose a Target</h3>
+        <p id="targeting-prompt">Please select a Spirit to apply the effect to.</p>
+        <div class="confirmation-buttons">
+            <button id="confirm-targets-btn" disabled>Confirm Targets</button>
+        </div>
+        </div>
+    </div>
+    
   <script type="module" src="./js/main.js"></script>
 </body>
 </html>

@@ -128,12 +128,12 @@ export function setupInitialEventListeners(sendActionToServer, dom, callbacks) {
                     // ส่ง Action ให้ Server เพื่อเริ่มกระบวนการใช้ Magic
                     sendActionToServer({ type: 'INITIATE_MAGIC', payload: { cardUid: cardId, timing: 'main' } });
                 }
-            } else if (cardEl.closest('#player-field')) {
+            } else if (cardEl.closest('#player-field') || cardEl.closest('#opponent-field')) { 
                 if (localGameState.targetingState?.isTargeting && cardEl.classList.contains('can-be-targeted')) {
-                console.log(`[CLIENT] Target selected: ${cardEl.id}`);
-                sendActionToServer({ type: 'SELECT_TARGET', payload: { targetUid: cardEl.id } });
-                return;
-            }
+                    console.log(`[CLIENT] Target selected: ${cardId}`);
+                    sendActionToServer({ type: 'SELECT_TARGET', payload: { targetUid: cardId } });
+                    return;
+                }
                 // Logic สำหรับการ์ดบนสนาม
                 if (cardEl.classList.contains('can-attack')) {
                     console.log(`[CLIENT] Attacking with ${cardId}. Sending DECLARE_ATTACK...`);
@@ -303,6 +303,12 @@ export function setupInitialEventListeners(sendActionToServer, dom, callbacks) {
         if (!e.target.disabled) {
             console.log('[CLIENT] Confirm Discard clicked. Sending CONFIRM_DISCARD...');
             sendActionToServer({ type: 'CONFIRM_DISCARD' });
+        }
+    });
+
+    dom.confirmTargetsBtn.addEventListener('click', (e) => {
+        if (!e.target.disabled) {
+            sendActionToServer({ type: 'CONFIRM_TARGETS' });
         }
     });
 }

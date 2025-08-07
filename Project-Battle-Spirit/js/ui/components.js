@@ -53,6 +53,7 @@ export function getDOMElements() {
         closeOpponentTrashViewerBtn: document.getElementById('close-opponent-trash-viewer-btn'),
         cancelEffectChoiceBtn: document.getElementById('cancel-effect-choice-btn'),
         confirmDeckDiscardBtn: document.getElementById('confirm-deck-discard-btn'),
+        confirmTargetsBtn: document.getElementById('confirm-targets-btn')
     };
 }
 
@@ -68,25 +69,21 @@ export function createCardElement(cardData, location, owner, gameState, myPlayer
     if (location === 'hand' && owner === myPlayerKey) {
         const isMainStep = gameState.phase === 'main';
 
-        // เงื่อนไขสำหรับ Main Step
         if (isMyTurn && isMainStep) {
             if (cardData.type === 'Spirit' || cardData.type === 'Nexus') {
                 cardDiv.classList.add('can-summon');
             }
-            // ตรวจสอบทั้ง 'main' และ 'flash' สำหรับการใช้ Magic ใน Main Step
             if (cardData.type === 'Magic' && cardData.effects?.some(e => e.timing === 'main' || e.timing === 'flash')) {
                 cardDiv.classList.add('can-main');
             }
         }
 
-        // เงื่อนไขสำหรับ Flash Timing (ทำงานแยกเป็นอิสระจาก Main Step)
         if (gameState.flashState.isActive && hasPriority) {
             if (cardData.type === 'Magic' && cardData.effects?.some(e => e.timing === 'flash')) {
                 cardDiv.classList.add('can-flash');
             }
         }
         
-        // เงื่อนไขสำหรับ Discard Phase
         const discardState = gameState.discardState;
         if (discardState.isDiscarding && discardState.playerKey === myPlayerKey) {
             cardDiv.classList.add('can-discard');
@@ -94,8 +91,10 @@ export function createCardElement(cardData, location, owner, gameState, myPlayer
                 cardDiv.classList.add('selected-for-discard');
             }
         }
-        
+
     } else if (location === 'field') {
+        const targetingState = gameState.targetingState;
+
         if (cardData.type === 'Nexus') {
             const { level } = getCardLevel(cardData);
             cardDiv.innerHTML += `<div class="card-info"><p>Lv${level} Nexus</p></div>`;
@@ -113,16 +112,20 @@ export function createCardElement(cardData, location, owner, gameState, myPlayer
                     cardDiv.classList.add('can-block');
                 }
             }
+
+            if (targetingState.isTargeting && gameState.turn === myPlayerKey) {
+                const effectTarget = targetingState.forEffect.target;
+                if (owner !== myPlayerKey && effectTarget.bpOrLess && bp <= effectTarget.bpOrLess) {
+                    cardDiv.classList.add('can-be-targeted');
+                } else if (owner === myPlayerKey && !effectTarget.bpOrLess) { // สำหรับ Power up ตัวเอง
+                     cardDiv.classList.add('can-be-targeted');
+                }
+            }
         }
         cardDiv.innerHTML += `<div class="card-core-display"></div>`;
 
-        // เงื่อนไขสำหรับ Targeting State
-        const targetingState = gameState.targetingState;
-        if (targetingState.isTargeting && gameState.turn === myPlayerKey) {
-            // (ในอนาคตคุณสามารถเพิ่มเงื่อนไขการเลือกเป้าหมายที่ซับซ้อนขึ้นได้ที่นี่)
-            if (cardData.type === 'Spirit') {
-                cardDiv.classList.add('can-be-targeted');
-            }
+        if (targetingState.isTargeting && targetingState.selectedTargets?.includes(cardData.uid)) {
+            cardDiv.classList.add('selected-for-discard'); // ใช้ Style สีแดงเหมือนเดิม
         }
     }
     return cardDiv;
@@ -146,9 +149,7 @@ export function createCoreElement(coreData, locationInfo, gameState, myPlayerKey
         } else if (isPlacing) {
             coreDiv.classList.add('selectable-for-placement');
         } else if (isMainPhase) {
-            // Logic สำหรับการย้าย Core ปกติใน Main Step
             coreDiv.classList.add('selectable-for-move');
-            // ตรวจสอบจาก clientState ที่ส่งเข้ามา
             if (clientState?.selectedCoreForMove?.coreId === coreData.id) {
                 coreDiv.classList.add('selected-for-move');
             }
@@ -165,10 +166,4 @@ export function formatCardEffects(cardData) {
         const description = effect.description.replace(/\\n/g, '<br>');
         return `${description}`;
     }).join('<br><br>');
-    // if (!card.effects || card.effects.length === 0) return '';
-    // return card.effects.map(effect => {
-    //     const timingText = `<strong>[${effect.timing.charAt(0).toUpperCase() + effect.timing.slice(1)}]</strong>`;
-    //     const description = effect.description.replace(/\\n/g, '<br>');
-    //     return `${timingText}<br>${description}`;
-    // }).join('<br><br>');
 }

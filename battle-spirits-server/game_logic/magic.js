@@ -1,6 +1,6 @@
 // game_logic/magic.js
 const { calculateCost, getSpiritLevelAndBP } = require('./utils.js');
-const { drawCard, initiateDeckDiscard, initiateDiscard, moveUsedMagicToTrash, destroyCards, applyPowerUpEffect, cleanupField } = require('./card.js');
+const { drawCard, initiateDeckDiscard, initiateDiscard, moveUsedMagicToTrash, destroyCard, applyPowerUpEffect, cleanupField } = require('./card.js');
 const { resolveTriggeredEffects } = require('./effects.js');
 
 // Helper function
@@ -105,13 +105,25 @@ function confirmMagicPayment(gameState, playerKey) {
                 // --- END ---
             }
             break;
+        case 'destroy':
+        case 'destroy_combo':
+            console.log(`[EFFECT LOG] Entering targeting state for effect: ${effectToUse.description}`);
+            // เข้าสู่สถานะเลือกเป้าหมาย
+            gameState.targetingState = { 
+                isTargeting: true, 
+                forEffect: effectToUse, 
+                cardSourceUid: cardToUse.uid,
+                selectedTargets: [] // เพิ่ม Array สำหรับเก็บเป้าหมายที่เลือก
+            };
+            break;
         case 'power up':
             // เราจะใช้ gameState.targetingState ที่มีอยู่แล้ว
             console.log(`[EFFECT LOG] Entering targeting state for effect: ${effectToUse.description}`);
             gameState.targetingState = { 
                 isTargeting: true, 
                 forEffect: effectToUse, 
-                cardSourceUid: cardToUse.uid // ส่งข้อมูลการ์ดต้นทางไปด้วย
+                cardSourceUid: cardToUse.uid, // ส่งข้อมูลการ์ดต้นทางไปด้วย
+                selectedTargets: []
             };
             break;
     }
@@ -180,11 +192,54 @@ function applyTargetedEffect(gameState, playerKey, payload) {
     return gameState;
 }
 
+function selectTarget(gameState, playerKey, payload) {
+    const { targetUid } = payload;
+    const targetingState = gameState.targetingState;
+    if (!targetingState.isTargeting || gameState.turn !== playerKey) return gameState;
+
+    const targetIndex = targetingState.selectedTargets.findIndex(uid => uid === targetUid);
+    const targetCount = targetingState.forEffect.target.count || 1;
+
+    if (targetIndex > -1) {
+        // ถ้าคลิกเป้าหมายเดิม ให้ยกเลิกการเลือก
+        targetingState.selectedTargets.splice(targetIndex, 1);
+    } else if (targetingState.selectedTargets.length < targetCount) {
+        // ถ้ายังเลือกไม่ครบ ให้เพิ่มเข้าไป
+        targetingState.selectedTargets.push(targetUid);
+    }
+
+    return gameState;
+}
+
+function confirmTargets(gameState, playerKey) {
+    const targetingState = gameState.targetingState;
+    if (!targetingState.isTargeting || gameState.turn !== playerKey) return gameState;
+
+    const { forEffect, selectedTargets } = targetingState;
+    const opponentKey = playerKey === 'player1' ? 'player2' : 'player1';
+
+    if (forEffect.keyword === 'destroy') {
+        selectedTargets.forEach(targetUid => {
+            gameState = destroyCard(gameState, targetUid, opponentKey, 'effect');
+        });
+    } else if (forEffect.keyword === 'power up') {
+        selectedTargets.forEach(targetUid => {
+            gameState = applyPowerUpEffect(gameState, targetUid, forEffect.power, forEffect.duration);
+        });
+    }
+
+    // ออกจากสถานะเลือกเป้าหมาย
+    gameState.targetingState = { isTargeting: false, forEffect: null, cardSourceUid: null, selectedTargets: [] };
+    return gameState;
+}
+
 module.exports = {
     initiateMagicPayment,
     confirmMagicPayment,
     cancelMagicPayment,
     chooseMagicEffect, // <--- เพิ่ม
     cancelEffectChoice,  // <--- เพิ่ม
-    applyTargetedEffect 
+    applyTargetedEffect,
+    selectTarget,
+    confirmTargets
 };

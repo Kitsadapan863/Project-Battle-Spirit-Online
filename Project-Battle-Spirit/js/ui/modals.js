@@ -48,6 +48,17 @@ export function updateAllModals(gameState, myPlayerKey, callbacks) {
     // ลำดับ 1: Targeting Modal
     if (targetingState.isTargeting && gameState.turn === myPlayerKey) {
         modals.targetingOverlay.classList.add('visible');
+
+        const effect = targetingState.forEffect;
+        if (effect) {
+            document.getElementById('targeting-prompt').textContent = effect.description;
+            const selectedCount = targetingState.selectedTargets?.length || 0;
+            const requiredCount = effect.target?.count || 1;
+            
+            const confirmBtn = document.getElementById('confirm-targets-btn');
+            confirmBtn.textContent = `Confirm Targets (${selectedCount}/${requiredCount})`;
+            confirmBtn.disabled = selectedCount < requiredCount;
+        }
     }
     // ลำดับ 2: Discard Modal
     else if (discardState.isDiscarding && discardState.playerKey === myPlayerKey) {

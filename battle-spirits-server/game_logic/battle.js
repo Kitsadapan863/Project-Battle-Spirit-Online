@@ -58,7 +58,7 @@ function declareBlock(gameState, playerKey, payload) {
     if (blocker && !blocker.isExhausted) {
         blocker.isExhausted = true;
         gameState.attackState.blockerUid = blockerUid;
-        // gameState = resolveTriggeredEffects(gameState, blocker, 'whenBlocks', playerKey);
+        gameState = resolveTriggeredEffects(gameState, blocker, 'whenBlocks', playerKey);
         gameState = enterFlashTiming(gameState, 'afterBlock');
     }
 
@@ -79,8 +79,9 @@ function resolveBattle(gameState) {
 
         if (attackerResult.bp > blockerResult.bp) {
             // --- START: เพิ่ม 'battle' เป็น reason ---
+            console.log(`[Battle BP]: ${gameState}`)
             gameState = destroyCard(gameState, blockerUid, blockerOwner, 'battle');
-            // gameState = resolveTriggeredEffects(gameState, attacker, 'onOpponentDestroyedInBattle', attackerOwner);
+            gameState = resolveTriggeredEffects(gameState, attacker, 'onOpponentDestroyedInBattle', attackerOwner);
             // --- END ---
         } else if (blockerResult.bp > attackerResult.bp) {
             // --- START: เพิ่ม 'battle' เป็น reason ---

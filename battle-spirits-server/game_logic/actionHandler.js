@@ -2,7 +2,7 @@
 const { advancePhase, endTurn } = require('./gameLoop');
 const { declareAttack, declareBlock, takeLifeDamage, passFlash, resolveFlashWindow } = require('./battle');
 const { initiateSummon, selectCoreForPayment, cancelSummon, confirmSummon, selectCoreForPlacement, confirmPlacement } = require('./summon');
-const { initiateMagicPayment, confirmMagicPayment, cancelMagicPayment, chooseMagicEffect, cancelEffectChoice, applyTargetedEffect  } = require('./magic');
+const { initiateMagicPayment, confirmMagicPayment, cancelMagicPayment, chooseMagicEffect, cancelEffectChoice, applyTargetedEffect, selectTarget, confirmTargets  } = require('./magic');
 const { confirmDeckDiscard, confirmDiscard, selectCardForDiscard } = require('./card');
 const { confirmCoreRemoval, cancelCoreRemoval, moveCore } = require('./core');
 
@@ -33,6 +33,8 @@ function handleAction(gameState, playerKey, action) {
         case 'CONFIRM_MAGIC': return confirmMagicPayment(gameState, playerKey);
         case 'CANCEL_MAGIC': return cancelMagicPayment(gameState, playerKey);
         case 'SELECT_TARGET': return applyTargetedEffect(gameState, playerKey, action.payload);
+        case 'SELECT_TARGET': return selectTarget(gameState, playerKey, action.payload);
+        case 'CONFIRM_TARGETS': return confirmTargets(gameState, playerKey);
 
         // Card interactions
         case 'CONFIRM_DECK_DISCARD': return confirmDeckDiscard(gameState);
