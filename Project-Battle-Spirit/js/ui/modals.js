@@ -43,9 +43,14 @@ export function updateAllModals(gameState, myPlayerKey, callbacks) {
     const magicPaymentState = gameState.magicPaymentState;
     const summonState = gameState.summoningState;
     const coreRemovalState = gameState.coreRemovalConfirmationState;
-
-    // ลำดับ 1: Discard Modal
-    if (discardState.isDiscarding && discardState.playerKey === myPlayerKey) {
+    const targetingState = gameState.targetingState;
+     
+    // ลำดับ 1: Targeting Modal
+    if (targetingState.isTargeting && gameState.turn === myPlayerKey) {
+        modals.targetingOverlay.classList.add('visible');
+    }
+    // ลำดับ 2: Discard Modal
+    else if (discardState.isDiscarding && discardState.playerKey === myPlayerKey) {
         modals.discardOverlay.classList.add('visible');
         const selectedCount = discardState.cardsToDiscard?.length || 0;
         document.getElementById('discard-prompt').textContent = `Please select ${discardState.count} card(s) from your hand to discard. (${selectedCount}/${discardState.count})`;

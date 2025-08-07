@@ -36,6 +36,12 @@ function createNewGame(player1Socket, player2Socket) {
     for (let i = 0; i < 4; i++) {
         gameState.player1.hand.push(gameState.player1.deck.shift());
         gameState.player2.hand.push(gameState.player2.deck.shift());
+        // gameState.player1.reserve.push({ id: `core-p1-init-${i}` });
+        // gameState.player2.reserve.push({ id: `core-p2-init-${i}` });
+    }
+    for (let i = 0; i < 10; i++) {
+        // gameState.player1.hand.push(gameState.player1.deck.shift());
+        // gameState.player2.hand.push(gameState.player2.deck.shift());
         gameState.player1.reserve.push({ id: `core-p1-init-${i}` });
         gameState.player2.reserve.push({ id: `core-p2-init-${i}` });
     }

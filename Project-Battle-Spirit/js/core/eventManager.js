@@ -129,6 +129,11 @@ export function setupInitialEventListeners(sendActionToServer, dom, callbacks) {
                     sendActionToServer({ type: 'INITIATE_MAGIC', payload: { cardUid: cardId, timing: 'main' } });
                 }
             } else if (cardEl.closest('#player-field')) {
+                if (localGameState.targetingState?.isTargeting && cardEl.classList.contains('can-be-targeted')) {
+                console.log(`[CLIENT] Target selected: ${cardEl.id}`);
+                sendActionToServer({ type: 'SELECT_TARGET', payload: { targetUid: cardEl.id } });
+                return;
+            }
                 // Logic สำหรับการ์ดบนสนาม
                 if (cardEl.classList.contains('can-attack')) {
                     console.log(`[CLIENT] Attacking with ${cardId}. Sending DECLARE_ATTACK...`);

@@ -1,6 +1,7 @@
 // game_logic/summon.js
 const { calculateCost } = require('./utils.js');
 const { cleanupField } = require('./card.js');
+const { resolveTriggeredEffects } = require('./effects.js');
 
 function initiateSummon(gameState, playerKey, payload) {
     const { cardUid } = payload;
@@ -127,7 +128,7 @@ function confirmPlacement(gameState, playerKey) {
     }
 
     // TODO: Resolve 'whenSummoned' effects
-    // gameState = resolveTriggeredEffects(gameState, targetCard, 'whenSummoned', playerKey);
+    gameState = resolveTriggeredEffects(gameState, targetCard, 'whenSummoned', playerKey);
     
     gameState.placementState = { isPlacing: false, targetSpiritUid: null };
     return cleanupField(gameState);

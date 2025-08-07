@@ -116,7 +116,7 @@ function applyClash(gameState) {
  * จัดการเอฟเฟกต์ Discard จากเด็คคู่ต่อสู้ (ที่ไม่ได้มาจาก Crush)
  */
 function applyDiscard(gameState, card, effect, ownerKey) {
-    const opponentKey = ownerKey === 'player' ? 'opponent' : 'player';
+    const opponentKey = ownerKey === 'player1' ? 'player2' : 'player1';
     let cardsToDiscard = 0;
 
     if (effect.count) {
@@ -139,7 +139,9 @@ function applyDiscard(gameState, card, effect, ownerKey) {
     }
 
     if (cardsToDiscard > 0) {
-        initiateDeckDiscard(cardsToDiscard, opponentKey, gameState);
+        // แก้ไขการเรียกใช้ initiateDeckDiscard ให้รับ gameState ที่อัปเดตแล้วกลับมา
+        const { updatedGameState } = initiateDeckDiscard(gameState, opponentKey, cardsToDiscard);
+        gameState = updatedGameState;
     }
     return gameState;
 }

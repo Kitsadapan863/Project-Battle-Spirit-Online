@@ -56,9 +56,7 @@ export function getDOMElements() {
     };
 }
 
-// ในไฟล์ Project-Battle-Spirit/js/ui/components.js
-
-export function createCardElement(cardData, location, owner, gameState, myPlayerKey) {
+export function createCardElement(cardData, location, owner, gameState, myPlayerKey, callbacks) {
     const cardDiv = document.createElement('div');
     cardDiv.className = 'card';
     cardDiv.id = cardData.uid;
@@ -75,9 +73,8 @@ export function createCardElement(cardData, location, owner, gameState, myPlayer
             if (cardData.type === 'Spirit' || cardData.type === 'Nexus') {
                 cardDiv.classList.add('can-summon');
             }
-            console.log("effects1:", cardData.effects)
-            if (cardData.type === 'Magic' && cardData.effects?.some(e => e.timing === 'main' || e.timing === 'flash' )) {
-                console.log("effects2:", cardData.effects)
+            // ตรวจสอบทั้ง 'main' และ 'flash' สำหรับการใช้ Magic ใน Main Step
+            if (cardData.type === 'Magic' && cardData.effects?.some(e => e.timing === 'main' || e.timing === 'flash')) {
                 cardDiv.classList.add('can-main');
             }
         }
@@ -88,14 +85,12 @@ export function createCardElement(cardData, location, owner, gameState, myPlayer
                 cardDiv.classList.add('can-flash');
             }
         }
-        // discard
+        
+        // เงื่อนไขสำหรับ Discard Phase
         const discardState = gameState.discardState;
         if (discardState.isDiscarding && discardState.playerKey === myPlayerKey) {
-            cardDiv.classList.add('can-discard'); // เพิ่มคลาสเพื่อให้รู้ว่าเลือกได้
-            
-        // ตรวจสอบว่าการ์ดใบนี้ถูกเลือกอยู่หรือไม่
-        // เปลี่ยนไปเช็คใน Array แทน
-        if (discardState.cardsToDiscard?.some(c => c.uid === cardData.uid)) {
+            cardDiv.classList.add('can-discard');
+            if (discardState.cardsToDiscard?.some(c => c.uid === cardData.uid)) {
                 cardDiv.classList.add('selected-for-discard');
             }
         }
@@ -120,6 +115,15 @@ export function createCardElement(cardData, location, owner, gameState, myPlayer
             }
         }
         cardDiv.innerHTML += `<div class="card-core-display"></div>`;
+
+        // เงื่อนไขสำหรับ Targeting State
+        const targetingState = gameState.targetingState;
+        if (targetingState.isTargeting && gameState.turn === myPlayerKey) {
+            // (ในอนาคตคุณสามารถเพิ่มเงื่อนไขการเลือกเป้าหมายที่ซับซ้อนขึ้นได้ที่นี่)
+            if (cardData.type === 'Spirit') {
+                cardDiv.classList.add('can-be-targeted');
+            }
+        }
     }
     return cardDiv;
 }

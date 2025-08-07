@@ -10,6 +10,8 @@ function findValidTargets(gameState, targetInfo) {
     return []; // Placeholder
 }
 
+
+
 function initiateMagicPayment(gameState, playerKey, payload) {
     const { cardUid, timing } = payload;
     const currentPlayer = gameState[playerKey];
@@ -63,6 +65,7 @@ function confirmMagicPayment(gameState, playerKey) {
     const currentPlayer = gameState[playerKey];
     const opponentPlayerKey = playerKey === 'player1' ? 'player2' : 'player1';
 
+    // (Logic การย้าย Core ของคุณถูกต้องแล้ว)
     for (const coreInfo of selectedCores) {
         let sourceArray;
         if (coreInfo.from === 'reserve') {
@@ -71,7 +74,6 @@ function confirmMagicPayment(gameState, playerKey) {
             const sourceCard = currentPlayer.field.find(s => s.uid === coreInfo.spiritUid);
             sourceArray = sourceCard ? sourceCard.cores : undefined;
         }
-
         if (sourceArray) {
             const coreIndex = sourceArray.findIndex(c => c.id === coreInfo.coreId);
             if (coreIndex > -1) {
@@ -92,18 +94,26 @@ function confirmMagicPayment(gameState, playerKey) {
                 gameState = drawCard(gameState, playerKey);
             }
             if (effectToUse.discard > 0) {
-                gameState.discardState = { isDiscarding: true, count: effectToUse.discard, cardToDiscard: null,  playerKey: playerKey };
+                gameState.discardState = { isDiscarding: true, count: effectToUse.discard, cardsToDiscard: [], playerKey: playerKey };
             }
             break;
         case 'discard':
-            // This needs the initiateDeckDiscard logic to be moved to card.js on the server
-            // gameState = initiateDeckDiscard(gameState, opponentPlayerKey, effectToUse.quantity);
+            if (effectToUse.quantity) {
+                // --- START: แก้ไขการเรียกใช้ ---
+                const { updatedGameState } = initiateDeckDiscard(gameState, opponentPlayerKey, effectToUse.quantity);
+                gameState = updatedGameState;
+                // --- END ---
+            }
             break;
         case 'power up':
-            // This requires targeting logic
-            gameState.targetingState = { isTargeting: true, forEffect: effectToUse, onTarget: null };
+            // เราจะใช้ gameState.targetingState ที่มีอยู่แล้ว
+            console.log(`[EFFECT LOG] Entering targeting state for effect: ${effectToUse.description}`);
+            gameState.targetingState = { 
+                isTargeting: true, 
+                forEffect: effectToUse, 
+                cardSourceUid: cardToUse.uid // ส่งข้อมูลการ์ดต้นทางไปด้วย
+            };
             break;
-        // Add other cases for other magic effects
     }
 
     // Move used magic card to trash
@@ -113,6 +123,7 @@ function confirmMagicPayment(gameState, playerKey) {
         currentPlayer.cardTrash.push(usedCard);
     }
     
+    // --- เพิ่ม return ที่ท้ายฟังก์ชัน ---
     return gameState;
 }
 
@@ -152,10 +163,28 @@ function cancelEffectChoice(gameState, playerKey) {
     return gameState;
 }
 
+function applyTargetedEffect(gameState, playerKey, payload) {
+    const { targetUid } = payload;
+    const { isTargeting, forEffect, cardSourceUid } = gameState.targetingState;
+
+    if (!isTargeting) return gameState;
+
+    // --- ใช้เอฟเฟกต์ Power Up ---
+    if (forEffect.keyword === 'power up') {
+        gameState = applyPowerUpEffect(gameState, targetUid, forEffect.power, forEffect.duration);
+    }
+    
+    // --- ออกจากสถานะเลือกเป้าหมาย ---
+    gameState.targetingState = { isTargeting: false, forEffect: null, cardSourceUid: null };
+    
+    return gameState;
+}
+
 module.exports = {
     initiateMagicPayment,
     confirmMagicPayment,
     cancelMagicPayment,
     chooseMagicEffect, // <--- เพิ่ม
-    cancelEffectChoice  // <--- เพิ่ม
+    cancelEffectChoice,  // <--- เพิ่ม
+    applyTargetedEffect 
 };

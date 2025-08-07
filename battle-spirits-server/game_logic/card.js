@@ -153,6 +153,27 @@ function initiateDeckDiscard(gameState, targetPlayerKey, count) {
     return { discardedCards, updatedGameState: gameState };
 }
 
+function applyPowerUpEffect(gameState, cardUid, power, duration) {
+    const p1_key = 'player1';
+    const p2_key = 'player2';
+
+    let targetSpirit = gameState[p1_key].field.find(s => s.uid === cardUid);
+    let ownerKey = p1_key;
+    if (!targetSpirit) {
+        targetSpirit = gameState[p2_key].field.find(s => s.uid === cardUid);
+        ownerKey = p2_key;
+    }
+    
+    if (targetSpirit) {
+        if (!targetSpirit.tempBuffs) {
+            targetSpirit.tempBuffs = [];
+        }
+        targetSpirit.tempBuffs.push({ type: 'BP', value: power, duration: duration });
+        console.log(`[Effect: Power Up] ${targetSpirit.name} in ${ownerKey}'s field gets +${power} BP for the ${duration}.`);
+    }
+    return gameState;
+}
+
 module.exports = {
     drawCard,
     destroyCard,
@@ -160,6 +181,7 @@ module.exports = {
     confirmDeckDiscard,
     selectCardForDiscard,
     confirmDiscard,
-    initiateDeckDiscard
+    initiateDeckDiscard,
+    applyPowerUpEffect
     // เราจะเพิ่มฟังก์ชันอื่นๆ ที่นี่
 };
