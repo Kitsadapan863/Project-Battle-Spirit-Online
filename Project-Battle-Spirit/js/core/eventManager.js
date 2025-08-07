@@ -112,6 +112,13 @@ export function setupInitialEventListeners(sendActionToServer, dom, callbacks) {
         if (cardEl) {
             const cardId = cardEl.id;
             if (cardEl.closest('#player-hand')) {
+                const discardState = localGameState.discardState;
+                // --- START: เพิ่มเงื่อนไขนี้ ---
+                if (discardState.isDiscarding && discardState.playerKey === myPlayerKey && cardEl.classList.contains('can-discard')) {
+                    console.log(`[CLIENT] Card selected for discard: ${cardId}`);
+                    sendActionToServer({ type: 'SELECT_CARD_FOR_DISCARD', payload: { cardUid: cardId } });
+                    return; // หยุดการทำงานทันที
+                }
                 // Logic สำหรับการ์ดบนมือ
             if (cardEl.classList.contains('can-summon')) {
                     console.log('%c[CLIENT] Card has .can-summon class. Sending INITIATE_SUMMON...', 'color: green;');
@@ -279,5 +286,12 @@ export function setupInitialEventListeners(sendActionToServer, dom, callbacks) {
 
     dom.cancelEffectChoiceBtn.addEventListener('click', () => {
         sendActionToServer({ type: 'CANCEL_EFFECT_CHOICE' });
+    });
+    //ยืนยันการทิ้งการ์ด
+    document.getElementById('confirm-discard-btn').addEventListener('click', (e) => {
+        if (!e.target.disabled) {
+            console.log('[CLIENT] Confirm Discard clicked. Sending CONFIRM_DISCARD...');
+            sendActionToServer({ type: 'CONFIRM_DISCARD' });
+        }
     });
 }

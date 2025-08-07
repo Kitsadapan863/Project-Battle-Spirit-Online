@@ -86,6 +86,17 @@ export function createCardElement(cardData, location, owner, gameState, myPlayer
                 cardDiv.classList.add('can-flash');
             }
         }
+        // discard
+        const discardState = gameState.discardState;
+        if (discardState.isDiscarding && discardState.playerKey === myPlayerKey) {
+            cardDiv.classList.add('can-discard'); // เพิ่มคลาสเพื่อให้รู้ว่าเลือกได้
+            
+        // ตรวจสอบว่าการ์ดใบนี้ถูกเลือกอยู่หรือไม่
+        // เปลี่ยนไปเช็คใน Array แทน
+        if (discardState.cardsToDiscard?.some(c => c.uid === cardData.uid)) {
+                cardDiv.classList.add('selected-for-discard');
+            }
+        }
         
     } else if (location === 'field') {
         if (cardData.type === 'Nexus') {

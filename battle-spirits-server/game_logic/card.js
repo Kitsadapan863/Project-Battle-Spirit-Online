@@ -83,11 +83,62 @@ function confirmDeckDiscard(gameState) {
     return gameState;
 }
 
+function selectCardForDiscard(gameState, playerKey, payload) {
+    const { cardUid } = payload;
+    const discardState = gameState.discardState;
+    if (!discardState.isDiscarding || discardState.playerKey !== playerKey) {
+        return gameState;
+    }
 
+    const player = gameState[playerKey];
+    const cardToSelect = player.hand.find(c => c.uid === cardUid);
+    if (!cardToSelect) return gameState;
+
+    // เปลี่ยนจากเก็บใบเดียวเป็น Array
+    if (!discardState.cardsToDiscard) {
+        discardState.cardsToDiscard = [];
+    }
+
+    const selectedIndex = discardState.cardsToDiscard.findIndex(c => c.uid === cardUid);
+
+    if (selectedIndex > -1) {
+        // ถ้าคลิกใบเดิม ให้เอาออกจาก Array
+        discardState.cardsToDiscard.splice(selectedIndex, 1);
+    } else if (discardState.cardsToDiscard.length < discardState.count) {
+        // ถ้ายังเลือกไม่ครบ ให้เพิ่มเข้าไปใน Array
+        discardState.cardsToDiscard.push(cardToSelect);
+    }
+    
+    return gameState;
+}
+
+function confirmDiscard(gameState, playerKey) {
+    const discardState = gameState.discardState;
+    if (!discardState.isDiscarding || discardState.playerKey !== playerKey || discardState.cardsToDiscard.length < discardState.count) {
+        return gameState;
+    }
+
+    const player = gameState[playerKey];
+    
+    discardState.cardsToDiscard.forEach(cardToDiscard => {
+        const cardIndex = player.hand.findIndex(c => c.uid === cardToDiscard.uid);
+        if (cardIndex > -1) {
+            const [discardedCard] = player.hand.splice(cardIndex, 1);
+            player.cardTrash.push(discardedCard);
+        }
+    });
+
+    // Reset discard state
+    gameState.discardState = { isDiscarding: false, count: 0, cardsToDiscard: [], playerKey: null };
+    
+    return gameState;
+}
 module.exports = {
     drawCard,
     destroyCard,
     cleanupField,
-    confirmDeckDiscard
+    confirmDeckDiscard,
+    selectCardForDiscard,
+    confirmDiscard
     // เราจะเพิ่มฟังก์ชันอื่นๆ ที่นี่
 };

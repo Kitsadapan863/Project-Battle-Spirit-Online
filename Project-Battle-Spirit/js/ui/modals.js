@@ -47,9 +47,10 @@ export function updateAllModals(gameState, myPlayerKey, callbacks) {
     // ลำดับ 1: Discard Modal
     if (discardState.isDiscarding && discardState.playerKey === myPlayerKey) {
         modals.discardOverlay.classList.add('visible');
-        document.getElementById('discard-prompt').textContent = `Please select ${discardState.count} card(s) from your hand to discard.`;
+        const selectedCount = discardState.cardsToDiscard?.length || 0;
+        document.getElementById('discard-prompt').textContent = `Please select ${discardState.count} card(s) from your hand to discard. (${selectedCount}/${discardState.count})`;
         // สมมติว่าคุณจะจัดการ selected card ใน state อื่น
-        // document.getElementById('confirm-discard-btn').disabled = !discardState.cardToDiscard;
+        document.getElementById('confirm-discard-btn').disabled = selectedCount < discardState.count;
     }
     // ลำดับ 2: Effect Choice Modal
     else if (choiceState.isChoosing && gameState.turn === myPlayerKey) {
@@ -137,4 +138,5 @@ export function updateAllModals(gameState, myPlayerKey, callbacks) {
     } else {
         modals.deckDiscardViewerModal.classList.remove('visible');
     }
+
 }
