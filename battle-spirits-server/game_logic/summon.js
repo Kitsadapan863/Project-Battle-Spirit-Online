@@ -49,20 +49,32 @@ function initiateSummon(gameState, playerKey, payload) {
 
 function selectCoreForPayment(gameState, playerKey, payload) {
     const { coreId, from, spiritUid } = payload;
-    
-    // --- START: แก้ไข Logic ส่วนนี้ ---
-    // ตรวจสอบว่ากำลังจ่ายค่าร่ายสำหรับอะไร (Summon หรือ Magic)
-    const isSummoning = gameState.summoningState.isSummoning;
-    const isPayingForMagic = gameState.magicPaymentState.isPaying;
 
-    if (!isSummoning && !isPayingForMagic) return gameState;
+    // --- START: โค้ดที่แก้ไข ---
+    let paymentState;
 
-    // เลือก state ที่ถูกต้องที่จะทำงานด้วย
-    const paymentState = isSummoning ? gameState.summoningState : gameState.magicPaymentState;
-    const costToPay = paymentState.costToPay;
-    // --- END: แก้ไข Logic ส่วนนี้ ---
-    
-    const { selectedCores } = paymentState;
+    // ตรวจสอบว่ากำลังจ่ายเงินสำหรับ Summon หรือ Magic
+    if (gameState.summoningState.isSummoning) {
+        paymentState = gameState.summoningState;
+        // สำหรับ Summon, คนจ่ายต้องเป็นเจ้าของเทิร์นเท่านั้น
+        if (gameState.turn !== playerKey) {
+            console.warn(`[SECURITY] ${playerKey} attempted to pay for summon during ${gameState.turn}'s turn.`);
+            return gameState;
+        }
+    } else if (gameState.magicPaymentState.isPaying) {
+        paymentState = gameState.magicPaymentState;
+        // สำหรับ Magic, ตรวจสอบจาก payingPlayer ที่ระบุไว้
+        if (paymentState.payingPlayer !== playerKey) {
+            console.warn(`[SECURITY] ${playerKey} attempted to pay for magic, but ${paymentState.payingPlayer} is the designated payer.`);
+            return gameState;
+        }
+    } else {
+        // ไม่มีหน้าต่างจ่ายเงินเปิดอยู่
+        return gameState;
+    }
+    // --- END: โค้ดที่แก้ไข ---
+
+    const { selectedCores, costToPay } = paymentState;
     const coreInfo = { coreId, from, spiritUid };
     const existingIndex = selectedCores.findIndex(c => c.coreId === coreId);
 

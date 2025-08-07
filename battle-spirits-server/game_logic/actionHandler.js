@@ -27,7 +27,9 @@ function handleAction(gameState, playerKey, action) {
         case 'CONFIRM_PLACEMENT': return confirmPlacement(gameState, playerKey);
 
         // Magic Process
-        case 'INITIATE_MAGIC': return initiateMagicPayment(gameState, playerKey, action.payload);
+        case 'INITIATE_MAGIC': 
+            console.log(`[SERVER DEBUG] Action INITIATE_MAGIC received for card:`, action.payload.cardUid);
+            return initiateMagicPayment(gameState, playerKey, action.payload);
         case 'CHOOSE_MAGIC_EFFECT': return chooseMagicEffect(gameState, playerKey, action.payload);
         case 'CANCEL_EFFECT_CHOICE': return cancelEffectChoice(gameState, playerKey);
         case 'CONFIRM_MAGIC': return confirmMagicPayment(gameState, playerKey);

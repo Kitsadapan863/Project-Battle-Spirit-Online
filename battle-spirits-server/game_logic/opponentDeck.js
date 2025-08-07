@@ -337,261 +337,7 @@ module.exports.opponentCards  = [
               target: { scope: 'any', type: 'spirit', count: 1 },
                description: '[Flash]\nDuring this turn, 1 Spirits gets +2000 BP.' }
         ],
-    },
- 
-     {
-        id: 'magic-victory-fire',
-        name: 'Victory Fire',
-        image: './images/Victory Fire.webp',
-        cost: 5,
-        symbol_cost:{"red":2},
-        type: 'Magic',
-        color: 'red',
-        effects: [
-        { 
-            timing: 'flash', 
-            choiceId: 'vf_flash',
-            choiceText: 'ทำลาย Spirit BP<=3000 2 ใบ',
-            keyword: 'destroy',
-            target: { scope: 'opponent', type: 'spirit', count: 2, bpOrLess: 3000 },
-            // แก้ไข prerequisite ให้รับ gameState และ playerKey
-            prerequisite: (gameState, playerKey) => {
-                const opponentKey = playerKey === 'player1' ? 'player2' : 'player1';
-                const opponentField = gameState[opponentKey]?.field || [];
-                return opponentField.filter(c => c.type === 'Spirit' && getSpiritLevelAndBP(c, opponentKey, gameState).bp <= 3000).length >= 2;
-            },
-            description: '[Flash]\nDestroy two opposing 3000 BP or less Spirits.' 
-        },
-        { 
-            timing: 'flash', 
-            choiceId: 'vf_flash',
-            choiceText: 'ทำลาย Spirit BP<=3000 1 ใบ และ Nexus 1 ใบ',
-            keyword: 'destroy_combo',
-            target: {
-                spirit: { scope: 'opponent', type: 'spirit', count: 1, bpOrLess: 3000 },
-                nexus: { scope: 'opponent', type: 'nexus', count: 1 }
-            },
-            prerequisite: (gameState, playerKey) => {
-                const opponentKey = playerKey === 'player1' ? 'player2' : 'player1';
-                const opponentField = gameState[opponentKey]?.field || [];
-                // แค่มี Spirit BP<=3000 อย่างน้อย 1 ใบก็พอ
-                return opponentField.some(c => c.type === 'Spirit' && getSpiritLevelAndBP(c, opponentKey, gameState).bp <= 3000);
-            },
-            description: '[Flash]\nOr, destroy an opposing 3000 BP or less Spirit and an opposing Nexus.' 
-        }
-    ],
-    },
-         {
-        id: 'magic-victory-fire',
-        name: 'Victory Fire',
-        image: './images/Victory Fire.webp',
-        cost: 5,
-        symbol_cost:{"red":2},
-        type: 'Magic',
-        color: 'red',
-        effects: [
-        { 
-            timing: 'flash', 
-            choiceId: 'vf_flash',
-            choiceText: 'ทำลาย Spirit BP<=3000 2 ใบ',
-            keyword: 'destroy',
-            target: { scope: 'opponent', type: 'spirit', count: 2, bpOrLess: 3000 },
-            // แก้ไข prerequisite ให้รับ gameState และ playerKey
-            prerequisite: (gameState, playerKey) => {
-                const opponentKey = playerKey === 'player1' ? 'player2' : 'player1';
-                const opponentField = gameState[opponentKey]?.field || [];
-                return opponentField.filter(c => c.type === 'Spirit' && getSpiritLevelAndBP(c, opponentKey, gameState).bp <= 3000).length >= 2;
-            },
-            description: '[Flash]\nDestroy two opposing 3000 BP or less Spirits.' 
-        },
-        { 
-            timing: 'flash', 
-            choiceId: 'vf_flash',
-            choiceText: 'ทำลาย Spirit BP<=3000 1 ใบ และ Nexus 1 ใบ',
-            keyword: 'destroy_combo',
-            target: {
-                spirit: { scope: 'opponent', type: 'spirit', count: 1, bpOrLess: 3000 },
-                nexus: { scope: 'opponent', type: 'nexus', count: 1 }
-            },
-            prerequisite: (gameState, playerKey) => {
-                const opponentKey = playerKey === 'player1' ? 'player2' : 'player1';
-                const opponentField = gameState[opponentKey]?.field || [];
-                // แค่มี Spirit BP<=3000 อย่างน้อย 1 ใบก็พอ
-                return opponentField.some(c => c.type === 'Spirit' && getSpiritLevelAndBP(c, opponentKey, gameState).bp <= 3000);
-            },
-            description: '[Flash]\nOr, destroy an opposing 3000 BP or less Spirit and an opposing Nexus.' 
-        }
-    ],
-    },
-         {
-        id: 'magic-victory-fire',
-        name: 'Victory Fire',
-        image: './images/Victory Fire.webp',
-        cost: 5,
-        symbol_cost:{"red":2},
-        type: 'Magic',
-        color: 'red',
-        effects: [
-        { 
-            timing: 'flash', 
-            choiceId: 'vf_flash',
-            choiceText: 'ทำลาย Spirit BP<=3000 2 ใบ',
-            keyword: 'destroy',
-            target: { scope: 'opponent', type: 'spirit', count: 2, bpOrLess: 3000 },
-            // แก้ไข prerequisite ให้รับ gameState และ playerKey
-            prerequisite: (gameState, playerKey) => {
-                const opponentKey = playerKey === 'player1' ? 'player2' : 'player1';
-                const opponentField = gameState[opponentKey]?.field || [];
-                return opponentField.filter(c => c.type === 'Spirit' && getSpiritLevelAndBP(c, opponentKey, gameState).bp <= 3000).length >= 2;
-            },
-            description: '[Flash]\nDestroy two opposing 3000 BP or less Spirits.' 
-        },
-        { 
-            timing: 'flash', 
-            choiceId: 'vf_flash',
-            choiceText: 'ทำลาย Spirit BP<=3000 1 ใบ และ Nexus 1 ใบ',
-            keyword: 'destroy_combo',
-            target: {
-                spirit: { scope: 'opponent', type: 'spirit', count: 1, bpOrLess: 3000 },
-                nexus: { scope: 'opponent', type: 'nexus', count: 1 }
-            },
-            prerequisite: (gameState, playerKey) => {
-                const opponentKey = playerKey === 'player1' ? 'player2' : 'player1';
-                const opponentField = gameState[opponentKey]?.field || [];
-                // แค่มี Spirit BP<=3000 อย่างน้อย 1 ใบก็พอ
-                return opponentField.some(c => c.type === 'Spirit' && getSpiritLevelAndBP(c, opponentKey, gameState).bp <= 3000);
-            },
-            description: '[Flash]\nOr, destroy an opposing 3000 BP or less Spirit and an opposing Nexus.' 
-        }
-    ],
-    },
-         {
-        id: 'magic-victory-fire',
-        name: 'Victory Fire',
-        image: './images/Victory Fire.webp',
-        cost: 5,
-        symbol_cost:{"red":2},
-        type: 'Magic',
-        color: 'red',
-        effects: [
-        { 
-            timing: 'flash', 
-            choiceId: 'vf_flash',
-            choiceText: 'ทำลาย Spirit BP<=3000 2 ใบ',
-            keyword: 'destroy',
-            target: { scope: 'opponent', type: 'spirit', count: 2, bpOrLess: 3000 },
-            // แก้ไข prerequisite ให้รับ gameState และ playerKey
-            prerequisite: (gameState, playerKey) => {
-                const opponentKey = playerKey === 'player1' ? 'player2' : 'player1';
-                const opponentField = gameState[opponentKey]?.field || [];
-                return opponentField.filter(c => c.type === 'Spirit' && getSpiritLevelAndBP(c, opponentKey, gameState).bp <= 3000).length >= 2;
-            },
-            description: '[Flash]\nDestroy two opposing 3000 BP or less Spirits.' 
-        },
-        { 
-            timing: 'flash', 
-            choiceId: 'vf_flash',
-            choiceText: 'ทำลาย Spirit BP<=3000 1 ใบ และ Nexus 1 ใบ',
-            keyword: 'destroy_combo',
-            target: {
-                spirit: { scope: 'opponent', type: 'spirit', count: 1, bpOrLess: 3000 },
-                nexus: { scope: 'opponent', type: 'nexus', count: 1 }
-            },
-            prerequisite: (gameState, playerKey) => {
-                const opponentKey = playerKey === 'player1' ? 'player2' : 'player1';
-                const opponentField = gameState[opponentKey]?.field || [];
-                // แค่มี Spirit BP<=3000 อย่างน้อย 1 ใบก็พอ
-                return opponentField.some(c => c.type === 'Spirit' && getSpiritLevelAndBP(c, opponentKey, gameState).bp <= 3000);
-            },
-            description: '[Flash]\nOr, destroy an opposing 3000 BP or less Spirit and an opposing Nexus.' 
-        }
-    ],
-    },
-         {
-        id: 'magic-victory-fire',
-        name: 'Victory Fire',
-        image: './images/Victory Fire.webp',
-        cost: 5,
-        symbol_cost:{"red":2},
-        type: 'Magic',
-        color: 'red',
-        effects: [
-        { 
-            timing: 'flash', 
-            choiceId: 'vf_flash',
-            choiceText: 'ทำลาย Spirit BP<=3000 2 ใบ',
-            keyword: 'destroy',
-            target: { scope: 'opponent', type: 'spirit', count: 2, bpOrLess: 3000 },
-            // แก้ไข prerequisite ให้รับ gameState และ playerKey
-            prerequisite: (gameState, playerKey) => {
-                const opponentKey = playerKey === 'player1' ? 'player2' : 'player1';
-                const opponentField = gameState[opponentKey]?.field || [];
-                return opponentField.filter(c => c.type === 'Spirit' && getSpiritLevelAndBP(c, opponentKey, gameState).bp <= 3000).length >= 2;
-            },
-            description: '[Flash]\nDestroy two opposing 3000 BP or less Spirits.' 
-        },
-        { 
-            timing: 'flash', 
-            choiceId: 'vf_flash',
-            choiceText: 'ทำลาย Spirit BP<=3000 1 ใบ และ Nexus 1 ใบ',
-            keyword: 'destroy_combo',
-            target: {
-                spirit: { scope: 'opponent', type: 'spirit', count: 1, bpOrLess: 3000 },
-                nexus: { scope: 'opponent', type: 'nexus', count: 1 }
-            },
-            prerequisite: (gameState, playerKey) => {
-                const opponentKey = playerKey === 'player1' ? 'player2' : 'player1';
-                const opponentField = gameState[opponentKey]?.field || [];
-                // แค่มี Spirit BP<=3000 อย่างน้อย 1 ใบก็พอ
-                return opponentField.some(c => c.type === 'Spirit' && getSpiritLevelAndBP(c, opponentKey, gameState).bp <= 3000);
-            },
-            description: '[Flash]\nOr, destroy an opposing 3000 BP or less Spirit and an opposing Nexus.' 
-        }
-    ],
-    },
-         {
-        id: 'magic-victory-fire',
-        name: 'Victory Fire',
-        image: './images/Victory Fire.webp',
-        cost: 5,
-        symbol_cost:{"red":2},
-        type: 'Magic',
-        color: 'red',
-        effects: [
-        { 
-            timing: 'flash', 
-            choiceId: 'vf_flash',
-            choiceText: 'ทำลาย Spirit BP<=3000 2 ใบ',
-            keyword: 'destroy',
-            target: { scope: 'opponent', type: 'spirit', count: 2, bpOrLess: 3000 },
-            // แก้ไข prerequisite ให้รับ gameState และ playerKey
-            prerequisite: (gameState, playerKey) => {
-                const opponentKey = playerKey === 'player1' ? 'player2' : 'player1';
-                const opponentField = gameState[opponentKey]?.field || [];
-                return opponentField.filter(c => c.type === 'Spirit' && getSpiritLevelAndBP(c, opponentKey, gameState).bp <= 3000).length >= 2;
-            },
-            description: '[Flash]\nDestroy two opposing 3000 BP or less Spirits.' 
-        },
-        { 
-            timing: 'flash', 
-            choiceId: 'vf_flash',
-            choiceText: 'ทำลาย Spirit BP<=3000 1 ใบ และ Nexus 1 ใบ',
-            keyword: 'destroy_combo',
-            target: {
-                spirit: { scope: 'opponent', type: 'spirit', count: 1, bpOrLess: 3000 },
-                nexus: { scope: 'opponent', type: 'nexus', count: 1 }
-            },
-            prerequisite: (gameState, playerKey) => {
-                const opponentKey = playerKey === 'player1' ? 'player2' : 'player1';
-                const opponentField = gameState[opponentKey]?.field || [];
-                // แค่มี Spirit BP<=3000 อย่างน้อย 1 ใบก็พอ
-                return opponentField.some(c => c.type === 'Spirit' && getSpiritLevelAndBP(c, opponentKey, gameState).bp <= 3000);
-            },
-            description: '[Flash]\nOr, destroy an opposing 3000 BP or less Spirit and an opposing Nexus.' 
-        }
-    ],
-    },
-    
+    },  
     {
         id: 'nexus-burning-canyon',
         name: 'The Burning Canyon',
@@ -607,4 +353,251 @@ module.exports.opponentCards  = [
         ],
         symbol: {"red":1},
     },
+
+
+    {
+        id: 'magic-victory-fire',
+        name: 'Victory Fire',
+        image: './images/Victory Fire.webp', 
+        cost: 5,
+        symbol_cost:{"red":2},
+        type: 'Magic',
+        color: 'red',
+        effects: [
+            {
+                timing: 'flash',
+                choiceId: 'vf_flash_choice', // <--- ID สำหรับจัดกลุ่ม Choice
+                choiceText: 'ทำลาย Spirit BP<=3000 2 ใบ', // <--- ข้อความสำหรับแสดงบนปุ่มที่ Frontend
+                keyword: 'destroy',
+                target: {
+                    count: 2,
+                    type: 'Spirit',
+                    scope: 'opponent',
+                    bpOrLess: 3000
+                },
+                description: '[Flash]\nDestroy two opposing 3000 BP or less Spirits.'
+            },
+            {
+                timing: 'flash',
+                choiceId: 'vf_flash_choice', // <--- ID เดียวกันกับข้างบน
+                choiceText: 'ทำลาย Spirit BP<=3000 1 ใบ และ Nexus 1 ใบ',
+                keyword: 'destroy_combo', // <--- Keyword ใหม่สำหรับเป้าหมายหลายประเภท
+                target: [ // <--- เปลี่ยน target เป็น Array
+                    { count: 1, type: 'Spirit', scope: 'opponent', bpOrLess: 3000 },
+                    { count: 1, type: 'Nexus', scope: 'opponent' }
+                ],
+                description: '[Flash]\nOr, destroy an opposing 3000 BP or less Spirit and an opposing Nexus.'
+            }
+        ],
+    },
+    {
+    id: 'magic-victory-fire',
+    name: 'Victory Fire',
+    image: './images/Victory Fire.webp', //
+    cost: 5,
+    symbol_cost:{"red":2},
+    type: 'Magic',
+    color: 'red',
+    effects: [
+        {
+            timing: 'flash',
+            choiceId: 'vf_flash_choice', // <--- ID สำหรับจัดกลุ่ม Choice
+            choiceText: 'ทำลาย Spirit BP<=3000 2 ใบ', // <--- ข้อความสำหรับแสดงบนปุ่มที่ Frontend
+            keyword: 'destroy',
+            target: {
+                count: 2,
+                type: 'Spirit',
+                scope: 'opponent',
+                bpOrLess: 3000
+            },
+            description: '[Flash]\nDestroy two opposing 3000 BP or less Spirits.'
+        },
+        {
+            timing: 'flash',
+            choiceId: 'vf_flash_choice', // <--- ID เดียวกันกับข้างบน
+            choiceText: 'ทำลาย Spirit BP<=3000 1 ใบ และ Nexus 1 ใบ',
+            keyword: 'destroy_combo', // <--- Keyword ใหม่สำหรับเป้าหมายหลายประเภท
+            target: [ // <--- เปลี่ยน target เป็น Array
+                { count: 1, type: 'Spirit', scope: 'opponent', bpOrLess: 3000 },
+                { count: 1, type: 'Nexus', scope: 'opponent' }
+            ],
+            description: '[Flash]\nOr, destroy an opposing 3000 BP or less Spirit and an opposing Nexus.'
+        }
+    ],
+},
+{
+    id: 'magic-victory-fire',
+    name: 'Victory Fire',
+    image: './images/Victory Fire.webp', //
+    cost: 5,
+    symbol_cost:{"red":2},
+    type: 'Magic',
+    color: 'red',
+    effects: [
+        {
+            timing: 'flash',
+            choiceId: 'vf_flash_choice', // <--- ID สำหรับจัดกลุ่ม Choice
+            choiceText: 'ทำลาย Spirit BP<=3000 2 ใบ', // <--- ข้อความสำหรับแสดงบนปุ่มที่ Frontend
+            keyword: 'destroy',
+            target: {
+                count: 2,
+                type: 'Spirit',
+                scope: 'opponent',
+                bpOrLess: 3000
+            },
+            description: '[Flash]\nDestroy two opposing 3000 BP or less Spirits.'
+        },
+        {
+            timing: 'flash',
+            choiceId: 'vf_flash_choice', // <--- ID เดียวกันกับข้างบน
+            choiceText: 'ทำลาย Spirit BP<=3000 1 ใบ และ Nexus 1 ใบ',
+            keyword: 'destroy_combo', // <--- Keyword ใหม่สำหรับเป้าหมายหลายประเภท
+            target: [ // <--- เปลี่ยน target เป็น Array
+                { count: 1, type: 'Spirit', scope: 'opponent', bpOrLess: 3000 },
+                { count: 1, type: 'Nexus', scope: 'opponent' }
+            ],
+            description: '[Flash]\nOr, destroy an opposing 3000 BP or less Spirit and an opposing Nexus.'
+        }
+    ],
+},
+{
+    id: 'magic-victory-fire',
+    name: 'Victory Fire',
+    image: './images/Victory Fire.webp', //
+    cost: 5,
+    symbol_cost:{"red":2},
+    type: 'Magic',
+    color: 'red',
+    effects: [
+        {
+            timing: 'flash',
+            choiceId: 'vf_flash_choice', // <--- ID สำหรับจัดกลุ่ม Choice
+            choiceText: 'ทำลาย Spirit BP<=3000 2 ใบ', // <--- ข้อความสำหรับแสดงบนปุ่มที่ Frontend
+            keyword: 'destroy',
+            target: {
+                count: 2,
+                type: 'Spirit',
+                scope: 'opponent',
+                bpOrLess: 3000
+            },
+            description: '[Flash]\nDestroy two opposing 3000 BP or less Spirits.'
+        },
+        {
+            timing: 'flash',
+            choiceId: 'vf_flash_choice', // <--- ID เดียวกันกับข้างบน
+            choiceText: 'ทำลาย Spirit BP<=3000 1 ใบ และ Nexus 1 ใบ',
+            keyword: 'destroy_combo', // <--- Keyword ใหม่สำหรับเป้าหมายหลายประเภท
+            target: [ // <--- เปลี่ยน target เป็น Array
+                { count: 1, type: 'Spirit', scope: 'opponent', bpOrLess: 3000 },
+                { count: 1, type: 'Nexus', scope: 'opponent' }
+            ],
+            description: '[Flash]\nOr, destroy an opposing 3000 BP or less Spirit and an opposing Nexus.'
+        }
+    ],
+},
+{
+    id: 'magic-victory-fire',
+    name: 'Victory Fire',
+    image: './images/Victory Fire.webp', //
+    cost: 5,
+    symbol_cost:{"red":2},
+    type: 'Magic',
+    color: 'red',
+    effects: [
+        {
+            timing: 'flash',
+            choiceId: 'vf_flash_choice', // <--- ID สำหรับจัดกลุ่ม Choice
+            choiceText: 'ทำลาย Spirit BP<=3000 2 ใบ', // <--- ข้อความสำหรับแสดงบนปุ่มที่ Frontend
+            keyword: 'destroy',
+            target: {
+                count: 2,
+                type: 'Spirit',
+                scope: 'opponent',
+                bpOrLess: 3000
+            },
+            description: '[Flash]\nDestroy two opposing 3000 BP or less Spirits.'
+        },
+        {
+            timing: 'flash',
+            choiceId: 'vf_flash_choice', // <--- ID เดียวกันกับข้างบน
+            choiceText: 'ทำลาย Spirit BP<=3000 1 ใบ และ Nexus 1 ใบ',
+            keyword: 'destroy_combo', // <--- Keyword ใหม่สำหรับเป้าหมายหลายประเภท
+            target: [ // <--- เปลี่ยน target เป็น Array
+                { count: 1, type: 'Spirit', scope: 'opponent', bpOrLess: 3000 },
+                { count: 1, type: 'Nexus', scope: 'opponent' }
+            ],
+            description: '[Flash]\nOr, destroy an opposing 3000 BP or less Spirit and an opposing Nexus.'
+        }
+    ],
+},
+{
+    id: 'magic-victory-fire',
+    name: 'Victory Fire',
+    image: './images/Victory Fire.webp', //
+    cost: 5,
+    symbol_cost:{"red":2},
+    type: 'Magic',
+    color: 'red',
+    effects: [
+        {
+            timing: 'flash',
+            choiceId: 'vf_flash_choice', // <--- ID สำหรับจัดกลุ่ม Choice
+            choiceText: 'ทำลาย Spirit BP<=3000 2 ใบ', // <--- ข้อความสำหรับแสดงบนปุ่มที่ Frontend
+            keyword: 'destroy',
+            target: {
+                count: 2,
+                type: 'Spirit',
+                scope: 'opponent',
+                bpOrLess: 3000
+            },
+            description: '[Flash]\nDestroy two opposing 3000 BP or less Spirits.'
+        },
+        {
+            timing: 'flash',
+            choiceId: 'vf_flash_choice', // <--- ID เดียวกันกับข้างบน
+            choiceText: 'ทำลาย Spirit BP<=3000 1 ใบ และ Nexus 1 ใบ',
+            keyword: 'destroy_combo', // <--- Keyword ใหม่สำหรับเป้าหมายหลายประเภท
+            target: [ // <--- เปลี่ยน target เป็น Array
+                { count: 1, type: 'Spirit', scope: 'opponent', bpOrLess: 3000 },
+                { count: 1, type: 'Nexus', scope: 'opponent' }
+            ],
+            description: '[Flash]\nOr, destroy an opposing 3000 BP or less Spirit and an opposing Nexus.'
+        }
+    ],
+},
+{
+    id: 'magic-victory-fire',
+    name: 'Victory Fire',
+    image: './images/Victory Fire.webp', //
+    cost: 5,
+    symbol_cost:{"red":2},
+    type: 'Magic',
+    color: 'red',
+    effects: [
+        {
+            timing: 'flash',
+            choiceId: 'vf_flash_choice', // <--- ID สำหรับจัดกลุ่ม Choice
+            choiceText: 'ทำลาย Spirit BP<=3000 2 ใบ', // <--- ข้อความสำหรับแสดงบนปุ่มที่ Frontend
+            keyword: 'destroy',
+            target: {
+                count: 2,
+                type: 'Spirit',
+                scope: 'opponent',
+                bpOrLess: 3000
+            },
+            description: '[Flash]\nDestroy two opposing 3000 BP or less Spirits.'
+        },
+        {
+            timing: 'flash',
+            choiceId: 'vf_flash_choice', // <--- ID เดียวกันกับข้างบน
+            choiceText: 'ทำลาย Spirit BP<=3000 1 ใบ และ Nexus 1 ใบ',
+            keyword: 'destroy_combo', // <--- Keyword ใหม่สำหรับเป้าหมายหลายประเภท
+            target: [ // <--- เปลี่ยน target เป็น Array
+                { count: 1, type: 'Spirit', scope: 'opponent', bpOrLess: 3000 },
+                { count: 1, type: 'Nexus', scope: 'opponent' }
+            ],
+            description: '[Flash]\nOr, destroy an opposing 3000 BP or less Spirit and an opposing Nexus.'
+        }
+    ],
+},
 ]

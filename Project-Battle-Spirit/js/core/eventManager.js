@@ -127,7 +127,14 @@ export function setupInitialEventListeners(sendActionToServer, dom, callbacks) {
                     console.log('%c[CLIENT] Card has .can-main class. Sending INITIATE_MAGIC...', 'color: green;');
                     // ส่ง Action ให้ Server เพื่อเริ่มกระบวนการใช้ Magic
                     sendActionToServer({ type: 'INITIATE_MAGIC', payload: { cardUid: cardId, timing: 'main' } });
+                }else if (cardEl.classList.contains('can-flash')) {
+                    console.log('%c[CLIENT] Card has .can-flash class. Sending INITIATE_MAGIC for flash...', 'color: gold;');
+                    // ส่ง timing: 'flash' ไปให้ Server รู้ว่าเราจะใช้ Flash Effect
+                    sendActionToServer({ type: 'INITIATE_MAGIC', payload: { cardUid: cardId, timing: 'flash' } });
+                }else {
+                    console.error('[CLIENT] Card clicked in hand, but has no actionable class.');
                 }
+
             } else if (cardEl.closest('#player-field') || cardEl.closest('#opponent-field')) { 
                 if (localGameState.targetingState?.isTargeting && cardEl.classList.contains('can-be-targeted')) {
                     console.log(`[CLIENT] Target selected: ${cardId}`);
@@ -148,7 +155,7 @@ export function setupInitialEventListeners(sendActionToServer, dom, callbacks) {
     });
 
     // เปลี่ยนจาก gameBoard เป็น document
-    document.addEventListener('mouseover', (event) => {
+   document.addEventListener('mouseover', (event) => {
         const cardEl = event.target.closest('.card');
         
         // เพิ่มเงื่อนไขป้องกันการ์ดหลังบ้านของคู่แข่ง

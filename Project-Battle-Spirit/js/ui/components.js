@@ -68,13 +68,19 @@ export function createCardElement(cardData, location, owner, gameState, myPlayer
 
     if (location === 'hand' && owner === myPlayerKey) {
         const isMainStep = gameState.phase === 'main';
-
+        const isFlashStep = gameState.flashState.isActive && gameState.flashState.priority === myPlayerKey;
         if (isMyTurn && isMainStep) {
             if (cardData.type === 'Spirit' || cardData.type === 'Nexus') {
                 cardDiv.classList.add('can-summon');
             }
             if (cardData.type === 'Magic' && cardData.effects?.some(e => e.timing === 'main' || e.timing === 'flash')) {
                 cardDiv.classList.add('can-main');
+            }
+        }
+        // เพื่ม class เพื่อให้สามารถใช้ ใน flash timing ได้
+        if (isFlashStep) {
+            if (cardData.type === 'Magic' && cardData.effects?.some(e => e.timing === 'flash')) {
+                cardDiv.classList.add('can-flash');
             }
         }
 
@@ -113,14 +119,30 @@ export function createCardElement(cardData, location, owner, gameState, myPlayer
                 }
             }
 
-            if (targetingState.isTargeting && gameState.turn === myPlayerKey) {
-                const effectTarget = targetingState.forEffect.target;
-                if (owner !== myPlayerKey && effectTarget.bpOrLess && bp <= effectTarget.bpOrLess) {
+        if (targetingState.isTargeting && targetingState.targetPlayer === myPlayerKey) {
+            const effect = targetingState.forEffect;
+            const targetInfo = effect?.target;
+
+            if (targetInfo?.type === 'spirit') {
+                const scope = targetInfo.scope;
+                const isMyCard = owner === myPlayerKey;
+                let canBeTargeted = false;
+
+                if (scope === 'any') {
+                    canBeTargeted = true;
+                } else if (scope === 'player' && isMyCard) {
+                    canBeTargeted = true;
+                } else if (scope === 'opponent' && !isMyCard) {
+                    canBeTargeted = true;
+                }
+                
+                // TODO: เพิ่มการตรวจสอบเงื่อนไขอื่นๆ ของ Target ในอนาคต เช่น BP, Family
+                
+                if (canBeTargeted) {
                     cardDiv.classList.add('can-be-targeted');
-                } else if (owner === myPlayerKey && !effectTarget.bpOrLess) { // สำหรับ Power up ตัวเอง
-                     cardDiv.classList.add('can-be-targeted');
                 }
             }
+        }
         }
         cardDiv.innerHTML += `<div class="card-core-display"></div>`;
 
@@ -131,30 +153,39 @@ export function createCardElement(cardData, location, owner, gameState, myPlayer
     return cardDiv;
 }
 
-export function createCoreElement(coreData, locationInfo, gameState, myPlayerKey, clientState ) {
+export function createCoreElement(coreData, locationInfo, gameState, myPlayerKey) {
     const coreDiv = document.createElement('div');
     coreDiv.className = 'core';
     coreDiv.id = coreData.id;
+
+    // --- START: โค้ดที่แก้ไข ---
+    // เงื่อนไขใหม่: ฉันสามารถกระทำการได้หรือไม่? (เป็นเทิร์นของฉัน หรือ ฉันมี Priority ในช่วง Flash)
     const isMyTurn = gameState.turn === myPlayerKey;
-    const isMainPhase = gameState.phase === 'main';
-    const isPaying = gameState.summoningState.isSummoning || gameState.magicPaymentState.isPaying;
-    const isPlacing = gameState.placementState.isPlacing;
-    if (isMyTurn) {
+    const iHavePriority = gameState.flashState.isActive && gameState.flashState.priority === myPlayerKey;
+    const canInteract = isMyTurn || iHavePriority;
+
+    // เงื่อนไขใหม่: กำลังมีการจ่ายเงินโดยฉันหรือไม่?
+    const isPayingForSummon = gameState.summoningState.isSummoning && isMyTurn;
+    const isPayingForMagic = gameState.magicPaymentState.isPaying && gameState.magicPaymentState.payingPlayer === myPlayerKey;
+    const isPaying = isPayingForSummon || isPayingForMagic;
+
+    const isPlacing = gameState.placementState.isPlacing && isMyTurn;
+
+    // ใช้เงื่อนไขใหม่ในการตรวจสอบ
+    if (canInteract && (isPaying || isPlacing)) {
         if (isPaying) {
             const paymentState = gameState.summoningState.isSummoning ? gameState.summoningState : gameState.magicPaymentState;
-            if (paymentState.selectedCores.some(c => c.coreId === coreData.id)) {
+            const isSelected = paymentState.selectedCores.some(c => c.coreId === coreData.id);
+            coreDiv.classList.add('selectable-for-payment');
+            if (isSelected) {
                 coreDiv.classList.add('selected-for-payment');
             }
-            coreDiv.classList.add('selectable-for-payment');
-        } else if (isPlacing) {
+        } else { // isPlacing
             coreDiv.classList.add('selectable-for-placement');
-        } else if (isMainPhase) {
-            coreDiv.classList.add('selectable-for-move');
-            if (clientState?.selectedCoreForMove?.coreId === coreData.id) {
-                coreDiv.classList.add('selected-for-move');
-            }
         }
     }
+    // --- END: โค้ดที่แก้ไข ---
+    
     return coreDiv;
 }
 

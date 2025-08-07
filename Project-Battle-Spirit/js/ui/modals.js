@@ -44,9 +44,10 @@ export function updateAllModals(gameState, myPlayerKey, callbacks) {
     const summonState = gameState.summoningState;
     const coreRemovalState = gameState.coreRemovalConfirmationState;
     const targetingState = gameState.targetingState;
-     
+    const amIPaying = magicPaymentState.payingPlayer === myPlayerKey
+   
     // ลำดับ 1: Targeting Modal
-    if (targetingState.isTargeting && gameState.turn === myPlayerKey) {
+    if (targetingState.isTargeting && targetingState.targetPlayer === myPlayerKey) {
         modals.targetingOverlay.classList.add('visible');
 
         const effect = targetingState.forEffect;
@@ -75,11 +76,33 @@ export function updateAllModals(gameState, myPlayerKey, callbacks) {
             document.getElementById('effect-choice-title').textContent = `Choose Effect for ${choiceState.card.name}`;
         }
     }
+    // ลำดับ 6: Magic Payment Modal     
+    else if (magicPaymentState.isPaying && amIPaying) {
+        modals.magicPaymentOverlay.classList.add('visible');
+        if(magicPaymentState.cardToUse) {
+            document.getElementById('magic-payment-title').textContent = `Use Magic: ${magicPaymentState.cardToUse.name}`;
+            document.getElementById('magic-payment-cost-value').textContent = magicPaymentState.costToPay;
+            document.getElementById('magic-payment-selected-value').textContent = magicPaymentState.selectedCores.length;
+            document.getElementById('confirm-magic-btn').disabled = magicPaymentState.selectedCores.length < magicPaymentState.costToPay;
+        }
+    }
+
     // ลำดับ 3: Flash Modal
-    else if (flashState.isActive && flashState.priority === myPlayerKey) {
+    
+    // else if (flashState.isActive && flashState.priority === myPlayerKey) {
+    //     modals.flashOverlay.classList.add('visible');
+    //     document.getElementById('flash-title').textContent = `Flash Timing (${flashState.priority}'s Priority)`;
+    // }
+
+    else if (flashState.isActive && flashState.priority === myPlayerKey &&
+             !magicPaymentState.isPaying && 
+             !targetingState.isTargeting &&
+             !choiceState.isChoosing) {
         modals.flashOverlay.classList.add('visible');
         document.getElementById('flash-title').textContent = `Flash Timing (${flashState.priority}'s Priority)`;
     }
+
+
     // ลำดับ 4: Defense Modal
     else if (attackState.isAttacking && attackState.defender === myPlayerKey && !flashState.isActive) {
         modals.defenseOverlay.classList.add('visible');
@@ -101,16 +124,7 @@ export function updateAllModals(gameState, myPlayerKey, callbacks) {
             confirmBtn.disabled = (targetCard.type === 'Spirit' && targetCard.cores.length === 0);
         }
     }
-    // ลำดับ 6: Magic Payment Modal
-    else if (magicPaymentState.isPaying && gameState.turn === myPlayerKey) {
-        modals.magicPaymentOverlay.classList.add('visible');
-        if(magicPaymentState.cardToUse) {
-            document.getElementById('magic-payment-title').textContent = `Use Magic: ${magicPaymentState.cardToUse.name}`;
-            document.getElementById('magic-payment-cost-value').textContent = magicPaymentState.costToPay;
-            document.getElementById('magic-payment-selected-value').textContent = magicPaymentState.selectedCores.length;
-            document.getElementById('confirm-magic-btn').disabled = magicPaymentState.selectedCores.length < magicPaymentState.costToPay;
-        }
-    }
+
     // ลำดับ 7: Summon Payment Modal
     else if (summonState.isSummoning && gameState.turn === myPlayerKey) {
         modals.summonPaymentOverlay.classList.add('visible');

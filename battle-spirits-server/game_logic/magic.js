@@ -49,12 +49,15 @@ function initiateMagicPayment(gameState, playerKey, payload) {
 
     gameState.magicPaymentState = {
         isPaying: true,
+        payingPlayer: playerKey,
         cardToUse: cardToUse,
         costToPay: finalCost,
         selectedCores: [],
         timing: timing, // ใช้ timing ที่ส่งมา
         effectToUse: effectToUse // ใช้เอฟเฟกต์ที่หาเจอ
     };
+
+    console.log(`[SERVER LOG] Initiating magic payment for ${playerKey} to use ${cardToUse.name}`);
     return gameState;
 }
 
@@ -123,9 +126,21 @@ function confirmMagicPayment(gameState, playerKey) {
                 isTargeting: true, 
                 forEffect: effectToUse, 
                 cardSourceUid: cardToUse.uid, // ส่งข้อมูลการ์ดต้นทางไปด้วย
+                targetPlayer: playerKey,
                 selectedTargets: []
             };
             break;
+    }
+
+    // หลังจากใช้ Magic เสร็จแล้ว ให้สลับ Priority ในช่วง Flash Timing
+    if (gameState.flashState.isActive) {
+        const otherPlayer = playerKey === 'player1' ? 'player2' : 'player1';
+        gameState.flashState.priority = otherPlayer;
+        
+        // รีเซ็ตสถานะ "Pass" ของผู้เล่นที่เพิ่งใช้การ์ดไป
+        gameState.flashState.hasPassed[playerKey] = false;
+
+        console.log(`[SERVER LOG] Magic used. Flash priority passed to ${otherPlayer}`);
     }
 
     // Move used magic card to trash
