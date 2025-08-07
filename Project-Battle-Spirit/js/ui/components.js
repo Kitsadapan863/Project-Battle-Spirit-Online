@@ -75,7 +75,9 @@ export function createCardElement(cardData, location, owner, gameState, myPlayer
             if (cardData.type === 'Spirit' || cardData.type === 'Nexus') {
                 cardDiv.classList.add('can-summon');
             }
-            if (cardData.type === 'Magic' && cardData.effects?.some(e => e.timing === 'main')) {
+            console.log("effects1:", cardData.effects)
+            if (cardData.type === 'Magic' && cardData.effects?.some(e => e.timing === 'main' || e.timing === 'flash' )) {
+                console.log("effects2:", cardData.effects)
                 cardDiv.classList.add('can-main');
             }
         }

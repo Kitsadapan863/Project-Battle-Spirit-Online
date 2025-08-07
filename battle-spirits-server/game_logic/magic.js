@@ -19,22 +19,28 @@ function initiateMagicPayment(gameState, playerKey, payload) {
     // --- START: แก้ไข Logic การค้นหาเอฟเฟกต์ ---
     const mainEffect = cardToUse.effects.find(e => e.timing === 'main');
     const flashEffect = cardToUse.effects.find(e => e.timing === 'flash');
+    let effectToUse = null;
 
     // ถ้าเป็น Main Step และการ์ดมีทั้ง Main และ Flash effect
-    if (timing === 'main' && mainEffect && flashEffect) {
-        console.log(`[MAGIC LOG] Card ${cardToUse.name} has multiple effects. Awaiting player choice.`);
-        // เข้าสู่สถานะให้ผู้เล่นเลือก
-        gameState.effectChoiceState = {
-            isChoosing: true,
-            card: cardToUse
-        };
-        return gameState; // หยุดและรอให้ผู้เล่นเลือก
+    if (timing === 'main') {
+        // กรณีที่ 1: การ์ดมีทั้ง Main และ Flash -> ให้ผู้เล่นเลือก
+        if (mainEffect && flashEffect) {
+            console.log(`[MAGIC LOG] Card ${cardToUse.name} has multiple effects. Awaiting player choice.`);
+            gameState.effectChoiceState = { isChoosing: true, card: cardToUse };
+            return gameState; // หยุดและรอให้ผู้เล่นเลือก
+        }
+        // กรณีที่ 2: ถ้าไม่ใช่กรณีที่ต้องเลือก ให้ใช้ Main ก่อน ถ้าไม่มีก็ใช้ Flash
+        effectToUse = mainEffect || flashEffect; 
+    } else { // timing === 'flash'
+        // กรณีที่ 3: ใน Flash Timing ใช้ได้แค่ Flash เท่านั้น
+        effectToUse = flashEffect;
     }
     
-    // ถ้ามีแค่เอฟเฟกต์เดียวที่ตรงกับ timing หรือไม่ใช่กรณีที่เลือกได้
-    const effectToUse = cardToUse.effects.find(e => e.timing === timing);
-    if (!effectToUse) return gameState;
-    // --- END: แก้ไข Logic ---
+    // ถ้าหาเอฟเฟกต์ที่ใช้งานได้ไม่เจอ ให้หยุดทำงาน
+    if (!effectToUse) {
+        console.log(`[MAGIC LOG] No valid effect found for ${cardToUse.name} at timing: ${timing}`);
+        return gameState;
+    }
     
     const finalCost = calculateCost(cardToUse, playerKey, gameState);
     // ... (check if enough cores) ...
@@ -57,7 +63,23 @@ function confirmMagicPayment(gameState, playerKey) {
     const currentPlayer = gameState[playerKey];
     const opponentPlayerKey = playerKey === 'player1' ? 'player2' : 'player1';
 
-    // ... (Logic to move selected cores to trash) ...
+    for (const coreInfo of selectedCores) {
+        let sourceArray;
+        if (coreInfo.from === 'reserve') {
+            sourceArray = currentPlayer.reserve;
+        } else {
+            const sourceCard = currentPlayer.field.find(s => s.uid === coreInfo.spiritUid);
+            sourceArray = sourceCard ? sourceCard.cores : undefined;
+        }
+
+        if (sourceArray) {
+            const coreIndex = sourceArray.findIndex(c => c.id === coreInfo.coreId);
+            if (coreIndex > -1) {
+                const [paidCore] = sourceArray.splice(coreIndex, 1);
+                currentPlayer.costTrash.push(paidCore);
+            }
+        }
+    }
 
     gameState = cleanupField(gameState);
     

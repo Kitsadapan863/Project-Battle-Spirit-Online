@@ -307,6 +307,42 @@ module.exports.opponentCards  = [
             { timing: 'flash', description: 'End the Attack Step.' }
         ],
     },
+        {
+        id: 'magic-ice-age-shield',
+        name: 'Ice Age Shield',
+        image: './images/Ice Age Shield.webp',
+        cost: 2,
+        symbol_cost:{"white":1},
+        type: 'Magic',
+        color: 'white',
+        effects: [
+            { timing: 'flash', description: 'End the Attack Step.' }
+        ],
+    },
+        {
+        id: 'magic-ice-age-shield',
+        name: 'Ice Age Shield',
+        image: './images/Ice Age Shield.webp',
+        cost: 2,
+        symbol_cost:{"white":1},
+        type: 'Magic',
+        color: 'white',
+        effects: [
+            { timing: 'flash', description: 'End the Attack Step.' }
+        ],
+    },
+        {
+        id: 'magic-ice-age-shield',
+        name: 'Ice Age Shield',
+        image: './images/Ice Age Shield.webp',
+        cost: 2,
+        symbol_cost:{"white":1},
+        type: 'Magic',
+        color: 'white',
+        effects: [
+            { timing: 'flash', description: 'End the Attack Step.' }
+        ],
+    },
     {
         id: 'magic-brave-draw',
         name: 'Brave Draw',

@@ -1,6 +1,6 @@
 // game_logic/battle.js
 const { getSpiritLevelAndBP, calculateTotalSymbols, getCardLevel } = require('./utils.js');
-// const { resolveTriggeredEffects } = require('./effects.js'); // Note: This will be the next file to create
+const { resolveTriggeredEffects } = require('./effects.js'); // Note: This will be the next file to create
 const { destroyCard } = require('./card.js');
 const { checkGameOver } = require('./gameLoop.js');
 
@@ -39,7 +39,7 @@ function declareAttack(gameState, playerKey, payload) {
     attacker.isExhausted = true;
     gameState.attackState = { isAttacking: true, attackerUid, defender: defenderPlayerKey, blockerUid: null, isClash: false };
     
-    // gameState = resolveTriggeredEffects(gameState, attacker, 'whenAttacks', playerKey);
+    gameState = resolveTriggeredEffects(gameState, attacker, 'whenAttacks', playerKey);
 
     if (!gameState.deckDiscardViewerState.isActive) {
         gameState = enterFlashTiming(gameState, 'beforeBlock');

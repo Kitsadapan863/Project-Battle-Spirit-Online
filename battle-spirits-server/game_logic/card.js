@@ -133,12 +133,33 @@ function confirmDiscard(gameState, playerKey) {
     
     return gameState;
 }
+
+function initiateDeckDiscard(gameState, targetPlayerKey, count) {
+    const targetPlayer = gameState[targetPlayerKey];
+    if (targetPlayer.deck.length === 0) return { discardedCards: [], updatedGameState: gameState };
+
+    const actualCount = Math.min(count, targetPlayer.deck.length);
+    const discardedCards = targetPlayer.deck.splice(0, actualCount);
+
+    console.log(`[DECK DISCARD] Discarding ${actualCount} cards from ${targetPlayerKey}'s deck.`);
+
+    // เข้าสู่สถานะให้ Client แสดง Modal
+    gameState.deckDiscardViewerState = {
+        isActive: true,
+        cards: discardedCards,
+        owner: targetPlayerKey
+    };
+    
+    return { discardedCards, updatedGameState: gameState };
+}
+
 module.exports = {
     drawCard,
     destroyCard,
     cleanupField,
     confirmDeckDiscard,
     selectCardForDiscard,
-    confirmDiscard
+    confirmDiscard,
+    initiateDeckDiscard
     // เราจะเพิ่มฟังก์ชันอื่นๆ ที่นี่
 };

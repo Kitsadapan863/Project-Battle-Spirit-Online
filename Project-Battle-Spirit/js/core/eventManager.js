@@ -258,6 +258,12 @@ export function setupInitialEventListeners(sendActionToServer, dom, callbacks) {
     dom.closeOpponentTrashViewerBtn.addEventListener('click', () => {
         dom.opponentCardTrashModal.classList.remove('visible');
     });
+    // Listeners for deck discard
+    dom.confirmDeckDiscardBtn.addEventListener('click', () => {
+        console.log('[CLIENT] Deck Discard OK clicked. Sending CONFIRM_DECK_DISCARD...');
+        sendActionToServer({ type: 'CONFIRM_DECK_DISCARD' });
+    });
+
     // Listeners for Magic
      document.getElementById('confirm-magic-btn').addEventListener('click', (e) => {
         if (!e.target.disabled) {
