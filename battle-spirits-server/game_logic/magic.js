@@ -130,6 +130,13 @@ function confirmMagicPayment(gameState, playerKey) {
                 selectedTargets: []
             };
             break;
+        case 'core charge':
+            console.log(`[EFFECT LOG] Applying turn-long buff: ${effectToUse.buff_type}`);
+            currentPlayer.tempBuffs.push({
+                type: effectToUse.buff_type, // 'core_on_crush_attack'
+                sourceCardName: cardToUse.name
+            });
+            break;
     }
 
     // หลังจากใช้ Magic เสร็จแล้ว ให้สลับ Priority ในช่วง Flash Timing
@@ -174,6 +181,7 @@ function chooseMagicEffect(gameState, playerKey, payload) {
     const finalCost = calculateCost(card, playerKey, gameState);
     gameState.magicPaymentState = {
         isPaying: true,
+        payingPlayer: playerKey,
         cardToUse: card,
         costToPay: finalCost,
         selectedCores: [],

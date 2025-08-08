@@ -141,7 +141,7 @@ export function updateUI(gameState, myPlayerKey, dom, callbacks, clientState) {
         dom.playerSpiritsContainer.querySelectorAll('.card').forEach(c => c.classList.remove('can-be-core-target'));
     }
 
-        // Update Card Trash Previews
+    // Update Card Trash Previews
     const playerTrashImageDiv = dom.playerCardTrashZone.querySelector('.latest-card-image');
     if (myState.cardTrash.length > 0) {
         const latestPlayerCard = myState.cardTrash[myState.cardTrash.length - 1];

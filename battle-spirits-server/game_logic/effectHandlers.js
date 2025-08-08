@@ -77,9 +77,18 @@ function applyCrush(gameState, card, cardLevel, ownerKey) {
             const discardedSpiritCount = discardedCards.filter(c => c.type === 'Spirit').length;
             if (discardedSpiritCount > 0) {
                 const totalPowerUp = discardedSpiritCount * powerUpEffect.power;
-                applyPowerUp(card.uid, totalPowerUp, powerUpEffect.duration, gameState);
+                // applyPowerUp(card.uid, totalPowerUp, powerUpEffect.duration, gameState);
+                gameState = applyPowerUp(gameState, card.uid, totalPowerUp, powerUpEffect.duration);
             }
         }
+    }
+
+    // ตรวจสอบบัฟ 'core_on_crush_attack' จาก Blitz
+    const coreChargeBuff = gameState[ownerKey].tempBuffs.find(buff => buff.type === 'core_on_crush_attack');
+    if (coreChargeBuff) {
+        console.log(`[EFFECT LOG] Blitz effect triggered! Gained 1 core.`);
+        // เพิ่ม 1 Core ไปที่ Cost Trash (ตามกฎของเกมที่จะกลับมาใช้ได้ใน Refresh Step หน้า)
+        gameState[ownerKey].costTrash.push({ id: `core-from-blitz-${Date.now()}` });
     }
     
     if (discardedCards.length > 0) {

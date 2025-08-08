@@ -25,6 +25,7 @@ function getCardLevel(card) {
 /**
  * คำนวณเลเวลและ BP ของ Spirit โดยรวมบัฟชั่วคราวและเอฟเฟกต์จาก Nexus
  */
+// --- นำโค้ดนี้ไปทับฟังก์ชันเดิมทั้งหมด ---
 function getSpiritLevelAndBP(spiritCard, ownerKey, gameState) {
     if (!spiritCard || !spiritCard.cores || !spiritCard.level) return { level: 0, bp: 0, isBuffed: false };
     
@@ -32,6 +33,7 @@ function getSpiritLevelAndBP(spiritCard, ownerKey, gameState) {
     let currentBP = 0;
     let isBuffed = false;
 
+    // ตรวจสอบ Effect "force_max_level_on_crush"
     if (gameState?.turn === ownerKey && gameState.phase === 'attack') {
         const spiritHasCrush = spiritCard.effects?.some(e => e.keyword === 'crush');
         if (spiritHasCrush) {
@@ -55,6 +57,7 @@ function getSpiritLevelAndBP(spiritCard, ownerKey, gameState) {
         currentBP = spiritCard.level[`level-${level}`].bp || 0;
     }
     
+    // ตรวจสอบ Nexus อื่นๆ ที่บวก BP ในช่วง Attack Step (ถ้ามี)
     if (gameState?.turn === ownerKey && gameState.phase === 'attack') {
         gameState[ownerKey].field.forEach(card => {
             if (card.type === 'Nexus' && card.effects) {
@@ -69,6 +72,7 @@ function getSpiritLevelAndBP(spiritCard, ownerKey, gameState) {
         });
     }
     
+    // ตรวจสอบบัฟชั่วคราว (tempBuffs)
     if (spiritCard.tempBuffs?.length > 0) {
         spiritCard.tempBuffs.forEach(buff => {
             if (buff.type === 'BP') {
@@ -80,7 +84,6 @@ function getSpiritLevelAndBP(spiritCard, ownerKey, gameState) {
     
     return { level: level, bp: currentBP, isBuffed: isBuffed };
 }
-
 /**
  * คำนวณค่าร่ายสุทธิของ Spirit หรือ Magic หลังหักลดจากสัญลักษณ์บนสนาม
  */

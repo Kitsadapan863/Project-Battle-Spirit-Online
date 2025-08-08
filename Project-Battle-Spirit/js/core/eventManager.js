@@ -31,128 +31,112 @@ export function getClientState() {
 export function setupInitialEventListeners(sendActionToServer, dom, callbacks) {
     const gameBoard = document.querySelector('.game-board');
 
-    gameBoard.addEventListener('click', (event) => {
-        const targetEl = event.target;
-        const cardEl = targetEl.closest('.card');
-        const coreEl = targetEl.closest('.core');
-        const reserveEl = targetEl.closest('#player-reserve-zone');
+gameBoard.addEventListener('click', (event) => {
+    const targetEl = event.target;
+    const cardEl = targetEl.closest('.card');
+    const coreEl = targetEl.closest('.core');
+    const reserveEl = targetEl.closest('#player-reserve-zone');
 
-        const myPlayerKey = callbacks.getMyPlayerKey();
-        if (!localGameState || !myPlayerKey) return; // ป้องกัน Error ตอนเริ่มเกม
+    const myPlayerKey = callbacks.getMyPlayerKey();
+    if (!localGameState || !myPlayerKey) return;
 
-        const isMyTurn = localGameState.turn === myPlayerKey;
-        const isMainPhase = localGameState.phase === 'main';
+    const isMyTurn = localGameState.turn === myPlayerKey;
+    const isMainPhase = localGameState.phase === 'main';
 
-        // --- START: ย้ายการประกาศตัวแปรทั้งหมดมาไว้ที่นี่ ---
-        const isPayingForSummon = localGameState.summoningState?.isSummoning;
-        const isPayingForMagic = localGameState.magicPaymentState?.isPaying;
-        const isPlacingCores = localGameState.placementState?.isPlacing;
-        const isActionBlocked = isPayingForSummon || isPlacingCores || isPayingForMagic;
-        // --- START: แก้ไข Logic การคลิก Core ---
+    const isPayingForSummon = localGameState.summoningState?.isSummoning;
+    const isPayingForMagic = localGameState.magicPaymentState?.isPaying;
+    const isPlacingCores = localGameState.placementState?.isPlacing;
+    const isActionBlocked = isPayingForSummon || isPlacingCores || isPayingForMagic;
 
-        if (coreEl) {
-            if (isMyTurn && (isPayingForSummon || isPayingForMagic) && coreEl.classList.contains('selectable-for-payment')) {
-                // Logic สำหรับจ่ายค่าร่าย (ใช้ได้ทั้ง Summon และ Magic)
-                const spiritCardEl = coreEl.closest('.card');
-                const payload = {
-                    coreId: coreEl.id,
-                    from: spiritCardEl ? 'card' : 'reserve',
-                    spiritUid: spiritCardEl ? spiritCardEl.id : null,
-                };
-                sendActionToServer({ type: 'SELECT_CORE_FOR_PAYMENT', payload: payload });
-                return;
-            }  else if (isMyTurn && isPlacingCores && coreEl.classList.contains('selectable-for-placement')) {
-                // Logic สำหรับวาง Core หลัง Summon
-                const fromCardEl = coreEl.closest('.card');
-                const payload = {
-                    coreId: coreEl.id,
-                    from: fromCardEl ? 'card' : 'reserve',
-                    sourceCardUid: fromCardEl ? fromCardEl.id : null,
-                    targetCardUid: localGameState.placementState.targetSpiritUid
-                };
-                sendActionToServer({ type: 'MOVE_CORE', payload: payload });
-                return;
-            }
-            // เพิ่ม Logic การย้าย Core ใน Main Step ที่นี่ (ถ้าต้องการ)
-                    // --- Logic การย้าย Core ใน Main Step ---
+    // --- ลำดับที่ 1: ตรวจสอบก่อนว่ากำลังจะ "วาง" Core ที่เลือกไว้หรือไม่ ---
+    // นี่คือ Logic ของการคลิกครั้งที่ 2
+    if (isMyTurn && isMainPhase && !isActionBlocked && clientState.selectedCoreForMove) {
+        const targetUid = cardEl ? cardEl.id : (reserveEl ? 'reserve' : null);
+
+        if (targetUid) {
+            const payload = {
+                coreId: clientState.selectedCoreForMove.coreId,
+                from: clientState.selectedCoreForMove.from,
+                sourceCardUid: clientState.selectedCoreForMove.sourceCardUid,
+                targetCardUid: targetUid !== 'reserve' ? targetUid : null
+            };
+            sendActionToServer({ type: 'MOVE_CORE', payload });
+        }
+
+        clientState.selectedCoreForMove = null;
+        forceUIRender();
+        return; // **สำคัญ:** หยุดการทำงานทันที
+    }
+
+    // --- ลำดับที่ 2: ถ้าไม่ได้กำลังจะวาง Core, ให้ตรวจสอบการคลิกบน Core โดยตรง ---
+    if (coreEl) {
+        // Logic สำหรับจ่ายค่าร่าย (Summon/Magic)
+        if (isMyTurn && (isPayingForSummon || isPayingForMagic) && coreEl.classList.contains('selectable-for-payment')) {
+            const spiritCardEl = coreEl.closest('.card');
+            const payload = {
+                coreId: coreEl.id,
+                from: spiritCardEl ? 'card' : 'reserve',
+                spiritUid: spiritCardEl ? spiritCardEl.id : null,
+            };
+            sendActionToServer({ type: 'SELECT_CORE_FOR_PAYMENT', payload: payload });
+            return;
+        }
+        // Logic สำหรับวาง Core หลัง Summon (Placement Phase)
+        if (isMyTurn && isPlacingCores && coreEl.classList.contains('selectable-for-placement')) {
+            const fromCardEl = coreEl.closest('.card');
+            const payload = {
+                coreId: coreEl.id,
+                from: fromCardEl ? 'card' : 'reserve',
+                sourceCardUid: fromCardEl ? fromCardEl.id : null,
+                targetCardUid: localGameState.placementState.targetSpiritUid
+            };
+            sendActionToServer({ type: 'MOVE_CORE', payload: payload });
+            return;
+        }
+
+        // Logic สำหรับ "เลือก" Core เพื่อย้าย (คลิกครั้งที่ 1)
         if (isMyTurn && isMainPhase && !isActionBlocked) {
-            if (clientState.selectedCoreForMove) {
-                // --- คลิกครั้งที่ 2 (เลือกเป้าหมาย) ---
-                const targetUid = cardEl ? cardEl.id : (reserveEl ? 'reserve' : null);
-
-                if (targetUid) {
-                    const payload = {
-                        coreId: clientState.selectedCoreForMove.coreId,
-                        from: clientState.selectedCoreForMove.from,
-                        sourceCardUid: clientState.selectedCoreForMove.sourceCardUid,
-                        targetCardUid: targetUid !== 'reserve' ? targetUid : null
-                    };
-                    sendActionToServer({ type: 'MOVE_CORE', payload });
-                }
-                
-                // ไม่ว่าจะสำเร็จหรือไม่ ให้ยกเลิกการเลือกเสมอ
-                clientState.selectedCoreForMove = null;
-                forceUIRender(); // Re-render เพื่อลบ highlight
-                return;
-
-            } else if (coreEl) {
-                // --- คลิกครั้งที่ 1 (เลือก Core ต้นทาง) ---
-                const fromCardEl = coreEl.closest('.card');
-                clientState.selectedCoreForMove = {
-                    coreId: coreEl.id,
-                    from: fromCardEl ? 'card' : 'reserve',
-                    sourceCardUid: fromCardEl ? fromCardEl.id : null
-                };
-                forceUIRender(); // Re-render เพื่อแสดง highlight
-                return;
-            }
+            const fromCardEl = coreEl.closest('.card');
+            clientState.selectedCoreForMove = {
+                coreId: coreEl.id,
+                from: fromCardEl ? 'card' : 'reserve',
+                sourceCardUid: fromCardEl ? fromCardEl.id : null
+            };
+            forceUIRender();
+            return; // **สำคัญ:** หยุดการทำงาน
         }
-        }
+    }
+
+    // --- ลำดับที่ 3: ถ้าไม่ใช่การทำงานเกี่ยวกับ Core, ให้ตรวจสอบการคลิกบน Card ---
+    if (cardEl) {
+        const cardId = cardEl.id;
         
-        if (cardEl) {
-            const cardId = cardEl.id;
-            if (cardEl.closest('#player-hand')) {
-                const discardState = localGameState.discardState;
-                // --- START: เพิ่มเงื่อนไขนี้ ---
-                if (discardState.isDiscarding && discardState.playerKey === myPlayerKey && cardEl.classList.contains('can-discard')) {
-                    console.log(`[CLIENT] Card selected for discard: ${cardId}`);
-                    sendActionToServer({ type: 'SELECT_CARD_FOR_DISCARD', payload: { cardUid: cardId } });
-                    return; // หยุดการทำงานทันที
-                }
-                // Logic สำหรับการ์ดบนมือ
+        if (cardEl.closest('#player-hand')) {
+            const discardState = localGameState.discardState;
+            if (discardState.isDiscarding && discardState.playerKey === myPlayerKey && cardEl.classList.contains('can-discard')) {
+                sendActionToServer({ type: 'SELECT_CARD_FOR_DISCARD', payload: { cardUid: cardId } });
+                return;
+            }
             if (cardEl.classList.contains('can-summon')) {
-                    console.log('%c[CLIENT] Card has .can-summon class. Sending INITIATE_SUMMON...', 'color: green;');
-                    sendActionToServer({ type: 'INITIATE_SUMMON', payload: { cardUid: cardId } });
-                } else if (cardEl.classList.contains('can-main')) {
-                    console.log('%c[CLIENT] Card has .can-main class. Sending INITIATE_MAGIC...', 'color: green;');
-                    // ส่ง Action ให้ Server เพื่อเริ่มกระบวนการใช้ Magic
-                    sendActionToServer({ type: 'INITIATE_MAGIC', payload: { cardUid: cardId, timing: 'main' } });
-                }else if (cardEl.classList.contains('can-flash')) {
-                    console.log('%c[CLIENT] Card has .can-flash class. Sending INITIATE_MAGIC for flash...', 'color: gold;');
-                    // ส่ง timing: 'flash' ไปให้ Server รู้ว่าเราจะใช้ Flash Effect
-                    sendActionToServer({ type: 'INITIATE_MAGIC', payload: { cardUid: cardId, timing: 'flash' } });
-                }else {
-                    console.error('[CLIENT] Card clicked in hand, but has no actionable class.');
-                }
-
-            } else if (cardEl.closest('#player-field') || cardEl.closest('#opponent-field')) { 
-                if (localGameState.targetingState?.isTargeting && cardEl.classList.contains('can-be-targeted')) {
-                    console.log(`[CLIENT] Target selected: ${cardId}`);
-                    sendActionToServer({ type: 'SELECT_TARGET', payload: { targetUid: cardId } });
-                    return;
-                }
-                // Logic สำหรับการ์ดบนสนาม
-                if (cardEl.classList.contains('can-attack')) {
-                    console.log(`[CLIENT] Attacking with ${cardId}. Sending DECLARE_ATTACK...`);
-                    sendActionToServer({ type: 'DECLARE_ATTACK', payload: { attackerUid: cardId } });
-                }else if (cardEl.classList.contains('can-block')) {
-                    console.log(`[CLIENT] Blocking with ${cardId}. Sending DECLARE_BLOCK...`);
-                    sendActionToServer({ type: 'DECLARE_BLOCK', payload: { blockerUid: cardId } });
-                }
-   
+                sendActionToServer({ type: 'INITIATE_SUMMON', payload: { cardUid: cardId } });
+            } else if (cardEl.classList.contains('can-main')) {
+                sendActionToServer({ type: 'INITIATE_MAGIC', payload: { cardUid: cardId, timing: 'main' } });
+            } else if (cardEl.classList.contains('can-flash')) {
+                sendActionToServer({ type: 'INITIATE_MAGIC', payload: { cardUid: cardId, timing: 'flash' } });
+            }
+        } else if (cardEl.closest('#player-field') || cardEl.closest('#opponent-field')) {
+            if (localGameState.targetingState?.isTargeting && cardEl.classList.contains('can-be-targeted')) {
+                sendActionToServer({ type: 'SELECT_TARGET', payload: { targetUid: cardId } });
+                return;
+            }
+            if (cardEl.classList.contains('can-attack')) {
+                sendActionToServer({ type: 'DECLARE_ATTACK', payload: { attackerUid: cardId } });
+            } else if (cardEl.classList.contains('can-block')) {
+                sendActionToServer({ type: 'DECLARE_BLOCK', payload: { blockerUid: cardId } });
             }
         }
-    });
+    }
+});
 
     // เปลี่ยนจาก gameBoard เป็น document
    document.addEventListener('mouseover', (event) => {

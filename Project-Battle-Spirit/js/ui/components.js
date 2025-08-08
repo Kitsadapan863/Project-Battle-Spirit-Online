@@ -153,7 +153,7 @@ export function createCardElement(cardData, location, owner, gameState, myPlayer
     return cardDiv;
 }
 
-export function createCoreElement(coreData, locationInfo, gameState, myPlayerKey) {
+export function createCoreElement(coreData, locationInfo, gameState, myPlayerKey, clientState) {
     const coreDiv = document.createElement('div');
     coreDiv.className = 'core';
     coreDiv.id = coreData.id;
@@ -184,7 +184,13 @@ export function createCoreElement(coreData, locationInfo, gameState, myPlayerKey
             coreDiv.classList.add('selectable-for-placement');
         }
     }
-    // --- END: โค้ดที่แก้ไข ---
+   
+    const isMainPhase = gameState.phase === 'main';
+    
+    if (isMyTurn && isMainPhase && clientState?.selectedCoreForMove?.coreId === coreData.id) {
+        coreDiv.classList.add('selected-for-move');
+    }
+
     
     return coreDiv;
 }
