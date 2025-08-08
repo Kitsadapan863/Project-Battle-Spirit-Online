@@ -4,10 +4,27 @@ const { opponentCards } = require('./opponentDeck.js');
 
 let uniqueIdCounter = 0;
 
-const createDeck = (cards) => JSON.parse(JSON.stringify(cards))
-    .filter(Boolean)
-    .map(c => ({ ...c, uid: `card-${uniqueIdCounter++}`, cores: [], isExhausted: false, tempBuffs: [] }))
-    .sort(() => Math.random() - 0.5);
+const createDeck = (cardTemplates) => {
+    const deck = [];
+    JSON.parse(JSON.stringify(cardTemplates)) // สร้าง deep copy เพื่อไม่ให้กระทบ template หลัก
+        .filter(Boolean)
+        .forEach(template => {
+            const count = template.quantity || 1; // ถ้าไม่ได้ระบุ quantity ให้ถือว่าเป็น 1 ใบ
+            for (let i = 0; i < count; i++) {
+                // สร้างการ์ดแต่ละใบพร้อม UID ที่ไม่ซ้ำกัน
+                deck.push({
+                    ...template,
+                    uid: `card-${uniqueIdCounter++}`,
+                    cores: [],
+                    isExhausted: false,
+                    tempBuffs: []
+                });
+            }
+        });
+    
+    // สับเด็ค
+    return deck.sort(() => Math.random() - 0.5);
+};
 
 function createNewGame(player1Socket, player2Socket) {
     uniqueIdCounter = 0;

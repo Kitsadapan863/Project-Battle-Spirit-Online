@@ -130,6 +130,7 @@ function confirmMagicPayment(gameState, playerKey) {
                 selectedTargets: []
             };
             break;
+
         case 'core charge':
             console.log(`[EFFECT LOG] Applying turn-long buff: ${effectToUse.buff_type}`);
             currentPlayer.tempBuffs.push({
@@ -137,6 +138,33 @@ function confirmMagicPayment(gameState, playerKey) {
                 sourceCardName: cardToUse.name
             });
             break;
+
+        case 'deploy_from_trash':
+                const nexusesToDeploy = [];
+                const newCardTrash  = [];
+
+                // ค้นหา Nexus สีที่ถูกต้องในกองทิ้ง
+                // 1. วนลูปใน Card Trash ของผู้เล่นปัจจุบัน (currentPlayer)
+                currentPlayer.cardTrash.forEach(card => {
+                    if (card.type === 'Nexus' && effectToUse.targetColors.includes(card.color)) {
+                        // Reset ค่าเริ่มต้นของ Nexus ก่อนนำลงสนาม
+                        card.cores = [];
+                        card.isExhausted = false;
+                        nexusesToDeploy.push(card);
+                    } else {
+                        newCardTrash .push(card);
+                    }
+                });
+
+                if (nexusesToDeploy.length > 0) {
+                    console.log(`[Construction Effect] Deploying ${nexusesToDeploy.length} Nexuses from Trash.`);
+                    // นำ Nexus ที่พบไปวางบนสนาม
+                    currentPlayer.field.push(...nexusesToDeploy);
+                    // อัปเดตกองทิ้งโดยลบ Nexus ที่นำไปวางบนสนามออก
+                    currentPlayer.cardTrash = newCardTrash ;
+                }
+
+                break;
     }
 
     // หลังจากใช้ Magic เสร็จแล้ว ให้สลับ Priority ในช่วง Flash Timing
