@@ -992,3 +992,41 @@ body {
     box-shadow: 0 0 15px #00d2ff;
     animation: pulse-blue 1.5s infinite;
 }
+
+.rps-modal {
+    width: 400px;
+    border-color: #ffc107;
+}
+.rps-modal h3 {
+    color: #ffc107;
+}
+.rps-choices {
+    display: flex;
+    justify-content: center;
+    gap: 20px;
+    margin: 20px 0;
+}
+.rps-btn {
+    font-size: 3rem;
+    padding: 15px 25px;
+    border-radius: 15px;
+    border: 2px solid transparent;
+    background-color: rgba(255, 255, 255, 0.1);
+    color: white;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+.rps-btn:hover {
+    background-color: rgba(255, 255, 255, 0.2);
+    border-color: #ffc107;
+}
+.rps-btn.selected {
+    border-color: #00d2ff;
+    box-shadow: 0 0 15px #00d2ff;
+    transform: scale(1.1);
+}
+#rps-result {
+    font-size: 1.2rem;
+    font-weight: bold;
+    min-height: 25px;
+}

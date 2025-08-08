@@ -47,7 +47,7 @@ function startTurn(gameState, playerKey) {
     gameState.phase = 'start';
     
     gameState.phase = 'core';
-    if (gameState.gameTurn > 1 || playerKey === 'player2') {
+    if (gameState.gameTurn > 1) {
         gameState[playerKey].reserve.push({ id: `core-${playerKey}-${Date.now()}` });
     }
     
@@ -69,9 +69,9 @@ function advancePhase(gameState, playerKey) {
     }
 
     if (gameState.phase === 'main') {
-        // ถ้าเป็นเทิร์นที่ 1 และเป็นตาของผู้เล่น player1 (ผู้เล่นคนแรก)
+        // ถ้าเป็นเทิร์นที่ 1 
         console.log('[GAME LOOP] Turn:',gameState.gameTurn, "player:", playerKey);
-        if (gameState.gameTurn === 1 && playerKey === 'player1') {
+        if (gameState.gameTurn === 1) {
             console.log('[GAME LOOP] First player cannot attack on Turn 1. Ending turn.');
             gameState = endTurn(gameState); // ให้จบเทิร์นทันที
         } else {

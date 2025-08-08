@@ -40,8 +40,8 @@ wss.on('connection', (ws) => {
 
         console.log(`Game session ${session.sessionId} created for ${waitingPlayer.id} and ${ws.id}`);
         // หลังจากสร้างเกมเสร็จ ให้เริ่มเทิร์นแรกทันที
-        console.log("Starting first turn for player1...");
-        session.gameState = startTurn(session.gameState, 'player1');
+        // console.log("Starting first turn for player1...");
+        // session.gameState = startTurn(session.gameState, 'player1');
         broadcastGameState(session.sessionId);
         waitingPlayer = null;
     } else {
@@ -58,32 +58,40 @@ wss.on('connection', (ws) => {
 
             if (!session) return;
             
-            const isTurnCorrect = session.gameState.turn === playerKey;
-            const isFlashAction = session.gameState.flashState.isActive && session.gameState.flashState.priority === playerKey;
-            const canPerformAction = action.payload && session.gameState.attackState.defender === playerKey;
-            const allowedActions = ['PASS_FLASH', 'DECLARE_BLOCK', 'TAKE_LIFE_DAMAGE'];
+            const gameState = session.gameState;
+            
+            // --- START: โค้ดที่แก้ไขและสมบูรณ์ ---
+            const isRpsAction = action.type === 'CHOOSE_RPS' && gameState.rpsState.isActive;
 
-            if (!isTurnCorrect && !isFlashAction && !canPerformAction && !allowedActions.includes(action.type)) {
-                console.log(`Action from ${playerKey} rejected: Not their turn/priority.`);
-                return;
+            // ถ้าไม่ใช่ Action เป่ายิ้งฉุบ ให้ตรวจสอบเทิร์นตามปกติ
+            if (!isRpsAction) {
+                const isTurnCorrect = gameState.turn === playerKey;
+                const isFlashAction = gameState.flashState.isActive && gameState.flashState.priority === playerKey;
+                const isDefendingAction = gameState.attackState.isAttacking && gameState.attackState.defender === playerKey;
+
+                // อนุญาต Action ถ้า: เป็นเทิร์นของผู้เล่น, หรือมี Priority ใน Flash Time, หรือกำลังตั้งรับ
+                if (!isTurnCorrect && !isFlashAction && !isDefendingAction) {
+                     console.log(`Action from ${playerKey} rejected: Not their turn/priority.`);
+                     broadcastGameState(sessionId);
+                     return;
+                }
             }
+            // --- END: โค้ดที่แก้ไขและสมบูรณ์ ---
+
+            // ++ ลบ if statement เก่าที่ซ้ำซ้อนจากตรงนี้ออกไป ++
 
             console.log(`Received action from ${playerKey}:`, action.type);
             
-            // --- LOG DEBUG ---
             console.log(`\n--- [SERVER] Action from ${playerKey} ---`);
             console.log('Action Type:', action.type);
             console.log('Payload:', action.payload);
-            console.log(`Current Turn: ${session.gameState.turn}, Current Phase: ${session.gameState.phase}`);
+            console.log(`Current Turn: ${gameState.turn}, Current Phase: ${gameState.phase}`);
 
-            let updatedGameState = handleAction(session.gameState, playerKey, action);
+            let updatedGameState = handleAction(gameState, playerKey, action);
             
-        // เพิ่มการเรียก cleanupField หลังประมวลผล Action ทุกครั้ง
-        // เพิ่มเงื่อนไข !updatedGameState.placementState.isPlacing
-        // เพื่อไม่ให้ cleanupField ทำงานในระหว่างที่ผู้เล่นกำลังจะวาง Core
-        if (!updatedGameState.placementState.isPlacing) {
-            updatedGameState = cleanupField(updatedGameState);
-        }
+            if (!updatedGameState.placementState.isPlacing) {
+                updatedGameState = cleanupField(updatedGameState);
+            }
             
             session.gameState = updatedGameState;
             broadcastGameState(sessionId);

@@ -5,11 +5,15 @@ const { initiateSummon, selectCoreForPayment, cancelSummon, confirmSummon, selec
 const { initiateMagicPayment, confirmMagicPayment, cancelMagicPayment, chooseMagicEffect, cancelEffectChoice, applyTargetedEffect, selectTarget, confirmTargets  } = require('./magic');
 const { confirmDeckDiscard, confirmDiscard, selectCardForDiscard } = require('./card');
 const { confirmCoreRemoval, cancelCoreRemoval, moveCore } = require('./core');
+const {resolveRPS} = require('./pregame.js')
 
 function handleAction(gameState, playerKey, action) {
      // --- LOG DEBUG ---
     console.log(`[ACTION_HANDLER] Routing action: ${action.type}`);
     switch (action.type) {
+
+        case 'CHOOSE_RPS':
+            return resolveRPS(gameState, playerKey, action.payload.choice);
         // Game Loop & Battle
         case 'ADVANCE_PHASE': return advancePhase(gameState, playerKey);
         case 'END_TURN': return endTurn(gameState);

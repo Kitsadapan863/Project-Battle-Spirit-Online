@@ -219,6 +219,13 @@ gameBoard.addEventListener('click', (event) => {
         sendActionToServer({ type: 'CANCEL_CORE_REMOVAL' });
     });
 
+    document.getElementById('rps-choices').addEventListener('click', (e) => {
+        const choice = e.target.closest('.rps-btn')?.dataset.choice;
+        if (choice) {
+            sendActionToServer({ type: 'CHOOSE_RPS', payload: { choice } });
+        }
+    });
+
     // Event Listeners for Card Trash Modals
     dom.playerCardTrashZone.addEventListener('click', () => {
         dom.cardTrashViewerContainer.innerHTML = ''; // Clear previous cards

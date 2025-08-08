@@ -13,6 +13,7 @@ export function updateAllModals(gameState, myPlayerKey, callbacks) {
         targetingOverlay: document.getElementById('targeting-overlay'),
         effectChoiceModal: document.getElementById('effect-choice-modal'),
         gameOverModal: document.getElementById('game-over-modal'),
+        rpsModal: document.getElementById('rps-modal'), // << เพิ่ม
         deckDiscardViewerModal: document.getElementById('deck-discard-viewer-modal'),
     };
 
@@ -34,13 +35,39 @@ export function updateAllModals(gameState, myPlayerKey, callbacks) {
         summoningState,
         coreRemovalConfirmationState,
         targetingState,
-        deckDiscardViewerState
+        deckDiscardViewerState,
+        rpsState
     } = gameState;
 
     // --- เริ่มต้น if/else if chain ที่นี่ ---
+    if (rpsState.isActive) {
+        modals.rpsModal.classList.add('visible');
+        const myChoice = rpsState[myPlayerKey].choice;
+        const opponentKey = myPlayerKey === 'player1' ? 'player2' : 'player1';
+        const opponentChoice = rpsState[opponentKey].choice;
+        const resultText = document.getElementById('rps-result');
+        
+        // อัปเดต UI ปุ่มที่เลือก
+        document.querySelectorAll('.rps-btn').forEach(btn => {
+            btn.classList.remove('selected');
+            if (btn.dataset.choice === myChoice) {
+                btn.classList.add('selected');
+            }
+            // ทำให้กดไม่ได้ถ้าเลือกไปแล้ว
+            btn.disabled = !!myChoice;
+        });
 
+        if (myChoice && !opponentChoice) {
+            resultText.textContent = 'Waiting for opponent...';
+        } else if (!myChoice && opponentChoice) {
+            resultText.textContent = 'Opponent has chosen. Your turn!';
+        } else if (!myChoice && !opponentChoice) {
+            resultText.textContent = '';
+        }
+
+    }
     // ลำดับ 1 (สำคัญที่สุด): Deck Discard Viewer
-    if (deckDiscardViewerState.isActive) {
+    else if (deckDiscardViewerState.isActive) {
         modals.deckDiscardViewerModal.classList.add('visible');
         const container = document.getElementById('deck-discard-viewer-container');
         container.innerHTML = '';
@@ -101,13 +128,35 @@ export function updateAllModals(gameState, myPlayerKey, callbacks) {
     else if (flashState.isActive && flashState.priority === myPlayerKey) {
         modals.flashOverlay.classList.add('visible');
         document.getElementById('flash-title').textContent = `Flash Timing (${flashState.priority}'s Priority)`;
-    } else if (attackState.isAttacking && attackState.defender === myPlayerKey && !flashState.isActive) {
+    }else if (attackState.isAttacking && attackState.defender === myPlayerKey && !flashState.isActive) {
         modals.defenseOverlay.classList.add('visible');
         const attackerPlayerKey = myPlayerKey === 'player1' ? 'player2' : 'player1';
         const attacker = gameState[attackerPlayerKey]?.field.find(s => s.uid === attackState.attackerUid);
+        
         if (attacker) {
             const { bp } = getSpiritLevelAndBP(attacker, attackerPlayerKey, gameState);
             document.getElementById('defense-attacker-info').textContent = `Attacker: ${attacker.name} (BP: ${bp})`;
+        }
+
+        // ++ เพิ่ม Logic การตรวจสอบ Clash เข้ามาตรงนี้ ++
+        const takeDamageBtn = document.getElementById('take-damage-btn');
+        if (attackState.isClash) {
+            // หาว่ามี Spirit ที่สามารถ Block ได้หรือไม่ (คือ Spirit ที่ยังไม่ Exhausted)
+            const canBlock = gameState[myPlayerKey].field.some(s => s.type === 'Spirit' && !s.isExhausted);
+            
+            if (canBlock) {
+                // ถ้ามีตัวที่ Block ได้ ให้ปิดปุ่มรับดาเมจ
+                takeDamageBtn.disabled = true;
+                takeDamageBtn.textContent = 'Must Block!'; // (Optional) เปลี่ยนข้อความบนปุ่ม
+            } else {
+                // ถ้าไม่มีตัว Block เลย ก็เปิดให้กดรับดาเมจได้
+                takeDamageBtn.disabled = false;
+                takeDamageBtn.textContent = 'Take Life Damage';
+            }
+        } else {
+            // ถ้าไม่ใช่ Clash ก็ให้ปุ่มทำงานปกติ
+            takeDamageBtn.disabled = false;
+            takeDamageBtn.textContent = 'Take Life Damage';
         }
     }
 
