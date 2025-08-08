@@ -161,7 +161,7 @@ module.exports.opponentCards  = [
     {
         id: 'nexus-burning-canyon',
         name: 'The Burning Canyon',
-        quantity: 3,
+        quantity: 20,
         image: `${paths}/The Burning Canyon.webp`,
         cost: 3,
         symbol_cost: { "red": 2 },

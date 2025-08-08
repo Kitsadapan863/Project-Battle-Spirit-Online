@@ -71,6 +71,23 @@ function getSpiritLevelAndBP(spiritCard, ownerKey, gameState) {
             }
         });
     }
+
+
+    // ตรวจสอบ Nexus ที่บวก BP ในช่วง Attack Step (เช่น The Burning Canyon)
+    if (gameState?.turn === ownerKey && gameState.phase === 'attack') {
+        gameState[ownerKey].field.forEach(card => {
+            if (card.type === 'Nexus' && card.effects) {
+                const nexusLevel = getCardLevel(card).level;
+                card.effects.forEach(eff => {
+                    // เช็ค timing, level, และ keyword หรือ description ที่เกี่ยวข้อง
+                    if (eff.timing === 'duringBattle' && eff.level.includes(nexusLevel) && eff.keyword === 'power up') {
+                         currentBP += eff.power;
+                         isBuffed = true;
+                    }
+                });
+            }
+        });
+    }
     
     // ตรวจสอบบัฟชั่วคราว (tempBuffs)
     if (spiritCard.tempBuffs?.length > 0) {
