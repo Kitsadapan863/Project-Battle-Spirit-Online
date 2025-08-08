@@ -1,6 +1,6 @@
 // game_logic/effects.js
 const { getSpiritLevelAndBP } = require('./utils.js');
-const { applyCrush, applyClash, applyPowerUp, applyDiscard } = require('./effectHandlers.js');
+const { applyCrush, applyClash, applyPowerUp, applyDiscard, applyDrawAndDiscard  } = require('./effectHandlers.js');
 
 function resolveTriggeredEffects(gameState, card, timing, ownerKey) {
     if (!card.effects || card.effects.length === 0) return gameState;
@@ -23,6 +23,9 @@ function resolveTriggeredEffects(gameState, card, timing, ownerKey) {
                     break;
                 case 'discard':
                     gameState = applyDiscard(gameState, card, effect, ownerKey);
+                    break;
+                case 'draw':
+                    gameState = applyDrawAndDiscard(gameState, effect, ownerKey);
                     break;
             }
         }

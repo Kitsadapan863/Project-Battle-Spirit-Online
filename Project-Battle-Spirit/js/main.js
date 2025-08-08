@@ -12,6 +12,7 @@ document.addEventListener('DOMContentLoaded', () => {
     
     let localGameState = {};
     let myPlayerKey = null;
+    let previousGameState = {};
 
     // สร้าง object callbacks ที่จะส่งฟังก์ชันไปให้ส่วนต่างๆ
     const callbacks = {
@@ -37,6 +38,21 @@ document.addEventListener('DOMContentLoaded', () => {
         statusMessage.textContent = 'Connecting to server...';
     };
 
+    // ++ สร้างฟังก์ชันสำหรับหน่วงเวลา ++
+    const delay = (ms) => new Promise(res => setTimeout(res, ms));
+
+    // ++ สร้างฟังก์ชันสำหรับแสดง Animation การเริ่มเทิร์น ++
+    async function animateTurnStart(finalState) {
+        const phases = ['start', 'core', 'draw', 'refresh'];
+        for (const phase of phases) {
+            // สร้าง State จำลองสำหรับแต่ละเฟสแล้ววาด UI
+            updateUI({ ...finalState, phase: phase }, myPlayerKey, dom, callbacks, getClientState());
+            await delay(300); // หน่วงเวลา
+        }
+        // เมื่อ Animation จบ ให้วาด UI ด้วย State ที่ถูกต้องล่าสุด
+        updateUI(finalState, myPlayerKey, dom, callbacks, getClientState());
+    }
+
     ws.onmessage = (event) => {
         const message = JSON.parse(event.data);
 
@@ -57,11 +73,28 @@ document.addEventListener('DOMContentLoaded', () => {
             case 'GAME_STATE_UPDATE':
                 if (selectionScreen) selectionScreen.classList.add('hidden');
                 if (gameBoard) gameBoard.classList.remove('hidden');
-                localGameState = message.payload;
+                
+                const newState = message.payload;
                 myPlayerKey = message.yourPlayerKey;
-                updateLocalGameState(localGameState);
-                renderUI();
-                // updateUI(localGameState, myPlayerKey, dom, callbacks); 
+                
+                // --- START: Logic การตัดสินใจว่าจะแสดง Animation หรือไม่ ---
+                const isNewTurn = newState.gameTurn > (previousGameState.gameTurn || 0);
+                const isFirstTurnAfterRPS = newState.gameTurn === 1 && previousGameState.rpsState?.isActive === true && newState.rpsState?.isActive === false;
+
+                // จะแสดง Animation ก็ต่อเมื่อเป็นเทิร์นใหม่ และเฟสสุดท้ายคือ 'main'
+                if ((isNewTurn || isFirstTurnAfterRPS) && newState.phase === 'main') {
+                    // ไม่ต้องอัปเดต localGameState ทันที ให้ฟังก์ชัน animate จัดการ
+                    animateTurnStart(newState);
+                } else {
+                    // อัปเดต UI ตามปกติสำหรับการกระทำอื่นๆ กลางเทิร์น
+                    localGameState = newState;
+                    updateLocalGameState(localGameState);
+                    renderUI();
+                }
+                
+                // เก็บ State ปัจจุบัน (หลังจาก animation หรือ render) ไว้เปรียบเทียบครั้งหน้า
+                previousGameState = JSON.parse(JSON.stringify(newState));
+                // --- END: Logic การตัดสินใจ ---
                 break;
             case 'OPPONENT_DISCONNECTED':
                 alert('Your opponent has disconnected. The game has ended.');

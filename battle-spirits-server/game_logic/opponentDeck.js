@@ -161,7 +161,7 @@ module.exports.opponentCards  = [
     {
         id: 'nexus-burning-canyon',
         name: 'The Burning Canyon',
-        quantity: 1,
+        quantity: 3,
         image: `${paths}/The Burning Canyon.webp`,
         cost: 3,
         symbol_cost: { "red": 2 },
@@ -169,8 +169,8 @@ module.exports.opponentCards  = [
         type: 'Nexus',
         color: 'red',
         effects: [
-            { level: [1, 2], timing: 'onDrawStep', description: '[LV1][LV2] (Your Draw Step)\nDraw 1 card. Then, discard 1 card.' },
-            { level: [2], timing: 'duringBattle', description: '[LV2] (Your Attack Step)\nSpirits you control get +1000BP.' }
+            { level: [1, 2], timing: 'onDrawStep',keyword: 'draw', quantity: 1, discard:1, description: '[LV1][LV2] (Your Draw Step)\nDraw 1 card. Then, discard 1 card.' },
+            { level: [2], timing: 'duringBattle', keyword: 'power up', power: 1000, duration: 'attackStep', description: '[LV2] (Your Attack Step)\nSpirits you control get +1000BP.' }
         ],
         symbol: { "red": 1 },
     },

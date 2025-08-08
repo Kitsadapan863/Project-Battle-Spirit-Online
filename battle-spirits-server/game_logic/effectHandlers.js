@@ -1,6 +1,6 @@
 // game_logic/effectHandlers.js
 const { getCardLevel } = require('./utils.js');
-const { initiateDeckDiscard } = require('./card.js'); // We will add card discard logic later
+const { initiateDeckDiscard, drawCard } = require('./card.js'); // We will add card discard logic later
 
 function applyPowerUp(gameState, cardUid, power, duration) {
     const p1_key = 'player1';
@@ -155,9 +155,45 @@ function applyDiscard(gameState, card, effect, ownerKey) {
     return gameState;
 }
 
+
+/**
+ * จัดการเอฟเฟกต์ที่ให้จั่วการ์ด แล้วอาจจะมีการทิ้งการ์ดตามมา
+ */
+function applyDrawAndDiscard(gameState, effect, ownerKey) {
+    console.log(`[Effect Handler] Applying Draw effect for ${ownerKey}.`);
+    
+    // จั่วการ์ดตามจำนวนที่ระบุ (quantity)
+    const quantity = effect.quantity || 0;
+    for (let i = 0; i < quantity; i++) {
+        gameState = drawCard(gameState, ownerKey);
+    }
+
+    // ถ้ามีการระบุให้ทิ้งการ์ด (discard)
+    const discardCount = effect.discard || 0;
+    if (discardCount > 0) {
+        if (gameState.discardState.isDiscarding) {
+            // ถ้าอยู่ในสถานะทิ้งการ์ดอยู่แล้ว ให้บวกจำนวนเพิ่มเข้าไป
+            gameState.discardState.count += discardCount;
+            console.log(`[Effect Handler] Added ${discardCount} to discard count. Total is now ${gameState.discardState.count}.`);
+        } else {
+            // ถ้ายังไม่ได้อยู่ในสถานะทิ้งการ์ด ให้สร้างใหม่
+            console.log(`[Effect Handler] Entering discard state for ${ownerKey}. Need to discard ${discardCount} card(s).`);
+            gameState.discardState = {
+                isDiscarding: true,
+                count: discardCount,
+                cardsToDiscard: [],
+                playerKey: ownerKey
+            };
+        }
+    }
+
+    return gameState;
+}
+
 module.exports = { 
     applyCrush, 
     applyClash, 
     applyPowerUp, 
-    applyDiscard 
+    applyDiscard,
+    applyDrawAndDiscard
 };

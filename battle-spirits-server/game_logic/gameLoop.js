@@ -1,10 +1,11 @@
 // game_logic/gameLoop.js
 const { drawCard } = require('./card.js');
+const { resolveTriggeredEffects } = require('./effects.js');
 
 function performRefreshStep(gameState, playerKey) {
     const player = gameState[playerKey];
     player.field.forEach(card => {
-        if (card.type === 'Spirit') {
+        if (card.type === 'Spirit' || card.type === 'Nexus') {
             card.isExhausted = false;
         }
     });
@@ -52,8 +53,17 @@ function startTurn(gameState, playerKey) {
     }
     
     gameState.phase = 'draw';
+    // 1. จั่วการ์ดตามปกติ
     gameState = drawCard(gameState, playerKey);
     gameState = checkGameOver(gameState);
+    
+    // ++ 2. เพิ่ม Logic ตรวจสอบเอฟเฟกต์ 'onDrawStep' ++
+    // วนลูปการ์ดทุกใบบนสนามของผู้เล่นปัจจุบัน
+    const playerField = [...gameState[playerKey].field]; // สร้างสำเนาเพื่อความปลอดภัย
+    playerField.forEach(card => {
+        // เรียกใช้ฟังก์ชันกลางเพื่อตรวจสอบและทำงานตามเอฟเฟกต์
+        gameState = resolveTriggeredEffects(gameState, card, 'onDrawStep', playerKey);
+    });
     
     gameState.phase = 'refresh';
     gameState = performRefreshStep(gameState, playerKey);
