@@ -88,6 +88,16 @@ function getSpiritLevelAndBP(spiritCard, ownerKey, gameState) {
             }
         });
     }
+
+    //ตรวจสอบบัฟ Aura ที่ติดตัวผู้เล่น ++
+    if (gameState[ownerKey]?.tempBuffs.length > 0) {
+        gameState[ownerKey].tempBuffs.forEach(buff => {
+            if (buff.type === 'AURA_BP' && spiritCard.family?.includes(buff.targetFamily)) {
+                currentBP += buff.power;
+                isBuffed = true;
+            }
+        });
+    }
     
     // ตรวจสอบบัฟชั่วคราว (tempBuffs)
     if (spiritCard.tempBuffs?.length > 0) {

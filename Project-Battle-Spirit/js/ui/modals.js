@@ -15,6 +15,7 @@ export function updateAllModals(gameState, myPlayerKey, callbacks) {
         gameOverModal: document.getElementById('game-over-modal'),
         rpsModal: document.getElementById('rps-modal'), // << เพิ่ม
         deckDiscardViewerModal: document.getElementById('deck-discard-viewer-modal'),
+        evolutionModal: document.getElementById('evolution-modal'),
     };
 
     // --- 1. ซ่อน Modal ที่เป็น Action หลักทั้งหมดก่อน ---
@@ -36,7 +37,8 @@ export function updateAllModals(gameState, myPlayerKey, callbacks) {
         coreRemovalConfirmationState,
         targetingState,
         deckDiscardViewerState,
-        rpsState
+        rpsState,
+        evolutionState 
     } = gameState;
 
     // --- เริ่มต้น if/else if chain ที่นี่ ---
@@ -57,6 +59,7 @@ export function updateAllModals(gameState, myPlayerKey, callbacks) {
             btn.disabled = !!myChoice;
         });
 
+
         if (myChoice && !opponentChoice) {
             resultText.textContent = 'Waiting for opponent...';
         } else if (!myChoice && opponentChoice) {
@@ -65,6 +68,14 @@ export function updateAllModals(gameState, myPlayerKey, callbacks) {
             resultText.textContent = '';
         }
 
+    }
+    else if (evolutionState.isActive && gameState.flashState.priority === myPlayerKey) {
+        modals.evolutionModal.classList.add('visible');
+        const spirit = gameState[myPlayerKey].field.find(s => s.uid === evolutionState.spiritUid);
+        if (spirit) {
+            document.getElementById('evolution-title').textContent = `Evolution: ${spirit.name}`;
+        }
+        document.getElementById('evolution-selected-value').textContent = evolutionState.selectedCores.length;
     }
     // ลำดับ 1 (สำคัญที่สุด): Deck Discard Viewer
     else if (deckDiscardViewerState.isActive) {

@@ -3,6 +3,8 @@ const { getSpiritLevelAndBP, calculateTotalSymbols, getCardLevel } = require('./
 const { resolveTriggeredEffects } = require('./effects.js'); // Note: This will be the next file to create
 const { destroyCard } = require('./card.js');
 const { checkGameOver } = require('./gameLoop.js');
+const { applyCrush } = require('./effectHandlers.js');
+
 
 function clearBattleBuffs(gameState, playerKey) {
     if (!gameState[playerKey]) return gameState;
@@ -58,7 +60,29 @@ function declareBlock(gameState, playerKey, payload) {
     if (blocker && !blocker.isExhausted) {
         blocker.isExhausted = true;
         gameState.attackState.blockerUid = blockerUid;
+
+        // --- START: โค้ดที่เพิ่มเข้ามา ---
+        // ตรวจสอบเอฟเฟกต์ Crush ตอน Block (จาก Nexus "The H.Q.")
+        const spiritHasCrush = blocker.effects?.some(eff => eff.keyword === 'crush');
+        if (spiritHasCrush) {
+            const hqNexus = gameState[playerKey].field.find(card =>
+                card.type === 'Nexus' && card.effects?.some(eff => 
+                    eff.keyword === 'enable_crush_on_block' && eff.level.includes(getCardLevel(card).level)
+                )
+            );
+
+            if (hqNexus) {
+                console.log(`[EFFECT LOG] "${blocker.name}"'s Crush is triggered on block by "${hqNexus.name}".`);
+                const { level: blockerLevel } = getSpiritLevelAndBP(blocker, playerKey, gameState);
+                gameState = applyCrush(gameState, blocker, blockerLevel, playerKey);
+            }
+        }
+        // --- END: โค้ดที่เพิ่มเข้ามา ---
+
+        // เรียกใช้เอฟเฟกต์ "whenBlocks" ตามปกติ
         gameState = resolveTriggeredEffects(gameState, blocker, 'whenBlocks', playerKey);
+        
+        // เข้าสู่ Flash Timing หลังประกาศ Block
         gameState = enterFlashTiming(gameState, 'afterBlock');
     }
 

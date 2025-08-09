@@ -146,9 +146,42 @@ function confirmPlacement(gameState, playerKey) {
     return cleanupField(gameState);
 }
 
+function selectCoreForPlacement(gameState, playerKey, payload) {
+    const { coreId, from, sourceCardUid } = payload;
+    const placementState = gameState.placementState;
+
+    if (!placementState.isPlacing) return gameState;
+
+    const player = gameState[playerKey];
+    const targetCard = player.field.find(c => c.uid === placementState.targetSpiritUid);
+    if (!targetCard) return gameState;
+
+    let sourceArray;
+    let coreToMove;
+
+    // หา Core ต้นทาง
+    if (from === 'reserve') {
+        sourceArray = player.reserve;
+    } else { // from === 'card'
+        const sourceCard = player.field.find(c => c.uid === sourceCardUid);
+        if (!sourceCard || sourceCard.uid === targetCard.uid) return gameState; // ป้องกันการย้ายจากตัวเอง
+        sourceArray = sourceCard.cores;
+    }
+
+    const coreIndex = sourceArray.findIndex(c => c.id === coreId);
+    if (coreIndex > -1) {
+        // ย้าย Core จากต้นทางไปยังเป้าหมาย
+        [coreToMove] = sourceArray.splice(coreIndex, 1);
+        targetCard.cores.push(coreToMove);
+    }
+    
+    return gameState;
+}
+
 module.exports = {
     initiateSummon,
     selectCoreForPayment,
+    selectCoreForPlacement,
     cancelSummon,
     confirmSummon,
     confirmPlacement

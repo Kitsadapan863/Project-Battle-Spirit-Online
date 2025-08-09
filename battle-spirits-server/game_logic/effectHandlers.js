@@ -73,14 +73,16 @@ function applyCrush(gameState, card, cardLevel, ownerKey) {
             effect.level.includes(cardLevel)
         );
 
-        if (powerUpEffect) {
+        if (powerUpEffect && gameState.turn === ownerKey) {
             const discardedSpiritCount = discardedCards.filter(c => c.type === 'Spirit').length;
             if (discardedSpiritCount > 0) {
+                console.log(`[Effect Log] Ambrose's BP up effect triggered ON ATTACK.`);
                 const totalPowerUp = discardedSpiritCount * powerUpEffect.power;
-                // applyPowerUp(card.uid, totalPowerUp, powerUpEffect.duration, gameState);
                 gameState = applyPowerUp(gameState, card.uid, totalPowerUp, powerUpEffect.duration);
             }
         }
+
+
     }
 
     // ตรวจสอบบัฟ 'core_on_crush_attack' จาก Blitz
@@ -190,10 +192,47 @@ function applyDrawAndDiscard(gameState, effect, ownerKey) {
     return gameState;
 }
 
+/**
+ * จัดการเอฟเฟกต์เพิ่มพลัง (BP) ให้กับ Spirit ทั้ง Family
+ */
+// function applyFamilyPowerUp(gameState, ownerKey, targetFamilies, power, duration) {
+//     console.log(`[Effect Handler] Applying +${power} BP buff to all "${targetFamilies.join(', ')}" spirits for ${ownerKey}.`);
+    
+//     // วนลูปการ์ดทุกใบบนสนามของผู้เล่น
+//     gameState[ownerKey].field.forEach(card => {
+//         // ตรวจสอบว่าเป็น Spirit และมี family ที่ถูกต้องหรือไม่
+//         if (card.type === 'Spirit' && card.family?.some(f => targetFamilies.includes(f))) {
+//             if (!card.tempBuffs) {
+//                 card.tempBuffs = [];
+//             }
+//             card.tempBuffs.push({ type: 'BP', value: power, duration: duration });
+//             console.log(`- Buffed ${card.name}.`);
+//         }
+//     });
+
+//     return gameState;
+// }
+
+/**
+ * จัดการเอฟเฟกต์ที่สร้าง Aura เพิ่มพลังให้ทั้ง Family ตลอดเทิร์น
+ */
+function applyAuraPowerUp(gameState, ownerKey, effect) {
+    console.log(`[Effect Handler] Applying "${effect.targetFamily}" aura for ${ownerKey}.`);
+    // เพิ่มบัฟไปที่ตัวผู้เล่น ไม่ใช่ที่การ์ด
+    gameState[ownerKey].tempBuffs.push({
+        type: 'AURA_BP',
+        power: effect.power,
+        duration: effect.duration,
+        targetFamily: effect.targetFamily,
+        sourceCardName: 'Ovirapt' // Optional: for debugging
+    });
+    return gameState;
+}
 module.exports = { 
     applyCrush, 
     applyClash, 
     applyPowerUp, 
     applyDiscard,
-    applyDrawAndDiscard
+    applyDrawAndDiscard,
+    applyAuraPowerUp
 };

@@ -119,7 +119,7 @@ module.exports.playerCards = [
         family: ["Fighting Spirit"],
         effects: [
             { level: [1, 2, 3], timing: 'whenAttacks', keyword: 'crush', description: "[LV1][LV2][LV3] [Crush]\n(When Attacks)\nMove cards from the top of your opponent's Deck to their trash equal to this spirit's LV." },
-            { level: [2, 3], timing: 'whenAttacks', keyword: 'power up', power: 1000, triggered_by: 'crush', duration: 'turn', description: "[LV2][LV3]\n(When Attacks)\nFor each Spirit card discarded by this Spirit's Crush effect, this Spirit gains +1000 BP." }
+            { level: [2, 3], timing: 'whenAttacks', keyword: 'power up', power: 1000, triggered_by: 'crush', duration: 'turn', description: "[LV2][LV3]\n(When Attacks)\nFor each Spirit card discarded by this Spirit's [Crush] effect, this Spirit gains +1000 BP." }
 
         ],
         symbol: { "blue": 1 },

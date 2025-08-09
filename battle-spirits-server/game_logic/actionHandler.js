@@ -6,6 +6,7 @@ const { initiateMagicPayment, confirmMagicPayment, cancelMagicPayment, chooseMag
 const { confirmDeckDiscard, confirmDiscard, selectCardForDiscard } = require('./card');
 const { confirmCoreRemoval, cancelCoreRemoval, moveCore } = require('./core');
 const {resolveRPS} = require('./pregame.js')
+const { initiateEvolution, selectCoreForEvolution, confirmEvolution, cancelEvolution } = require('./evolution'); 
 
 function handleAction(gameState, playerKey, action) {
      // --- LOG DEBUG ---
@@ -14,6 +15,16 @@ function handleAction(gameState, playerKey, action) {
 
         case 'CHOOSE_RPS':
             return resolveRPS(gameState, playerKey, action.payload.choice);
+        //EVOLUTION
+        case 'INITIATE_EVOLUTION':
+            return initiateEvolution(gameState, playerKey, action.payload);
+        case 'SELECT_CORE_FOR_EVOLUTION':
+            return selectCoreForEvolution(gameState, playerKey, action.payload);
+        case 'CONFIRM_EVOLUTION':
+            return confirmEvolution(gameState, playerKey);
+        case 'CANCEL_EVOLUTION':
+            return cancelEvolution(gameState, playerKey);
+
         // Game Loop & Battle
         case 'ADVANCE_PHASE': return advancePhase(gameState, playerKey);
         case 'END_TURN': return endTurn(gameState);

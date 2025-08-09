@@ -1,6 +1,6 @@
 // game_logic/effects.js
 const { getSpiritLevelAndBP } = require('./utils.js');
-const { applyCrush, applyClash, applyPowerUp, applyDiscard, applyDrawAndDiscard  } = require('./effectHandlers.js');
+const { applyCrush, applyClash, applyPowerUp, applyDiscard, applyDrawAndDiscard ,applyAuraPowerUp } = require('./effectHandlers.js');
 
 function resolveTriggeredEffects(gameState, card, timing, ownerKey) {
     if (!card.effects || card.effects.length === 0) return gameState;
@@ -18,8 +18,11 @@ function resolveTriggeredEffects(gameState, card, timing, ownerKey) {
                     break;
                 case 'power up':
                     if (!effect.triggered_by) {
-                       gameState = applyPowerUp(gameState, card.uid, effect.power, effect.duration);
+                        // ถ้าเป็นเอฟเฟกต์ power up แบบปกติ (ให้ตัวเอง)
+                        gameState = applyPowerUp(gameState, card.uid, effect.power, effect.duration);
                     }
+                case 'aura_power_up':
+                    gameState = applyAuraPowerUp(gameState, ownerKey, effect);
                     break;
                 case 'discard':
                     gameState = applyDiscard(gameState, card, effect, ownerKey);

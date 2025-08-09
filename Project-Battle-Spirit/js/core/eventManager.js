@@ -43,16 +43,18 @@ gameBoard.addEventListener('click', (event) => {
     const isMyTurn = localGameState.turn === myPlayerKey;
     const isMainPhase = localGameState.phase === 'main';
 
+    // --- START: แก้ไขบรรทัดนี้ ---
     const isPayingForSummon = localGameState.summoningState?.isSummoning;
     const isPayingForMagic = localGameState.magicPaymentState?.isPaying;
     const isPlacingCores = localGameState.placementState?.isPlacing;
-    const isActionBlocked = isPayingForSummon || isPlacingCores || isPayingForMagic;
+    const isEvolving = localGameState.evolutionState?.isActive;
+    // ++ เพิ่ม isEvolving เข้าไปในเงื่อนไขที่นี่ ++
+    const isActionBlocked = isPayingForSummon || isPlacingCores || isPayingForMagic || isEvolving;
+    // --- END: แก้ไขบรรทัดนี้ ---
 
-    // --- ลำดับที่ 1: ตรวจสอบก่อนว่ากำลังจะ "วาง" Core ที่เลือกไว้หรือไม่ ---
-    // นี่คือ Logic ของการคลิกครั้งที่ 2
+    // ลำดับที่ 1: การวาง Core ที่เลือกไว้ (Move Core ปกติ)
     if (isMyTurn && isMainPhase && !isActionBlocked && clientState.selectedCoreForMove) {
         const targetUid = cardEl ? cardEl.id : (reserveEl ? 'reserve' : null);
-
         if (targetUid) {
             const payload = {
                 coreId: clientState.selectedCoreForMove.coreId,
@@ -62,39 +64,48 @@ gameBoard.addEventListener('click', (event) => {
             };
             sendActionToServer({ type: 'MOVE_CORE', payload });
         }
-
         clientState.selectedCoreForMove = null;
         forceUIRender();
-        return; // **สำคัญ:** หยุดการทำงานทันที
+        return;
     }
 
-    // --- ลำดับที่ 2: ถ้าไม่ได้กำลังจะวาง Core, ให้ตรวจสอบการคลิกบน Core โดยตรง ---
+    // ลำดับที่ 2: การคลิกบน Core โดยตรง
     if (coreEl) {
-        // Logic สำหรับจ่ายค่าร่าย (Summon/Magic)
-        if (isMyTurn && (isPayingForSummon || isPayingForMagic) && coreEl.classList.contains('selectable-for-payment')) {
-            const spiritCardEl = coreEl.closest('.card');
-            const payload = {
-                coreId: coreEl.id,
-                from: spiritCardEl ? 'card' : 'reserve',
-                spiritUid: spiritCardEl ? spiritCardEl.id : null,
-            };
-            sendActionToServer({ type: 'SELECT_CORE_FOR_PAYMENT', payload: payload });
-            return;
-        }
-        // Logic สำหรับวาง Core หลัง Summon (Placement Phase)
-        if (isMyTurn && isPlacingCores && coreEl.classList.contains('selectable-for-placement')) {
+        // จัดลำดับความสำคัญใหม่ ให้ Action เฉพาะทางอยู่ก่อน
+        console.log("[DEBUG] isEvolving", isEvolving) ,console.log("[DEBUG] classList", coreEl.classList.contains('selectable-for-evolution'))
+        if (isEvolving && coreEl.classList.contains('selectable-for-evolution')) {
             const fromCardEl = coreEl.closest('.card');
-            const payload = {
+            sendActionToServer({ type: 'SELECT_CORE_FOR_EVOLUTION', payload: {
                 coreId: coreEl.id,
-                from: fromCardEl ? 'card' : 'reserve',
-                sourceCardUid: fromCardEl ? fromCardEl.id : null,
-                targetCardUid: localGameState.placementState.targetSpiritUid
-            };
-            sendActionToServer({ type: 'MOVE_CORE', payload: payload });
+                fromUid: fromCardEl.id
+            }});
             return;
         }
-
-        // Logic สำหรับ "เลือก" Core เพื่อย้าย (คลิกครั้งที่ 1)
+        if ((isPayingForSummon || isPayingForMagic) && coreEl.classList.contains('selectable-for-payment')) {
+            const spiritCardEl = coreEl.closest('.card');
+            sendActionToServer({
+                type: 'SELECT_CORE_FOR_PAYMENT',
+                payload: {
+                    coreId: coreEl.id,
+                    from: spiritCardEl ? 'card' : 'reserve',
+                    spiritUid: spiritCardEl ? spiritCardEl.id : null
+                }
+            });
+            return;
+        }
+        if (isPlacingCores && coreEl.classList.contains('selectable-for-placement')) {
+            const fromCardEl = coreEl.closest('.card');
+            sendActionToServer({
+                type: 'SELECT_CORE_FOR_PLACEMENT',
+                payload: {
+                    coreId: coreEl.id,
+                    from: fromCardEl ? 'card' : 'reserve',
+                    sourceCardUid: fromCardEl ? fromCardEl.id : null
+                }
+            });
+            return;
+        }
+        // Logic สำหรับ "เลือก" Core เพื่อย้าย (คลิกครั้งที่ 1) จะทำงานเมื่อไม่มี Action อื่นค้างอยู่
         if (isMyTurn && isMainPhase && !isActionBlocked) {
             const fromCardEl = coreEl.closest('.card');
             clientState.selectedCoreForMove = {
@@ -103,13 +114,17 @@ gameBoard.addEventListener('click', (event) => {
                 sourceCardUid: fromCardEl ? fromCardEl.id : null
             };
             forceUIRender();
-            return; // **สำคัญ:** หยุดการทำงาน
+            return;
         }
     }
-
     // --- ลำดับที่ 3: ถ้าไม่ใช่การทำงานเกี่ยวกับ Core, ให้ตรวจสอบการคลิกบน Card ---
     if (cardEl) {
         const cardId = cardEl.id;
+
+        if (cardEl.classList.contains('can-evolve')) {
+            sendActionToServer({ type: 'INITIATE_EVOLUTION', payload: { spiritUid: cardId }});
+            return;
+        }
         
         if (cardEl.closest('#player-hand')) {
             const discardState = localGameState.discardState;
@@ -186,6 +201,13 @@ gameBoard.addEventListener('click', (event) => {
 
     document.getElementById('cancel-summon-btn').addEventListener('click', () => {
         sendActionToServer({ type: 'CANCEL_SUMMON' });
+    });
+
+    document.getElementById('confirm-evolution-btn').addEventListener('click', () => {
+        sendActionToServer({ type: 'CONFIRM_EVOLUTION' });
+    });
+    document.getElementById('cancel-evolution-btn').addEventListener('click', () => {
+        sendActionToServer({ type: 'CANCEL_EVOLUTION' });
     });
 
     // --- START: เพิ่ม Event Listener สำหรับปุ่ม Placement ---
