@@ -158,6 +158,14 @@ export function createCardElement(cardData, location, owner, gameState, myPlayer
         if (targetingState.isTargeting && targetingState.selectedTargets?.includes(cardData.uid)) {
             cardDiv.classList.add('selected-for-discard'); // ใช้ Style สีแดงเหมือนเดิม
         }
+
+        // ตรวจสอบสถานะการเลือกเป้าหมายโจมตี
+        const attackTargetingState = gameState.attackTargetingState;
+        if (attackTargetingState.isActive && owner !== myPlayerKey) {
+            if (attackTargetingState.validTargets.includes(cardData.uid)) {
+                cardDiv.classList.add('can-be-attack-target'); // << เราจะไปเพิ่ม Style ของ Class นี้
+            }
+        }
     }
     return cardDiv;
 }

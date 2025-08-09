@@ -140,6 +140,11 @@ gameBoard.addEventListener('click', (event) => {
                 sendActionToServer({ type: 'INITIATE_MAGIC', payload: { cardUid: cardId, timing: 'flash' } });
             }
         } else if (cardEl.closest('#player-field') || cardEl.closest('#opponent-field')) {
+            //SELECT_ATTACK_TARGET
+            if (cardEl.classList.contains('can-be-attack-target')) {
+                sendActionToServer({ type: 'SELECT_ATTACK_TARGET', payload: { targetUid: cardId }});
+                return;
+            }
             if (localGameState.targetingState?.isTargeting && cardEl.classList.contains('can-be-targeted')) {
                 sendActionToServer({ type: 'SELECT_TARGET', payload: { targetUid: cardId } });
                 return;
@@ -330,5 +335,12 @@ gameBoard.addEventListener('click', (event) => {
         if (!e.target.disabled) {
             sendActionToServer({ type: 'CONFIRM_TARGETS' });
         }
+    });
+    //เลือกเป้าโจมตี
+    document.getElementById('attack-choice-life-btn').addEventListener('click', () => {
+        sendActionToServer({ type: 'CHOOSE_ATTACK_TYPE', payload: { choice: 'life' } });
+    });
+    document.getElementById('attack-choice-spirit-btn').addEventListener('click', () => {
+        sendActionToServer({ type: 'CHOOSE_ATTACK_TYPE', payload: { choice: 'spirit' } });
     });
 }

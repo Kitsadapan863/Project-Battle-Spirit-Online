@@ -123,7 +123,7 @@ module.exports.redCards = [
     {
         id: 'card-wingDragman-pteradia',
         name: `The WingDragman Pteradia`,
-        quantity: 100,
+        quantity: 1,
         image: `${pathsSpirit}/The WingDragman Pteradia.webp`,
         cost: 2,
         symbol_cost: { "red": 1 },
@@ -155,7 +155,7 @@ module.exports.redCards = [
     {
         id: 'card-sabecaulus',
         name: `Sabecaulus`,
-        quantity: 1,
+        quantity: 20,
         image: `${pathsSpirit}/Sabecaulus.webp`,
         cost: 4,
         symbol_cost: { "red": 2 },
@@ -174,7 +174,7 @@ module.exports.redCards = [
     {
         id: 'card-siegwurm',
         name: 'The ThunderEmperorDragon Siegwurm',
-        quantity: 3,
+        quantity: 20,
         image: `${pathsSpirit}/The ThunderEmperorDragon Siegwurm.webp`,
         cost: 6,
         symbol_cost: { "red": 3 },
@@ -191,7 +191,7 @@ module.exports.redCards = [
     {
         id: 'card-meteorwurm',
         name: 'The StarEmperorDragon Meteorwurm',
-        quantity: 3,
+        quantity: 20,
         image: `${pathsSpirit}/The StarEmperorDragon Meteorwurm.webp`,
         cost: 7,
         symbol_cost: { "red": 3 },

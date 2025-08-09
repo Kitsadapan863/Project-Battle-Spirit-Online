@@ -71,6 +71,51 @@ export function getSpiritLevelAndBP(spiritCard, ownerKey, gameState) {
             }
         });
     }
+
+    if (gameState?.turn === ownerKey && gameState.phase === 'attack') {
+        
+        // สร้างตัวแปรเพื่อเก็บว่า Spirit มี Keyword อะไรบ้าง (รวมจาก Aura)
+        const effectiveKeywords = new Set(spiritCard.effects?.map(e => e.keyword) || []);
+
+        // ตรวจสอบ Aura ที่มอบ Keyword (เช่น Siegwurm LV3)
+        gameState[ownerKey].field.forEach(auraCard => {
+            if (auraCard.effects) {
+                const auraCardLevel = getCardLevel(auraCard).level;
+                auraCard.effects.forEach(auraEffect => {
+                    if (
+                        (auraEffect.timing === 'yourAttackStep' || auraEffect.timing === 'duringBattle') &&
+                        auraEffect.level.includes(auraCardLevel) &&
+                        auraEffect.keyword === 'addEffects' &&
+                        spiritCard.effects?.some(e => auraEffect.condition.includes(e.keyword))
+                    ) {
+                        auraEffect.add_keyword.forEach(kw => effectiveKeywords.add(kw));
+                    }
+                });
+            }
+        });
+
+        // ตรวจสอบ Aura ที่เพิ่ม BP ตาม Keyword (เช่น Sabecaulus)
+        gameState[ownerKey].field.forEach(auraCard => {
+            if (auraCard.effects) {
+                const auraCardLevel = getCardLevel(auraCard).level;
+                auraCard.effects.forEach(auraEffect => {
+                    if (
+                        (auraEffect.timing === 'yourAttackStep' || auraEffect.timing === 'duringBattle') &&
+                        auraEffect.level.includes(auraCardLevel) &&
+                        auraEffect.keyword === 'power up'
+                    ) {
+                        if (!auraEffect.condition) { // บัฟไม่มีเงื่อนไข (The Burning Canyon)
+                            currentBP += auraEffect.power;
+                            isBuffed = true;
+                        } else if (auraEffect.condition.some(cond => effectiveKeywords.has(cond))) { // บัฟมีเงื่อนไข (Sabecaulus)
+                            currentBP += auraEffect.power;
+                            isBuffed = true;
+                        }
+                    }
+                });
+            }
+        });
+    }
     
     //ตรวจสอบบัฟ Aura ที่ติดตัวผู้เล่น ++
     if (gameState[ownerKey]?.tempBuffs.length > 0) {

@@ -1049,3 +1049,25 @@ body {
 /* สไตล์สำหรับ Core ที่เลือกได้ */
 .core.selectable-for-evolution { filter: drop-shadow(0 0 4px #e74c3c); }
 .core.selected-for-evolution { transform: scale(0.8); opacity: 0.5; filter: drop-shadow(0 0 4px #e74c3c); }
+
+/* Style สำหรับ Spirit ที่สามารถถูกเลือกเป็นเป้าโจมตีได้ */
+.card.can-be-attack-target {
+    border-color: #e74c3c; /* สีแดงเหมือน Evolution */
+    box-shadow: 0 0 20px #e74c3c;
+    animation: pulse-red 1.5s infinite;
+}
+
+/* จัดตำแหน่ง Attack Choice Modal ให้อยู่ด้านบน */
+#attack-choice-modal.modal-overlay {
+    align-items: flex-start; /* จัดให้อยู่ด้านบนสุดของ Flex container */
+    padding-top: 50px;       /* เพิ่มระยะห่างจากขอบบน 50px (ปรับค่าได้ตามชอบ) */
+}
+
+/* ปรับขนาดและความสูงของ Modal Content (ที่คุณให้มา) */
+#attack-choice-modal .modal-content {
+    width: 400px; /* ปรับความกว้างตามที่ต้องการ */
+}
+#attack-choice-life-btn,#attack-choice-spirit-btn { 
+    background: linear-gradient(45deg, hsl(0, 89%, 43%), #c94720);
+    color: white;
+}

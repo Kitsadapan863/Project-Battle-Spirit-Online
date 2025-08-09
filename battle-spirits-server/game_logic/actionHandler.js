@@ -1,6 +1,6 @@
 // game_logic/actionHandler.js
 const { advancePhase, endTurn } = require('./gameLoop');
-const { declareAttack, declareBlock, takeLifeDamage, passFlash, resolveFlashWindow } = require('./battle');
+const { declareAttack, declareBlock, takeLifeDamage, passFlash, resolveFlashWindow, selectAttackTarget, chooseAttackType  } = require('./battle');
 const { initiateSummon, selectCoreForPayment, cancelSummon, confirmSummon, selectCoreForPlacement, confirmPlacement } = require('./summon');
 const { initiateMagicPayment, confirmMagicPayment, cancelMagicPayment, chooseMagicEffect, cancelEffectChoice, applyTargetedEffect, selectTarget, confirmTargets  } = require('./magic');
 const { confirmDeckDiscard, confirmDiscard, selectCardForDiscard } = require('./card');
@@ -29,6 +29,8 @@ function handleAction(gameState, playerKey, action) {
         case 'ADVANCE_PHASE': return advancePhase(gameState, playerKey);
         case 'END_TURN': return endTurn(gameState);
         case 'DECLARE_ATTACK': return declareAttack(gameState, playerKey, action.payload);
+        case 'CHOOSE_ATTACK_TYPE': return chooseAttackType(gameState, playerKey, action.payload);
+        case 'SELECT_ATTACK_TARGET': return selectAttackTarget(gameState, playerKey, action.payload);
         case 'DECLARE_BLOCK': return declareBlock(gameState, playerKey, action.payload);
         case 'TAKE_LIFE_DAMAGE': return takeLifeDamage(gameState, playerKey);
         case 'PASS_FLASH': return passFlash(gameState, playerKey);

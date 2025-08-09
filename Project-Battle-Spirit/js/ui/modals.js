@@ -16,6 +16,7 @@ export function updateAllModals(gameState, myPlayerKey, callbacks) {
         rpsModal: document.getElementById('rps-modal'), // << เพิ่ม
         deckDiscardViewerModal: document.getElementById('deck-discard-viewer-modal'),
         evolutionModal: document.getElementById('evolution-modal'),
+        attackChoiceModal: document.getElementById('attack-choice-modal'),
     };
 
     // --- 1. ซ่อน Modal ที่เป็น Action หลักทั้งหมดก่อน ---
@@ -38,7 +39,8 @@ export function updateAllModals(gameState, myPlayerKey, callbacks) {
         targetingState,
         deckDiscardViewerState,
         rpsState,
-        evolutionState 
+        evolutionState,
+        attackChoiceState 
     } = gameState;
 
     // --- เริ่มต้น if/else if chain ที่นี่ ---
@@ -68,6 +70,8 @@ export function updateAllModals(gameState, myPlayerKey, callbacks) {
             resultText.textContent = '';
         }
 
+    }else if (attackChoiceState?.isActive && gameState.turn === myPlayerKey) {
+        modals.attackChoiceModal.classList.add('visible');
     }
     else if (evolutionState.isActive && gameState.flashState.priority === myPlayerKey) {
         modals.evolutionModal.classList.add('visible');

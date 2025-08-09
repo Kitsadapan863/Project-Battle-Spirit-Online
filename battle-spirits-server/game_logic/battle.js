@@ -33,13 +33,51 @@ function declareAttack(gameState, playerKey, payload) {
     const { attackerUid } = payload;
     const attacker = gameState[playerKey].field.find(s => s.uid === attackerUid);
     if (!attacker || attacker.isExhausted) return gameState;
-
+    
+    attacker.isExhausted = true;
     console.log(`${playerKey} declares attack with ${attacker.name}`);
+    // --- START: โค้ดที่แก้ไขและเพิ่มเติม ---
+    let spiritHasClash = attacker.effects?.some(e => e.keyword === 'clash');
+    let canTargetAndAttack = false;
 
+    // ตรวจสอบ Aura ทั้งหมดในสนาม
+    gameState[playerKey].field.forEach(cardOnField => {
+        if (!cardOnField.effects) return;
+
+        const cardOnFieldLevel = getCardLevel(cardOnField).level;
+        cardOnField.effects.forEach(eff => {
+            if (eff.timing === 'yourAttackStep' && eff.level.includes(cardOnFieldLevel)) {
+                
+                // ตรวจสอบ Aura ที่มอบ Clash
+                if (eff.keyword === 'addEffects' && eff.add_keyword?.includes('clash')) {
+                    const conditionKeyword = eff.condition[0];
+                    if (attacker.effects?.some(e => e.keyword === conditionKeyword)) {
+                        spiritHasClash = true;
+                    }
+                }
+                
+                // ตรวจสอบ Aura ที่อนุญาตให้ Target Attack (Meteorwurm LV3)
+                if (eff.keyword === 'targetAndAttack') {
+                    const conditionKeyword = eff.condition[0]; // คือ 'clash'
+                    if (spiritHasClash || attacker.effects?.some(e => e.keyword === conditionKeyword)) {
+                        canTargetAndAttack = true;
+                    }
+                }
+            }
+        });
+    });
+
+    if (canTargetAndAttack) {
+        // แทนที่จะเข้า targeting state ทันที ให้เข้า choice state ก่อน
+        gameState.attackChoiceState = { isActive: true, attackerUid: attackerUid };
+        return gameState; 
+    }
+    // --- END: โค้ดที่แก้ไขและเพิ่มเติม ---
+
+    // ถ้าไม่สามารถ Target Attack ได้ ให้ทำการโจมตีปกติ
     const defenderPlayerKey = (playerKey === 'player1') ? 'player2' : 'player1';
 
-    attacker.isExhausted = true;
-    gameState.attackState = { isAttacking: true, attackerUid, defender: defenderPlayerKey, blockerUid: null, isClash: false };
+    gameState.attackState = { isAttacking: true, attackerUid, defender: defenderPlayerKey, blockerUid: null, isClash: spiritHasClash };
     
     gameState = resolveTriggeredEffects(gameState, attacker, 'whenAttacks', playerKey);
 
@@ -103,7 +141,6 @@ function resolveBattle(gameState) {
 
         if (attackerResult.bp > blockerResult.bp) {
             // --- START: เพิ่ม 'battle' เป็น reason ---
-            console.log(`[Battle BP]: ${gameState}`)
             gameState = destroyCard(gameState, blockerUid, blockerOwner, 'battle');
             gameState = resolveTriggeredEffects(gameState, attacker, 'onOpponentDestroyedInBattle', attackerOwner);
             // --- END ---
@@ -171,11 +208,83 @@ function passFlash(gameState, playerKey) {
     return gameState;
 }
 
+
+/**
+ * ผู้เล่นเลือก Spirit ของคู่ต่อสู้เป็นเป้าหมายโจมตี
+ */
+function selectAttackTarget(gameState, playerKey, payload) {
+    const { targetUid } = payload;
+    const { isActive, attackerUid } = gameState.attackTargetingState;
+    if (!isActive || gameState.turn !== playerKey) return gameState;
+
+    const opponentKey = playerKey === 'player1' ? 'player2' : 'player1';
+    const targetSpirit = gameState[opponentKey].field.find(s => s.uid === targetUid);
+    const attacker = gameState[playerKey].field.find(s => s.uid === attackerUid);
+
+    if (!targetSpirit || !attacker) return gameState;
+
+    console.log(`[TARGET ATTACK] ${playerKey} attacks ${targetSpirit.name} with ${attacker.name}`);
+    attacker.isExhausted = true;      // สั่งให้ตัวที่โจมตี Exhausted
+
+    if (!targetSpirit.isExhausted) {
+        targetSpirit.isExhausted = true;  // สั่งให้เป้าหมายที่ถูกโจมตี Exhausted ด้วย
+    }
+
+    // ตั้งค่าสถานะการต่อสู้ให้เหมือนการ Block ทันที
+    attacker.isExhausted = true;
+    gameState.attackState = {
+        isAttacking: true,
+        attackerUid: attackerUid,
+        defender: opponentKey,
+        blockerUid: targetUid, // <<< เป้าหมายที่ถูกเลือกจะกลายเป็น Blocker ทันที
+        isClash: false // การโจมตีแบบระบุเป้าหมายมักจะไม่ใช่ Clash
+    };
+    
+    // ปิดสถานะเลือกเป้าหมาย
+    gameState.attackTargetingState = { isActive: false, attackerUid: null, validTargets: [] };
+
+    // เข้าสู่ Flash Timing หลังประกาศโจมตี (เหมือน afterBlock)
+    return enterFlashTiming(gameState, 'afterBlock');
+}
+
+// ++ สร้างฟังก์ชันใหม่นี้ ++
+function chooseAttackType(gameState, playerKey, payload) {
+    const { choice } = payload;
+    const { isActive, attackerUid } = gameState.attackChoiceState;
+    if (!isActive || gameState.turn !== playerKey) return gameState;
+
+    // ปิดสถานะการเลือก
+    gameState.attackChoiceState = { isActive: false, attackerUid: null };
+
+    if (choice === 'spirit') {
+        // ถ้าเลือกโจมตี Spirit ให้เข้าสู่สถานะเลือกเป้าหมาย
+        const opponentKey = playerKey === 'player1' ? 'player2' : 'player1';
+        const validTargets = gameState[opponentKey].field.filter(s => s.type === 'Spirit').map(s => s.uid);
+        gameState.attackTargetingState = { isActive: true, attackerUid: attackerUid, validTargets: validTargets };
+    } else {
+        // ถ้าเลือกโจมตี Life ให้ทำการโจมตีแบบปกติ
+        const attacker = gameState[playerKey].field.find(s => s.uid === attackerUid);
+        const defenderPlayerKey = playerKey === 'player1' ? 'player2' : 'player1';
+        
+        attacker.isExhausted = true;
+        gameState.attackState = { isAttacking: true, attackerUid, defender: defenderPlayerKey, blockerUid: null, isClash: true }; // สมมติว่าถ้า target ได้คือมี clash
+        
+        gameState = resolveTriggeredEffects(gameState, attacker, 'whenAttacks', playerKey);
+        if (!gameState.deckDiscardViewerState.isActive) {
+            gameState = enterFlashTiming(gameState, 'beforeBlock');
+        }
+    }
+    return gameState;
+}
+
+
 module.exports = {
     declareAttack,
     declareBlock,
     takeLifeDamage,
     passFlash,
     resolveFlashWindow,
-    enterFlashTiming
+    enterFlashTiming,
+    selectAttackTarget,
+    chooseAttackType
 };
