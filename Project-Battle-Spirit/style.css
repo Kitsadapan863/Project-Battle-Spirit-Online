@@ -892,7 +892,7 @@ body {
     padding: 25px;
     width: 360px;
     border-color: #39ff14; /* สีเขียวเพื่อให้รู้ว่าต้องทำ Action */
-    pointer-events: none; /* ADD THIS LINE */
+    /* pointer-events: none;  */
 }
 
 .targeting-modal h3 {
@@ -904,6 +904,14 @@ body {
     border-color: #39ff14;
     box-shadow: 0 0 20px #39ff14;
     animation: pulse-green 1.5s infinite;
+}
+#confirm-targets-btn{
+    background: linear-gradient(45deg, #28a745, #20c997);
+    color: white;
+}
+#confirm-targets-btn:disabled{
+    background: #555;
+    cursor: not-allowed;
 }
 
 /* Style for hidden elements */

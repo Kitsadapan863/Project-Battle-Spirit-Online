@@ -290,7 +290,6 @@ gameBoard.addEventListener('click', (event) => {
     });
     // Listeners for deck discard
     dom.confirmDeckDiscardBtn.addEventListener('click', () => {
-        console.log('[CLIENT] Deck Discard OK clicked. Sending CONFIRM_DECK_DISCARD...');
         sendActionToServer({ type: 'CONFIRM_DECK_DISCARD' });
     });
 
@@ -332,6 +331,7 @@ gameBoard.addEventListener('click', (event) => {
     });
 
     dom.confirmTargetsBtn.addEventListener('click', (e) => {
+        console.log('[CLIENT DEBUG] "Confirm Targets" button was clicked!');
         if (!e.target.disabled) {
             sendActionToServer({ type: 'CONFIRM_TARGETS' });
         }
@@ -342,5 +342,10 @@ gameBoard.addEventListener('click', (event) => {
     });
     document.getElementById('attack-choice-spirit-btn').addEventListener('click', () => {
         sendActionToServer({ type: 'CHOOSE_ATTACK_TYPE', payload: { choice: 'spirit' } });
+    });
+    
+     document.getElementById('restart-btn').addEventListener('click', () => {
+        // สั่งให้หน้าเว็บโหลดใหม่ทั้งหมดเพื่อเริ่มการเชื่อมต่อและเกมใหม่
+        location.reload();
     });
 }

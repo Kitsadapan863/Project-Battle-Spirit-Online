@@ -51,7 +51,7 @@ function handleAction(gameState, playerKey, action) {
         case 'CANCEL_EFFECT_CHOICE': return cancelEffectChoice(gameState, playerKey);
         case 'CONFIRM_MAGIC': return confirmMagicPayment(gameState, playerKey);
         case 'CANCEL_MAGIC': return cancelMagicPayment(gameState, playerKey);
-        case 'SELECT_TARGET': return applyTargetedEffect(gameState, playerKey, action.payload);
+        // case 'SELECT_TARGET': return applyTargetedEffect(gameState, playerKey, action.payload);
         case 'SELECT_TARGET': return selectTarget(gameState, playerKey, action.payload);
         case 'CONFIRM_TARGETS': return confirmTargets(gameState, playerKey);
 

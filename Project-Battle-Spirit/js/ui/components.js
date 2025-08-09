@@ -66,7 +66,6 @@ export function createCardElement(cardData, location, owner, gameState, myPlayer
     const isMyTurn = gameState.turn === myPlayerKey;
     const hasPriority = gameState.flashState.priority === myPlayerKey;
     
-
     if (location === 'hand' && owner === myPlayerKey) {
         const isMainStep = gameState.phase === 'main';
         const isFlashStep = gameState.flashState.isActive && gameState.flashState.priority === myPlayerKey;
@@ -99,7 +98,7 @@ export function createCardElement(cardData, location, owner, gameState, myPlayer
             }
         }
 
-    } else if (location === 'field') {
+   } else if (location === 'field') {
         const targetingState = gameState.targetingState;
 
         if (cardData.type === 'Nexus') {
@@ -110,7 +109,6 @@ export function createCardElement(cardData, location, owner, gameState, myPlayer
             const bpClass = isBuffed ? 'bp-buffed' : '';
             cardDiv.innerHTML += `<div class="card-info"><p class="${bpClass}">Lv${level} BP: ${bp}</p></div>`;
             
-            // ตรวจสอบความสามารถ Evolution
             const canEvolve = cardData.effects?.some(e => e.keyword === 'Evolution');
             const isValidTimingForFlash = (gameState.flashState.isActive && gameState.flashState.priority === myPlayerKey);
             if (canEvolve && isValidTimingForFlash) {
@@ -126,46 +124,43 @@ export function createCardElement(cardData, location, owner, gameState, myPlayer
                     cardDiv.classList.add('can-block');
                 }
             }
+        }
 
+        // --- START: โค้ดที่แก้ไข ---
+        // ++ ย้าย Logic การเลือกเป้าหมายมาไว้ตรงนี้ ++
         if (targetingState.isTargeting && targetingState.targetPlayer === myPlayerKey) {
             const effect = targetingState.forEffect;
             const targetInfo = effect?.target;
+            const cardType = cardData.type.toLowerCase();
 
-            if (targetInfo?.type === 'spirit') {
+            if (targetInfo?.type === cardType) {
                 const scope = targetInfo.scope;
                 const isMyCard = owner === myPlayerKey;
                 let canBeTargeted = false;
 
-                if (scope === 'any') {
-                    canBeTargeted = true;
-                } else if (scope === 'player' && isMyCard) {
-                    canBeTargeted = true;
-                } else if (scope === 'opponent' && !isMyCard) {
+                if (scope === 'any' || (scope === 'player' && isMyCard) || (scope === 'opponent' && !isMyCard)) {
                     canBeTargeted = true;
                 }
-                
-                // TODO: เพิ่มการตรวจสอบเงื่อนไขอื่นๆ ของ Target ในอนาคต เช่น BP, Family
                 
                 if (canBeTargeted) {
                     cardDiv.classList.add('can-be-targeted');
                 }
-
             }
         }
-        }
+
         cardDiv.innerHTML += `<div class="card-core-display"></div>`;
 
         if (targetingState.isTargeting && targetingState.selectedTargets?.includes(cardData.uid)) {
-            cardDiv.classList.add('selected-for-discard'); // ใช้ Style สีแดงเหมือนเดิม
+            cardDiv.classList.add('selected-for-discard');
         }
 
-        // ตรวจสอบสถานะการเลือกเป้าหมายโจมตี
         const attackTargetingState = gameState.attackTargetingState;
         if (attackTargetingState.isActive && owner !== myPlayerKey) {
             if (attackTargetingState.validTargets.includes(cardData.uid)) {
-                cardDiv.classList.add('can-be-attack-target'); // << เราจะไปเพิ่ม Style ของ Class นี้
+                cardDiv.classList.add('can-be-attack-target');
             }
         }
+        // --- END: โค้ดที่แก้ไข ---
     }
     return cardDiv;
 }

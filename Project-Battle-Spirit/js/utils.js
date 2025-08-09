@@ -74,10 +74,9 @@ export function getSpiritLevelAndBP(spiritCard, ownerKey, gameState) {
 
     if (gameState?.turn === ownerKey && gameState.phase === 'attack') {
         
-        // สร้างตัวแปรเพื่อเก็บว่า Spirit มี Keyword อะไรบ้าง (รวมจาก Aura)
         const effectiveKeywords = new Set(spiritCard.effects?.map(e => e.keyword) || []);
 
-        // ตรวจสอบ Aura ที่มอบ Keyword (เช่น Siegwurm LV3)
+        // 1. ตรวจสอบ Aura ที่ "มอบ Keyword" ก่อน
         gameState[ownerKey].field.forEach(auraCard => {
             if (auraCard.effects) {
                 const auraCardLevel = getCardLevel(auraCard).level;
@@ -85,16 +84,21 @@ export function getSpiritLevelAndBP(spiritCard, ownerKey, gameState) {
                     if (
                         (auraEffect.timing === 'yourAttackStep' || auraEffect.timing === 'duringBattle') &&
                         auraEffect.level.includes(auraCardLevel) &&
-                        auraEffect.keyword === 'addEffects' &&
-                        spiritCard.effects?.some(e => auraEffect.condition.includes(e.keyword))
+                        auraEffect.keyword === 'addEffects'
                     ) {
-                        auraEffect.add_keyword.forEach(kw => effectiveKeywords.add(kw));
+                        const condition = auraEffect.condition[0];
+                        if (
+                            spiritCard.effects?.some(e => e.keyword === condition) || // เช็ค Keyword
+                            spiritCard.family?.includes(condition) // เช็ค Family
+                        ) {
+                            auraEffect.add_keyword.forEach(kw => effectiveKeywords.add(kw));
+                        }
                     }
                 });
             }
         });
 
-        // ตรวจสอบ Aura ที่เพิ่ม BP ตาม Keyword (เช่น Sabecaulus)
+        // 2. ตรวจสอบ Aura ที่ "เพิ่มพลังตาม Keyword"
         gameState[ownerKey].field.forEach(auraCard => {
             if (auraCard.effects) {
                 const auraCardLevel = getCardLevel(auraCard).level;
@@ -104,10 +108,10 @@ export function getSpiritLevelAndBP(spiritCard, ownerKey, gameState) {
                         auraEffect.level.includes(auraCardLevel) &&
                         auraEffect.keyword === 'power up'
                     ) {
-                        if (!auraEffect.condition) { // บัฟไม่มีเงื่อนไข (The Burning Canyon)
+                        if (!auraEffect.condition) {
                             currentBP += auraEffect.power;
                             isBuffed = true;
-                        } else if (auraEffect.condition.some(cond => effectiveKeywords.has(cond))) { // บัฟมีเงื่อนไข (Sabecaulus)
+                        } else if (auraEffect.condition.some(cond => effectiveKeywords.has(cond))) {
                             currentBP += auraEffect.power;
                             isBuffed = true;
                         }

@@ -92,10 +92,9 @@ function getSpiritLevelAndBP(spiritCard, ownerKey, gameState) {
     // ตรวจสอบเอฟเฟกต์เพิ่มพลังแบบต่อเนื่อง (Aura) จากการ์ดในสนาม
     if (gameState?.turn === ownerKey && gameState.phase === 'attack') {
         
-        // สร้างตัวแปรเพื่อเก็บว่า Spirit มี Keyword อะไรบ้าง (รวมจาก Aura)
         const effectiveKeywords = new Set(spiritCard.effects?.map(e => e.keyword) || []);
 
-        // ตรวจสอบ Aura ที่มอบ Keyword (เช่น Siegwurm LV3)
+        // 1. ตรวจสอบ Aura ที่ "มอบ Keyword" ก่อน
         gameState[ownerKey].field.forEach(auraCard => {
             if (auraCard.effects) {
                 const auraCardLevel = getCardLevel(auraCard).level;
@@ -103,16 +102,21 @@ function getSpiritLevelAndBP(spiritCard, ownerKey, gameState) {
                     if (
                         (auraEffect.timing === 'yourAttackStep' || auraEffect.timing === 'duringBattle') &&
                         auraEffect.level.includes(auraCardLevel) &&
-                        auraEffect.keyword === 'addEffects' &&
-                        spiritCard.effects?.some(e => auraEffect.condition.includes(e.keyword))
+                        auraEffect.keyword === 'addEffects'
                     ) {
-                        auraEffect.add_keyword.forEach(kw => effectiveKeywords.add(kw));
+                        const condition = auraEffect.condition[0];
+                        if (
+                            spiritCard.effects?.some(e => e.keyword === condition) || // เช็ค Keyword
+                            spiritCard.family?.includes(condition) // เช็ค Family
+                        ) {
+                            auraEffect.add_keyword.forEach(kw => effectiveKeywords.add(kw));
+                        }
                     }
                 });
             }
         });
 
-        // ตรวจสอบ Aura ที่เพิ่ม BP ตาม Keyword (เช่น Sabecaulus)
+        // 2. ตรวจสอบ Aura ที่ "เพิ่มพลังตาม Keyword"
         gameState[ownerKey].field.forEach(auraCard => {
             if (auraCard.effects) {
                 const auraCardLevel = getCardLevel(auraCard).level;
@@ -122,10 +126,10 @@ function getSpiritLevelAndBP(spiritCard, ownerKey, gameState) {
                         auraEffect.level.includes(auraCardLevel) &&
                         auraEffect.keyword === 'power up'
                     ) {
-                        if (!auraEffect.condition) { // บัฟไม่มีเงื่อนไข (The Burning Canyon)
+                        if (!auraEffect.condition) {
                             currentBP += auraEffect.power;
                             isBuffed = true;
-                        } else if (auraEffect.condition.some(cond => effectiveKeywords.has(cond))) { // บัฟมีเงื่อนไข (Sabecaulus)
+                        } else if (auraEffect.condition.some(cond => effectiveKeywords.has(cond))) {
                             currentBP += auraEffect.power;
                             isBuffed = true;
                         }
@@ -162,7 +166,24 @@ function getSpiritLevelAndBP(spiritCard, ownerKey, gameState) {
  */
 function calculateCost(cardToSummon, playerType, gameState) {
     const player = gameState[playerType];
-    const baseCost = cardToSummon.cost;
+    let baseCost = cardToSummon.cost;
+
+    // --- START: โค้ดที่เพิ่มเข้ามา ---
+    // ตรวจสอบบัฟ Aura ที่เปลี่ยนแปลงค่าร่าย (เช่น Big Bang Energy)
+    if (player.tempBuffs && player.tempBuffs.length > 0) {
+        player.tempBuffs.forEach(buff => {
+            if (buff.type === 'AURA_COST_CHANGE') {
+                // เช็คว่าการ์ดใบนี้เข้าเงื่อนไขของบัฟหรือไม่ (Family)
+                const targetFamily = buff.targetFamily[0];
+                if (cardToSummon.family?.includes(targetFamily)) {
+                    console.log(`[COST CALC] Big Bang Energy is active! Cost of ${cardToSummon.name} changed from ${baseCost} to ${buff.newValue}.`);
+                    baseCost = buff.newValue; // เปลี่ยนค่าร่ายพื้นฐานทันที
+                }
+            }
+        });
+    }
+    // --- END: โค้ดที่เพิ่มเข้ามา ---
+
     let totalReduction = 0;
     const fieldSymbols = { red: 0, purple: 0, green: 0, white: 0, blue: 0, yellow: 0 };
 
@@ -192,6 +213,7 @@ function calculateCost(cardToSummon, playerType, gameState) {
         totalReduction = Math.min(potentialReduction, maxReduction);
     }
     
+    // ค่าร่ายสุดท้ายจะเป็น ค่าร่ายใหม่(จากบัฟ) - ค่าลดจากสัญลักษณ์
     return Math.max(0, baseCost - totalReduction);
 }
 

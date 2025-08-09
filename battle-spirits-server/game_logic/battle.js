@@ -36,41 +36,66 @@ function declareAttack(gameState, playerKey, payload) {
     
     attacker.isExhausted = true;
     console.log(`${playerKey} declares attack with ${attacker.name}`);
-    // --- START: โค้ดที่แก้ไขและเพิ่มเติม ---
+    
     let spiritHasClash = attacker.effects?.some(e => e.keyword === 'clash');
-    let canTargetAndAttack = false;
 
     // ตรวจสอบ Aura ทั้งหมดในสนาม
-    gameState[playerKey].field.forEach(cardOnField => {
-        if (!cardOnField.effects) return;
+   // 1. ตรวจสอบว่าตัวมันเองมี [Clash] โดยกำเนิดหรือไม่
+    
+    // 2. ถ้ายังไม่มี ให้ตรวจสอบ Aura จากการ์ดใบอื่นในสนาม
+    if (!spiritHasClash) {
+        gameState[playerKey].field.forEach(auraCard => {
+            if (auraCard.uid === attacker.uid || !auraCard.effects) return;
 
-        const cardOnFieldLevel = getCardLevel(cardOnField).level;
-        cardOnField.effects.forEach(eff => {
-            if (eff.timing === 'yourAttackStep' && eff.level.includes(cardOnFieldLevel)) {
-                
-                // ตรวจสอบ Aura ที่มอบ Clash
-                if (eff.keyword === 'addEffects' && eff.add_keyword?.includes('clash')) {
-                    const conditionKeyword = eff.condition[0];
-                    if (attacker.effects?.some(e => e.keyword === conditionKeyword)) {
+            const auraCardLevel = getCardLevel(auraCard).level;
+            auraCard.effects.forEach(auraEffect => {
+                if (
+                    (auraEffect.timing === 'yourAttackStep' || auraEffect.timing === 'duringBattle') &&
+                    auraEffect.level.includes(auraCardLevel) &&
+                    auraEffect.keyword === 'addEffects' &&
+                    auraEffect.add_keyword?.includes('clash')
+                ) {
+                    const condition = auraEffect.condition[0]; // เช่น 'Evolution' หรือ 'Soldier'
+                    
+                    // ตรวจสอบเงื่อนไข: เป็น Keyword หรือ Family?
+                    if (attacker.effects?.some(e => e.keyword === condition)) { // << ตรวจสอบ Keyword (สำหรับ Siegwurm)
                         spiritHasClash = true;
+                        console.log(`[EFFECT LOG] "${attacker.name}" gains [Clash] from "${auraCard.name}" due to having [${condition}].`);
+                    } else if (attacker.family?.includes(condition)) { // << ตรวจสอบ Family (สำหรับ Meteorwurm)
+                        spiritHasClash = true;
+                        console.log(`[EFFECT LOG] "${attacker.name}" gains [Clash] from "${auraCard.name}" due to being in the "${condition}" family.`);
                     }
                 }
-                
-                // ตรวจสอบ Aura ที่อนุญาตให้ Target Attack (Meteorwurm LV3)
-                if (eff.keyword === 'targetAndAttack') {
-                    const conditionKeyword = eff.condition[0]; // คือ 'clash'
-                    if (spiritHasClash || attacker.effects?.some(e => e.keyword === conditionKeyword)) {
-                        canTargetAndAttack = true;
-                    }
-                }
-            }
+            });
         });
-    });
+    }
 
+    let canTargetAndAttack = false;
+    // ตรวจสอบ Aura ของ Meteorwurm สำหรับ Target Attack
+    if (spiritHasClash) {
+        const meteorwurm = gameState[playerKey].field.find(c => c.id === 'card-meteorwurm');
+        if (meteorwurm) {
+            const meteorwurmLevel = getCardLevel(meteorwurm).level;
+            if (meteorwurm.effects.some(e => e.level.includes(meteorwurmLevel) && e.keyword === 'targetAndAttack')) {
+                canTargetAndAttack = true;
+            }
+        }
+    }
+    
     if (canTargetAndAttack) {
-        // แทนที่จะเข้า targeting state ทันที ให้เข้า choice state ก่อน
-        gameState.attackChoiceState = { isActive: true, attackerUid: attackerUid };
-        return gameState; 
+        const opponentKey = playerKey === 'player1' ? 'player2' : 'player1';
+        // ตรวจสอบว่าในสนามของคู่ต่อสู้ มี Spirit อยู่หรือไม่
+        const opponentHasSpirits = gameState[opponentKey].field.some(card => card.type === 'Spirit');
+
+        if (opponentHasSpirits) {
+            // ถ้ามี Spirit อย่างน้อย 1 ใบ ถึงจะเข้าสู่สถานะให้เลือก
+            console.log(`[EFFECT LOG] "${attacker.name}" can target attack. Entering choice state.`);
+            gameState.attackChoiceState = { isActive: true, attackerUid: attackerUid };
+            return gameState;
+        } else {
+            // ถ้าไม่มี Spirit เลย ให้ข้ามการเลือกไป
+            console.log(`[EFFECT LOG] "${attacker.name}" could target attack, but opponent has no spirits. Proceeding with normal attack.`);
+        }
     }
     // --- END: โค้ดที่แก้ไขและเพิ่มเติม ---
 
@@ -140,20 +165,16 @@ function resolveBattle(gameState) {
         const blockerResult = getSpiritLevelAndBP(blocker, blockerOwner, gameState);
 
         if (attackerResult.bp > blockerResult.bp) {
-            // --- START: เพิ่ม 'battle' เป็น reason ---
-            gameState = destroyCard(gameState, blockerUid, blockerOwner, 'battle');
+            
+            gameState = destroyCard(gameState, blockerUid, blockerOwner, 'battle').updatedGameState;
             gameState = resolveTriggeredEffects(gameState, attacker, 'onOpponentDestroyedInBattle', attackerOwner);
-            // --- END ---
         } else if (blockerResult.bp > attackerResult.bp) {
-            // --- START: เพิ่ม 'battle' เป็น reason ---
-            gameState = destroyCard(gameState, attackerUid, attackerOwner, 'battle');
-            // gameState = resolveTriggeredEffects(gameState, blocker, 'onOpponentDestroyedInBattle', blockerOwner);
-            // --- END ---
-        } else { // เสมอ ทำลายทั้งคู่
-            // --- START: เพิ่ม 'battle' เป็น reason ---
-            gameState = destroyCard(gameState, attackerUid, attackerOwner, 'battle');
-            gameState = destroyCard(gameState, blockerUid, blockerOwner, 'battle');
-            // --- END ---
+            
+            gameState = destroyCard(gameState, attackerUid, attackerOwner, 'battle').updatedGameState;
+        } else { // เสมอ
+            
+            gameState = destroyCard(gameState, attackerUid, attackerOwner, 'battle').updatedGameState;
+            gameState = destroyCard(gameState, blockerUid, blockerOwner, 'battle').updatedGameState;
         }
     }
     

@@ -116,6 +116,7 @@ function confirmMagicPayment(gameState, playerKey) {
                 isTargeting: true, 
                 forEffect: effectToUse, 
                 cardSourceUid: cardToUse.uid,
+                targetPlayer: playerKey,
                 selectedTargets: [] // เพิ่ม Array สำหรับเก็บเป้าหมายที่เลือก
             };
             break;
@@ -165,6 +166,15 @@ function confirmMagicPayment(gameState, playerKey) {
                 }
 
                 break;
+        case 'change cost':
+        console.log(`[EFFECT LOG] Applying turn-long buff: Cost Change for ${playerKey}`);
+        currentPlayer.tempBuffs.push({
+            type: 'AURA_COST_CHANGE',
+            duration: 'turn',
+            targetFamily: effectToUse.condition, // ["Astral Dragon"]
+            newValue: currentPlayer.life // ค่าร่ายใหม่คือ Life ของผู้เล่น
+        });
+        break;
     }
 
     // หลังจากใช้ Magic เสร็จแล้ว ให้สลับ Priority ในช่วง Flash Timing
@@ -264,20 +274,42 @@ function selectTarget(gameState, playerKey, payload) {
 
 function confirmTargets(gameState, playerKey) {
     const targetingState = gameState.targetingState;
-    if (!targetingState.isTargeting || gameState.turn !== playerKey) return gameState;
+    // แก้ไขเงื่อนไขให้ถูกต้อง: ต้องเช็คกับ targetPlayer ไม่ใช่ gameState.turn
+    if (!targetingState.isTargeting || targetingState.targetPlayer !== playerKey) {
+        return gameState;
+    }
 
     const { forEffect, selectedTargets } = targetingState;
     const opponentKey = playerKey === 'player1' ? 'player2' : 'player1';
+    let destructionSuccessful = false; // สร้างตัวแปรเพื่อตรวจสอบความสำเร็จ
 
     if (forEffect.keyword === 'destroy') {
         selectedTargets.forEach(targetUid => {
-            gameState = destroyCard(gameState, targetUid, opponentKey, 'effect');
+            // --- START: แก้ไขการเรียกใช้ destroyCard ---
+            const targetScopeKey = forEffect.target.scope === 'opponent' ? opponentKey : playerKey;
+            const result = destroyCard(gameState, targetUid, targetScopeKey, 'effect');
+            gameState = result.updatedGameState; // อัปเดต gameState ให้ถูกต้อง
+            if (result.wasSuccessful) {
+                destructionSuccessful = true; // ถ้าสำเร็จ ให้ตั้งค่าเป็น true
+            }
+            // --- END: แก้ไขการเรียกใช้ destroyCard ---
         });
     } else if (forEffect.keyword === 'power up') {
         selectedTargets.forEach(targetUid => {
             gameState = applyPowerUpEffect(gameState, targetUid, forEffect.power, forEffect.duration);
         });
     }
+
+    // --- START: เพิ่ม Logic การจั่วการ์ดเข้ามา ---
+    // ตรวจสอบว่าการทำลายสำเร็จ และในเอฟเฟกต์มีการระบุให้จั่วการ์ดหรือไม่
+    if (destructionSuccessful && forEffect.target?.succeed === 'draw') {
+        const quantity = forEffect.target.quantity || 1;
+        console.log(`[EFFECT LOG] Buster Javelin succeeded! Drawing ${quantity} card(s).`);
+        for (let i = 0; i < quantity; i++) {
+            gameState = drawCard(gameState, playerKey);
+        }
+    }
+    // --- END: เพิ่ม Logic การจั่วการ์ดเข้ามา ---
 
     // ออกจากสถานะเลือกเป้าหมาย
     gameState.targetingState = { isTargeting: false, forEffect: null, cardSourceUid: null, selectedTargets: [] };

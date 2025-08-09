@@ -252,7 +252,7 @@ module.exports.playerCards = [
     {
         id: 'nexus-hq-fighting-spirits',
         name: 'The H.Q. filled with Fighting Spirits',
-        quantity: 3,
+        quantity: 30,
         image: `${pathsNexus}/The H.Q. filled with Fighting Spirits.webp`,
         cost: 4,
         symbol_cost: { "blue": 3 },
