@@ -1,0 +1,247 @@
+import { getSpiritLevelAndBP } from "../utils.js";
+import { createCardElement } from "./components.js";
+
+export function updateAllModals(gameState, myPlayerKey, callbacks) {
+    const modals = {
+        summonPaymentOverlay: document.getElementById('summon-payment-overlay'),
+        magicPaymentOverlay: document.getElementById('magic-payment-overlay'),
+        placementOverlay: document.getElementById('placement-overlay'),
+        defenseOverlay: document.getElementById('defense-overlay'),
+        flashOverlay: document.getElementById('flash-overlay'),
+        discardOverlay: document.getElementById('discard-overlay'),
+        coreRemovalConfirmationOverlay: document.getElementById('core-removal-confirmation-overlay'),
+        targetingOverlay: document.getElementById('targeting-overlay'),
+        effectChoiceModal: document.getElementById('effect-choice-modal'),
+        gameOverModal: document.getElementById('game-over-modal'),
+        rpsModal: document.getElementById('rps-modal'), // << เพิ่ม
+        deckDiscardViewerModal: document.getElementById('deck-discard-viewer-modal'),
+        evolutionModal: document.getElementById('evolution-modal'),
+        attackChoiceModal: document.getElementById('attack-choice-modal'),
+        assaultModal: document.getElementById('assault-modal'),
+        effectResolutionModal: document.getElementById('effect-resolution-modal'),  
+        revealModal: document.getElementById('reveal-modal'),    
+
+    };
+
+    
+
+    // --- 1. ซ่อน Modal ที่เป็น Action หลักทั้งหมดก่อน ---
+    Object.values(modals).forEach(modal => {
+        if (modal && modal.id !== 'game-over-modal') {
+             modal.classList.remove('visible');
+        }
+    });
+
+    // --- 2. ตรวจสอบและแสดง Modal ที่ถูกต้องเพียงอันเดียว (จัดลำดับความสำคัญ) ---
+    const {
+        effectChoiceState,
+        discardState,
+        flashState,
+        attackState,
+        placementState,
+        magicPaymentState,
+        summoningState,
+        coreRemovalConfirmationState,
+        targetingState,
+        deckDiscardViewerState,
+        rpsState,
+        evolutionState,
+        attackChoiceState,
+        assaultState,
+        effectResolutionState,
+        revealState 
+    } = gameState;
+
+    // --- เริ่มต้น if/else if chain ที่นี่ ---
+    if (rpsState.isActive) {
+        modals.rpsModal.classList.add('visible');
+        const myChoice = rpsState[myPlayerKey].choice;
+        const opponentKey = myPlayerKey === 'player1' ? 'player2' : 'player1';
+        const opponentChoice = rpsState[opponentKey].choice;
+        const resultText = document.getElementById('rps-result');
+        
+        // อัปเดต UI ปุ่มที่เลือก
+        document.querySelectorAll('.rps-btn').forEach(btn => {
+            btn.classList.remove('selected');
+            if (btn.dataset.choice === myChoice) {
+                btn.classList.add('selected');
+            }
+            // ทำให้กดไม่ได้ถ้าเลือกไปแล้ว
+            btn.disabled = !!myChoice;
+        });
+
+
+        if (myChoice && !opponentChoice) {
+            resultText.textContent = 'Waiting for opponent...';
+        } else if (!myChoice && opponentChoice) {
+            resultText.textContent = 'Opponent has chosen. Your turn!';
+        } else if (!myChoice && !opponentChoice) {
+            resultText.textContent = '';
+        }
+     
+
+    }else if (effectResolutionState.isActive && effectResolutionState.playerKey === myPlayerKey) {
+        modals.effectResolutionModal.classList.add('visible');
+        const card = gameState[myPlayerKey].field.find(c => c.uid === effectResolutionState.cardUid);
+        
+        if (card) {
+            document.getElementById('effect-resolution-title').textContent = `Effects for ${card.name}`;
+        }
+
+        const buttonsContainer = document.getElementById('effect-resolution-buttons');
+        buttonsContainer.innerHTML = ''; // เคลียร์ปุ่มเก่า
+        effectResolutionState.effectsToResolve.forEach(effect => {
+            const button = document.createElement('button');
+            // นำบรรทัดแรกของ description มาเป็นข้อความบนปุ่ม
+            const buttonText = effect.keyword
+                .split('_')
+                .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+                .join(' ');
+            button.textContent = buttonText;
+            button.dataset.effectId = effect.uniqueId;
+            button.className = 'effect-choice-btn'; // เพิ่ม class ไว้ตกแต่ง
+            buttonsContainer.appendChild(button);
+        });
+    } 
+    
+    // ให้ Assault มีความสำคัญสูงกว่าหน้าต่างอื่นๆ ตอนโจมตี
+    else if (assaultState.canUse && gameState.turn === myPlayerKey) {
+        modals.assaultModal.classList.add('visible');
+        const spirit = gameState[myPlayerKey].field.find(s => s.uid === assaultState.spiritUid);
+        if (spirit) {
+            document.getElementById('assault-title').textContent = `Assault: ${spirit.name}`;
+        }
+        
+        // แสดง Nexus ที่ยังไม่ Exhausted ให้เลือก
+        const nexusContainer = document.getElementById('assault-nexus-container');
+        nexusContainer.innerHTML = '';
+        const validNexuses = gameState[myPlayerKey].field.filter(c => c.type === 'Nexus' && !c.isExhausted);
+        
+        validNexuses.forEach(nexus => {
+            const nexusEl = createCardElement(nexus, 'field', myPlayerKey, gameState, myPlayerKey);
+            nexusEl.classList.add('can-be-assault-nexus'); // เพิ่ม class ให้มีแสง
+            nexusContainer.appendChild(nexusEl);
+        });
+    }
+    
+    else if (revealState?.isActive && gameState.turn === myPlayerKey) {
+        modals.revealModal.classList.add('visible');
+        const container = document.getElementById('reveal-card-container');
+        container.innerHTML = '';
+        if(revealState.card) {
+            const cardEl = createCardElement(revealState.card, 'viewer', myPlayerKey, gameState, myPlayerKey, callbacks);
+            container.appendChild(cardEl);
+        }
+    }
+    else if (attackChoiceState?.isActive && gameState.turn === myPlayerKey) {
+        modals.attackChoiceModal.classList.add('visible');
+    }
+    else if (evolutionState.isActive && gameState.flashState.priority === myPlayerKey) {
+        modals.evolutionModal.classList.add('visible');
+        const spirit = gameState[myPlayerKey].field.find(s => s.uid === evolutionState.spiritUid);
+        if (spirit) {
+            document.getElementById('evolution-title').textContent = `Evolution: ${spirit.name}`;
+        }
+        document.getElementById('evolution-selected-value').textContent = evolutionState.selectedCores.length;
+    }
+    // ลำดับ 1 (สำคัญที่สุด): Deck Discard Viewer
+    else if (deckDiscardViewerState.isActive) {
+        modals.deckDiscardViewerModal.classList.add('visible');
+        const container = document.getElementById('deck-discard-viewer-container');
+        container.innerHTML = '';
+        deckDiscardViewerState.cards.forEach(card => {
+            const cardEl = createCardElement(card, 'viewer', deckDiscardViewerState.owner, gameState, myPlayerKey, callbacks);
+            container.appendChild(cardEl);
+        });
+    }
+    // ลำดับ 2: Modal ที่ต้องการการตัดสินใจเฉพาะหน้า
+    else if (targetingState.isTargeting && targetingState.targetPlayer === myPlayerKey) {
+        modals.targetingOverlay.classList.add('visible');
+        const effect = targetingState.forEffect;
+        if (effect) {
+            document.getElementById('targeting-prompt').textContent = effect.description;
+            const selectedCount = targetingState.selectedTargets?.length || 0;
+            const requiredCount = effect.target?.count || 1;
+            const confirmBtn = document.getElementById('confirm-targets-btn');
+            confirmBtn.textContent = `Confirm Targets (${selectedCount}/${requiredCount})`;
+            confirmBtn.disabled = selectedCount < requiredCount;
+        }
+    } else if (discardState.isDiscarding && discardState.playerKey === myPlayerKey) {
+        modals.discardOverlay.classList.add('visible');
+        const selectedCount = discardState.cardsToDiscard?.length || 0;
+        document.getElementById('discard-prompt').textContent = `Please select ${discardState.count} card(s) from your hand to discard. (${selectedCount}/${discardState.count})`;
+        document.getElementById('confirm-discard-btn').disabled = selectedCount < discardState.count;
+    } else if (effectChoiceState.isChoosing && gameState.turn === myPlayerKey) {
+        modals.effectChoiceModal.classList.add('visible');
+        if (effectChoiceState.card) {
+            document.getElementById('effect-choice-title').textContent = `Choose Effect for ${effectChoiceState.card.name}`;
+        }
+    } else if (magicPaymentState.isPaying && magicPaymentState.payingPlayer === myPlayerKey) {
+        modals.magicPaymentOverlay.classList.add('visible');
+        if (magicPaymentState.cardToUse) {
+            document.getElementById('magic-payment-title').textContent = `Use Magic: ${magicPaymentState.cardToUse.name}`;
+            document.getElementById('magic-payment-cost-value').textContent = magicPaymentState.costToPay;
+            document.getElementById('magic-payment-selected-value').textContent = magicPaymentState.selectedCores.length;
+            document.getElementById('confirm-magic-btn').disabled = magicPaymentState.selectedCores.length < magicPaymentState.costToPay;
+        }
+    } else if (summoningState.isSummoning && gameState.turn === myPlayerKey) {
+        modals.summonPaymentOverlay.classList.add('visible');
+        if (summoningState.cardToSummon) {
+            document.getElementById('summon-payment-title').textContent = `Summoning ${summoningState.cardToSummon.name}`;
+            document.getElementById('payment-cost-value').textContent = summoningState.costToPay;
+            document.getElementById('payment-selected-value').textContent = summoningState.selectedCores.length;
+            document.getElementById('confirm-summon-btn').disabled = summoningState.selectedCores.length < summoningState.costToPay;
+        }
+    } else if (placementState.isPlacing && gameState.turn === myPlayerKey) {
+        modals.placementOverlay.classList.add('visible');
+        const targetCard = gameState[myPlayerKey].field.find(s => s.uid === placementState.targetSpiritUid);
+        if (targetCard) {
+            document.getElementById('placement-title').textContent = `Place Cores on ${targetCard.name}`;
+            document.getElementById('confirm-placement-btn').disabled = (targetCard.type === 'Spirit' && targetCard.cores.length === 0);
+        }
+    } else if (coreRemovalConfirmationState.isConfirming && gameState.turn === myPlayerKey) {
+        modals.coreRemovalConfirmationOverlay.classList.add('visible');
+    }
+    // ลำดับ 3: Modal ที่เกี่ยวกับ Battle
+    else if (flashState.isActive && flashState.priority === myPlayerKey) {
+        modals.flashOverlay.classList.add('visible');
+        document.getElementById('flash-title').textContent = `Flash Timing (${flashState.priority}'s Priority)`;
+    }else if (attackState.isAttacking && attackState.defender === myPlayerKey && !flashState.isActive && !targetingState.isTargeting) {
+        modals.defenseOverlay.classList.add('visible');
+        const attackerPlayerKey = myPlayerKey === 'player1' ? 'player2' : 'player1';
+        const attacker = gameState[attackerPlayerKey]?.field.find(s => s.uid === attackState.attackerUid);
+        
+        if (attacker) {
+            const { bp } = getSpiritLevelAndBP(attacker, attackerPlayerKey, gameState);
+            document.getElementById('defense-attacker-info').textContent = `Attacker: ${attacker.name} (BP: ${bp})`;
+        }
+
+        // ++ เพิ่ม Logic การตรวจสอบ Clash เข้ามาตรงนี้ ++
+        const takeDamageBtn = document.getElementById('take-damage-btn');
+        if (attackState.isClash) {
+            // หาว่ามี Spirit ที่สามารถ Block ได้หรือไม่ (คือ Spirit ที่ยังไม่ Exhausted)
+            const canBlock = gameState[myPlayerKey].field.some(s => s.type === 'Spirit' && !s.isExhausted);
+            
+            if (canBlock) {
+                // ถ้ามีตัวที่ Block ได้ ให้ปิดปุ่มรับดาเมจ
+                takeDamageBtn.disabled = true;
+                takeDamageBtn.textContent = 'Must Block!'; // (Optional) เปลี่ยนข้อความบนปุ่ม
+            } else {
+                // ถ้าไม่มีตัว Block เลย ก็เปิดให้กดรับดาเมจได้
+                takeDamageBtn.disabled = false;
+                takeDamageBtn.textContent = 'Take Life Damage';
+            }
+        } else {
+            // ถ้าไม่ใช่ Clash ก็ให้ปุ่มทำงานปกติ
+            takeDamageBtn.disabled = false;
+            takeDamageBtn.textContent = 'Take Life Damage';
+        }
+    }
+
+    // --- 3. Modal ที่ทำงานแยกต่างหาก ---
+    if (gameState.gameover) {
+        modals.gameOverModal.classList.add('visible');
+        const winnerText = gameState.player1.life <= 0 ? 'Player 2 Wins!' : 'Player 1 Wins!';
+        document.getElementById('game-over-message').textContent = winnerText;
+    }
+}

@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Battle Spirits Field</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div id="game-mode-selection" class="selection-overlay">
+        <div class="selection-content">
+            <h1>Battle Spirits</h1>
+            <p>Connecting to server...</p>
+            <div class="selection-buttons hidden">
+                <a href="deck-selection.html" class="mode-btn">Play Game</a>
+                <a href="deck-builder.html" class="mode-btn">Deck Builder</a>
+            </div>
+        </div>
+    </div>
+    <!-- <div class="game-board hidden">
+        </div> -->
+
+  <div class="game-board hidden">
+      <div class="hand opponent-hand" id="opponent-hand">
+        <div class="card-container"></div>
+      </div>
+      <div class="player-zone opponent">
+        <div class="side-zone opponent-left-zones">
+          <div class="zone life">
+            <span>Opponent Life</span>
+            <div class="life-circles" id="opponent-life-circles"></div>
+          </div>
+          <div class="zone reserve" id="opponent-reserve-zone">
+            <span>Opponent Reserve</span>
+            <div id="opponent-reserve-core-container" class="core-container"></div>
+          </div>
+        </div>
+        <div class="zone field" id="opponent-field">
+          <div id="opponent-spirits-container" class="field-row"></div>
+          <div id="opponent-nexuses-container" class="field-row nexus-row"></div>
+        </div>
+        <div class="side-zone opponent-right-zones">
+          <div class="zone deck" id="opponent-deck"></div>
+          <div class="zone trash card-trash" id="opponent-card-trash-zone">
+            <div class="latest-card-image"></div>
+            <span>Card Trash</span>
+          </div>
+          <div class="zone trash cost-trash" id="opponent-cost-trash-zone">
+            <span>Cost Trash</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="center-area">
+          <div id="phase-indicator" class="phase-indicator">
+              <div id="phase-start" class="phase-step">Start</div>
+              <div id="phase-core" class="phase-step">Core</div>
+              <div id="phase-draw" class="phase-step">Draw</div>
+              <div id="phase-refresh" class="phase-step">Refresh</div>
+              <div id="phase-main" class="phase-step">Main</div>
+              <div id="phase-attack" class="phase-step">Attack</div>
+              <div id="phase-end" class="phase-step">End</div>
+          </div>
+          <div class="center-controls">
+              <h2 id="turn-indicator"></h2>
+              <button id="phase-btn">Next Step</button>
+                  <div id="turn-counter" class="turn-counter">
+                  <span class="turn-label">Turn</span>
+                  <span id="turn-number" class="turn-number-display">1</span>
+                  </div>
+          </div>
+      </div>
+
+      <div class="player-zone player">
+        <div class="side-zone player-left-zones">
+          <div class="zone life" id="player-life-zone">
+            <span>Your Life</span>
+            <div class="life-circles" id="player-life-circles"></div>
+          </div>
+          <div class="zone reserve" id="player-reserve-zone">
+            <span>Your Reserve</span>
+            <div id="player-reserve-core-container" class="core-container"></div>
+          </div>
+        </div>
+        <div class="zone field" id="player-field">
+          <div id="player-spirits-container" class="field-row"></div>
+          <div id="player-nexuses-container" class="field-row nexus-row"></div>
+        </div>
+        <div class="side-zone player-right-zones">
+          <div class="zone deck" id="player-deck"></div>
+          <div class="zone trash card-trash" id="player-card-trash-zone">
+            <div class="latest-card-image"></div>
+            <span>Card Trash</span>
+          </div>
+           <div class="zone trash cost-trash" id="player-cost-trash-zone">
+            <span>Cost Trash</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="hand" id="player-hand">
+        <h2>Your Hand</h2>
+        <div class="card-container"></div>
+      </div>
+    </div>
+
+    <div id="game-over-modal" class="modal-overlay"><div class="modal-content"><h2 id="game-over-message"></h2><button id="restart-btn">Play Again</button></div></div>
+    <div id="summon-payment-overlay" class="modal-overlay"><div class="modal-content payment-modal"><h3 id="summon-payment-title">Summoning...</h3><p id="summon-payment-prompt">Please select cores to pay the cost.</p><div class="payment-details"><span>Cost: <span id="payment-cost-value">0</span></span><span>Selected: <span id="payment-selected-value">0</span></span></div><div class="payment-buttons"><button id="confirm-summon-btn" disabled>Confirm Payment</button><button id="cancel-summon-btn">Cancel</button></div></div></div>
+    <div id="placement-overlay" class="modal-overlay"><div class="modal-content placement-modal"><h3 id="placement-title">Place Cores</h3><p>Select cores from your Reserve or other Spirits to place on the new Spirit.</p><div class="placement-buttons"><button id="confirm-placement-btn">Confirm Placement</button></div></div></div>
+    <div id="defense-overlay" class="modal-overlay"><div class="modal-content defense-modal"><h3 id="defense-title">Opponent is Attacking!</h3><div id="defense-attacker-info"></div><p>Choose a Spirit to block, or take the damage.</p><div class="defense-buttons"><button id="take-damage-btn">Take Life Damage</button></div></div></div>
+    <div id="magic-payment-overlay" class="modal-overlay"><div class="modal-content payment-modal"><h3 id="magic-payment-title">Use Magic</h3><p id="magic-payment-prompt">Please select cores to pay the cost.</p><div class="payment-details"><span>Cost: <span id="magic-payment-cost-value">0</span></span><span>Selected: <span id="magic-payment-selected-value">0</span></span></div><div class="payment-buttons"><button id="confirm-magic-btn" disabled>Confirm Payment</button><button id="cancel-magic-btn">Cancel</button></div></div></div>
+    <div id="flash-overlay" class="modal-overlay"><div class="modal-content flash-modal"><h3 id="flash-title">Flash Timing</h3><p id="flash-prompt">Do you want to use a Flash ability?</p><div class="flash-buttons"><button id="pass-flash-btn">Pass</button></div></div></div>
+    <div id="discard-overlay" class="modal-overlay"><div class="modal-content discard-modal"><h3 id="discard-title">Discard Phase</h3><p id="discard-prompt">Please select a card from your hand to discard.</p><div class="discard-buttons"><button id="confirm-discard-btn" disabled>Confirm Discard</button></div></div></div>
+    <div id="card-trash-modal" class="modal-overlay"><div class="modal-content trash-viewer-modal"><h3 id="card-trash-viewer-title">Your Card Trash</h3><div id="card-trash-viewer-container" class="card-container"></div><button id="close-trash-viewer-btn">Close</button></div></div>
+    <div id="opponent-card-trash-modal" class="modal-overlay"><div class="modal-content trash-viewer-modal"><h3 id="opponent-card-trash-viewer-title">Opponent's Card Trash</h3><div id="opponent-card-trash-viewer-container" class="card-container"></div><button id="close-opponent-trash-viewer-btn">Close</button></div></div>
+    <div id="core-removal-confirmation-overlay" class="modal-overlay"><div class="modal-content confirmation-modal"><h3 id="core-removal-title">Confirm Action</h3><p id="core-removal-prompt">Removing the last core will destroy this Spirit. Are you sure?</p><div class="confirmation-buttons"><button id="confirm-core-removal-btn">Confirm</button><button id="cancel-core-removal-btn">Cancel</button></div></div></div>
+    <div id="effect-choice-modal" class="modal-overlay"><div class="modal-content confirmation-modal"><h3 id="effect-choice-title">Choose Effect</h3><p id="effect-choice-prompt">This card can be used as a Main or Flash effect. Which one do you want to use?</p><div id="effect-choice-buttons" class="confirmation-buttons"></div><button id="cancel-effect-choice-btn" class="cancel-btn">Cancel</button></div></div>
+    <div id="card-detail-viewer" class="card-detail-viewer"><img id="detail-card-image" src="" alt="Card Detail"><div id="detail-card-effects" class="card-effects-text"></div></div>
+    
+    <div id="deck-discard-viewer-modal" class="modal-overlay"><div class="modal-content trash-viewer-modal"><h3 id="deck-discard-viewer-title">Deck Discard</h3><p>The following cards were discarded from the deck:</p><div id="deck-discard-viewer-container" class="card-container"></div><button id="confirm-deck-discard-btn">OK</button></div></div>
+    <div id="targeting-overlay" class="modal-overlay">
+    <div class="modal-content targeting-modal">
+        <h3 id="targeting-title">Choose a Target</h3>
+        <p id="targeting-prompt">Please select a Spirit to apply the effect to.</p>
+        <div class="confirmation-buttons">
+            <button id="confirm-targets-btn" disabled>Confirm Targets</button>
+        </div>
+        </div>
+    </div>
+
+    <div id="rps-modal" class="modal-overlay">
+        <div class="modal-content rps-modal">
+            <h3 id="rps-title">Rock Paper Scissors</h3>
+            <p id="rps-prompt">Choose one to decide who goes first!</p>
+            <div id="rps-choices" class="rps-choices">
+                <button class="rps-btn" data-choice="rock">✊</button>
+                <button class="rps-btn" data-choice="paper">✋</button>
+                <button class="rps-btn" data-choice="scissors">✌️</button>
+            </div>
+            <p id="rps-result"></p>
+        </div>
+    </div>
+    
+    <div id="evolution-modal" class="modal-overlay">
+        <div class="modal-content evolution-modal">
+            <h3 id="evolution-title">Evolution</h3>
+            <p>Select any number of cores from your other Spirits to move to this Spirit.</p>
+            <div class="evolution-details">
+                Selected: <span id="evolution-selected-value">0</span>
+            </div>
+            <div class="evolution-buttons">
+                <button id="confirm-evolution-btn">Confirm</button>
+                <button id="cancel-evolution-btn">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="attack-choice-modal" class="modal-overlay">
+    <div class="modal-content confirmation-modal">
+        <h3 id="attack-choice-title">Choose Attack Type</h3>
+        <p>This Spirit can attack an opposing Spirit directly. How do you want to attack?</p>
+        <div id="attack-choice-buttons" class="confirmation-buttons">
+            <button id="attack-choice-life-btn">Attack Life</button>
+            <button id="attack-choice-spirit-btn">Attack a Spirit</button>
+        </div>
+    </div>
+</div>
+
+<div id="reveal-modal" class="modal-overlay">
+    <div class="modal-content trash-viewer-modal">
+        <h3 id="reveal-title">Revealed Card</h3>
+        <p id="reveal-prompt"></p>
+        <div id="reveal-card-container" class="card-container" style="justify-content: center;"></div>
+        <button id="confirm-reveal-btn">OK</button>
+    </div>
+</div>
+
+<div id="assault-modal" class="modal-overlay">
+    <div class="modal-content assault-modal">
+        <h3 id="assault-title">Assault</h3>
+        <p>Choose a Nexus to exhaust to refresh your attacking Spirit, or skip.</p>
+        <div id="assault-nexus-container" class="card-container">
+            </div>
+        <div class="assault-buttons">
+            <button id="skip-assault-btn">Skip</button>
+        </div>
+    </div>
+</div>
+
+<div id="effect-resolution-modal" class="modal-overlay">
+    <div class="modal-content confirmation-modal">
+        <h3 id="effect-resolution-title">Choose Effect to Resolve</h3>
+        <p id="effect-resolution-prompt">Multiple effects have triggered. Please choose the order to resolve them.</p>
+        <div id="effect-resolution-buttons" class="confirmation-buttons" style="flex-direction: column; gap: 10px;">
+            </div>
+    </div>
+</div>
+
+  <script type="module" src="./js/main.js"></script>
+</body>
+</html>

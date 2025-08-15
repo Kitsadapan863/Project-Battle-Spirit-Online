@@ -1,0 +1,150 @@
+// Project-Battle-Spirit/js/main.js
+import { updateUI } from './ui/index.js';
+import { setupInitialEventListeners, updateLocalGameState, setForceUIRender, getClientState } from './core/eventManager.js';
+import { getDOMElements, createCardElement, formatCardEffects } from './ui/components.js';
+import { fetchAllCards } from './firebase-init.js'; // <-- Import ฟังก์ชันใหม่
+import { defaultDecks } from './default-decks.js'; 
+
+document.addEventListener('DOMContentLoaded', () => {
+    const gameBoard = document.querySelector('.game-board');
+    const selectionScreen = document.getElementById('game-mode-selection');
+    const statusMessage = document.querySelector('.selection-content p');
+    const modeButtons = document.querySelector('.selection-buttons');
+    const dom = getDOMElements();
+    
+    let localGameState = {};
+    let myPlayerKey = null;
+    let previousGameState = {};
+
+    const callbacks = {
+        formatEffectText: formatCardEffects,
+        getMyPlayerKey: () => myPlayerKey,
+        createCardElement: createCardElement
+    };
+
+    const renderUI = () => {
+        if (localGameState.sessionId) {
+            updateUI(localGameState, myPlayerKey, dom, callbacks, getClientState());
+        }
+    };
+    setForceUIRender(renderUI);
+
+    const ws = new WebSocket('ws://localhost:8080');
+
+    ws.onopen = async () => {
+        console.log('Connected to WebSocket server!');
+
+        const selectedDeckName = sessionStorage.getItem('selectedDeckName');
+        const isDefault = sessionStorage.getItem('isDefaultDeck') === 'true';
+        
+        if (selectedDeckName) {
+            const allCards = await fetchAllCards();
+            let deckToBuild = null;
+
+            if (isDefault) {
+                console.log(`Loading default deck: ${selectedDeckName}`);
+                const defaultDeckData = defaultDecks.find(d => d.name === selectedDeckName);
+                if(defaultDeckData) {
+                    deckToBuild = defaultDeckData.cards;
+                }
+            } else {
+                console.log(`Loading custom deck: ${selectedDeckName}`);
+                const savedDeckJSON = localStorage.getItem(`deck_${selectedDeckName}`);
+                if (savedDeckJSON) {
+                    deckToBuild = JSON.parse(savedDeckJSON);
+                }
+            }
+            
+            // ===== START: แก้ไขเงื่อนไขตรงนี้ =====
+            if (deckToBuild && allCards.length > 0) {
+            // ===== END: แก้ไขเงื่อนไข =====
+                statusMessage.textContent = 'Finding opponent...';
+                modeButtons.classList.add('hidden');
+                const fullDeckData = [];
+
+                Object.keys(deckToBuild).forEach(cardId => {
+                    const cardTemplate = allCards.find(c => c.id === cardId);
+                    if (cardTemplate) {
+                        // ใช้ deckToBuild[cardId] เพื่อหาจำนวนการ์ด
+                        for (let i = 0; i < deckToBuild[cardId]; i++) {
+                            fullDeckData.push(cardTemplate);
+                        }
+                    }
+                });
+
+                ws.send(JSON.stringify({
+                    type: 'FIND_GAME',
+                    deck: fullDeckData
+                }));
+                
+                sessionStorage.removeItem('selectedDeckName');
+                sessionStorage.removeItem('isDefaultDeck'); // เพิ่มการล้างค่า isDefaultDeck
+            } else {
+                 alert('Deck not found or failed to load card data. Returning to deck selection.');
+                 window.location.href = 'deck-selection.html';
+            }
+        } else {
+            statusMessage.textContent = 'Connection Successful!';
+            if (modeButtons) {
+                modeButtons.classList.remove('hidden');
+            }
+        }
+    };
+
+    const delay = (ms) => new Promise(res => setTimeout(res, ms));
+    async function animateTurnStart(finalState) {
+        const phases = ['start', 'core', 'draw', 'refresh'];
+        for (const phase of phases) {
+            updateUI({ ...finalState, phase: phase }, myPlayerKey, dom, callbacks, getClientState());
+            await delay(300);
+        }
+        updateUI(finalState, myPlayerKey, dom, callbacks, getClientState());
+    }
+
+    ws.onmessage = (event) => {
+        const message = JSON.parse(event.data);
+        console.log('%c[CLIENT] Received message from server:', 'color: blue;', message);
+        switch (message.type) {
+            case 'WAITING_FOR_OPPONENT':
+                statusMessage.textContent = 'Waiting for an opponent...';
+                modeButtons.classList.add('hidden');
+                break;
+            case 'GAME_STATE_UPDATE':
+                if (selectionScreen) selectionScreen.classList.add('hidden');
+                if (gameBoard) gameBoard.classList.remove('hidden');
+                
+                const newState = message.payload;
+                myPlayerKey = message.yourPlayerKey;
+                
+                const isNewTurn = newState.gameTurn > (previousGameState.gameTurn || 0);
+                const isFirstTurnAfterRPS = newState.gameTurn === 1 && previousGameState.rpsState?.isActive === true && newState.rpsState?.isActive === false;
+
+                if ((isNewTurn || isFirstTurnAfterRPS) && newState.phase === 'main') {
+                    animateTurnStart(newState);
+                } else {
+                    localGameState = newState;
+                    updateLocalGameState(localGameState);
+                    renderUI();
+                }
+                
+                previousGameState = JSON.parse(JSON.stringify(newState));
+                break;
+            case 'OPPONENT_DISCONNECTED':
+                alert('Your opponent has disconnected. The game has ended.');
+                location.reload();
+                break;
+        }
+    };
+
+    ws.onclose = () => { statusMessage.textContent = 'Disconnected. Please refresh.'; };
+    ws.onerror = (error) => { statusMessage.textContent = 'Could not connect to the server.'; };
+
+    function sendActionToServer(action) {
+        if (ws.readyState === WebSocket.OPEN && localGameState.sessionId) {
+            const dataToSend = { sessionId: localGameState.sessionId, playerKey: myPlayerKey, action: action };
+            console.log('%c[CLIENT] Sending action to server:', 'color: orange;', dataToSend);
+            ws.send(JSON.stringify(dataToSend));
+        }
+    }
+    setupInitialEventListeners(sendActionToServer, dom, callbacks); 
+});

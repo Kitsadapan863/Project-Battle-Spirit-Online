@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Battle Spirits - Deck Builder</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="deck-builder.css">
+</head>
+<body>
+    <div class="deck-builder-container">
+        <h1>Deck Builder</h1>
+        <a href="index.html" class="back-to-menu-btn">Back to Menu</a>
+        <div class="builder-main-area">
+            <div class="card-collection-panel">
+                <h2>Card Collection</h2>
+                <div id="collection-view" class="card-grid"></div>
+            </div>
+            <div class="deck-list-panel">
+                <h2>Your Deck (<span id="deck-count">0</span>/40)</h2>
+                <div class="deck-actions">
+                    <input type="text" id="deck-name" placeholder="Enter deck name">
+                    <button id="save-deck-btn">Save Deck</button>
+                    <button id="clear-deck-btn">Clear Deck</button>
+                </div>
+                <div id="deck-view" class="deck-list"></div>
+            </div>
+        </div>
+    </div>
+    <script type="module" src="./js/deck-builder.js"></script>
+</body>
+</html>
