@@ -234,11 +234,36 @@ function applyAuraPowerUp(gameState, ownerKey, effect) {
     });
     return gameState;
 }
+
+function applyWindstorm(gameState, card, effect, ownerKey) {
+    const opponentKey = ownerKey === 'player1' ? 'player2' : 'player1';
+    
+    // หาเป้าหมายที่ถูกต้อง (Spirit ของฝ่ายตรงข้ามที่ยังไม่เหนื่อย)
+    const validTargets = gameState[opponentKey].field.filter(c => 
+        c.type === 'Spirit' && !c.isExhausted
+    );
+
+    if (validTargets.length > 0) {
+        console.log(`[EFFECT LOG] ${card.name}'s [Windstorm] triggers. Entering targeting state.`);
+        gameState.targetingState = {
+            isTargeting: true,
+            forEffect: effect,
+            cardSourceUid: card.uid,
+            targetPlayer: opponentKey, 
+            selectedTargets: []
+        };
+    } else {
+        console.log(`[EFFECT LOG] ${card.name}'s [Windstorm] triggered, but no valid targets.`);
+    }
+    return gameState;
+}
+
 module.exports = { 
     applyCrush, 
     applyClash, 
     applyPowerUp, 
     applyDiscard,
     applyDrawAndDiscard,
-    applyAuraPowerUp
+    applyAuraPowerUp,
+    applyWindstorm
 };

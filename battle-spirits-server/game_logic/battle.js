@@ -118,7 +118,6 @@ function declareAttack(gameState, playerKey, payload) {
 }
 
 function declareBlock(gameState, playerKey, payload) {
-    // Note: The playerKey here is the one who clicked, which should be the defender.
     if (!gameState.attackState.isAttacking || playerKey !== gameState.attackState.defender) return gameState;
     
     const { blockerUid } = payload;
@@ -128,8 +127,15 @@ function declareBlock(gameState, playerKey, payload) {
         blocker.isExhausted = true;
         gameState.attackState.blockerUid = blockerUid;
 
-        // --- START: โค้ดที่เพิ่มเข้ามา ---
-        // ตรวจสอบเอฟเฟกต์ Crush ตอน Block (จาก Nexus "The H.Q.")
+        const attackerOwnerKey = playerKey === 'player1' ? 'player2' : 'player1';
+        const attacker = gameState[attackerOwnerKey].field.find(s => s.uid === gameState.attackState.attackerUid);
+
+        // 1. ตรวจสอบเอฟเฟกต์ 'whenBlocked' ของตัวโจมตี (เช่น Windstorm)
+        if (attacker) {
+            gameState = resolveTriggeredEffects(gameState, attacker, 'whenBlocked', attackerOwnerKey);
+        }
+        
+        // 2. ตรวจสอบเอฟเฟกต์ Crush ตอน Block (จาก Nexus "The H.Q.")
         const spiritHasCrush = blocker.effects?.some(eff => eff.keyword === 'crush');
         if (spiritHasCrush) {
             const hqNexus = gameState[playerKey].field.find(card =>
@@ -144,12 +150,18 @@ function declareBlock(gameState, playerKey, payload) {
                 gameState = applyCrush(gameState, blocker, blockerLevel, playerKey);
             }
         }
-        // --- END: โค้ดที่เพิ่มเข้ามา ---
 
-        // เรียกใช้เอฟเฟกต์ "whenBlocks" ตามปกติ
+        // 3. ตรวจสอบเอฟเฟกต์ 'whenBlocks' ทั่วไปของตัวป้องกัน
         gameState = resolveTriggeredEffects(gameState, blocker, 'whenBlocks', playerKey);
         
-        // เข้าสู่ Flash Timing หลังประกาศ Block
+        // 4. ถ้ามีเอฟเฟกต์ที่ต้องเลือกเป้าหมาย ให้หยุดรอ
+        if (gameState.targetingState.isTargeting) {
+            console.log("[BATTLE LOG] Pausing before Flash Timing due to a targeting requirement.");
+            gameState.attackState.postBlockAction = 'enterFlash';
+            return gameState;
+        }
+        
+        // 5. ถ้าไม่มีอะไรค้างอยู่ ให้เข้า Flash Timing
         gameState = enterFlashTiming(gameState, 'afterBlock');
     }
 

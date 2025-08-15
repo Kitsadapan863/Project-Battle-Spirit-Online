@@ -334,7 +334,17 @@ function confirmTargets(gameState, playerKey) {
             }
             // --- END: แก้ไขการเรียกใช้ destroyCard ---
         });
-    } else if (forEffect.keyword === 'power up') {
+
+    }else if (forEffect.keyword === 'windstorm') {
+        selectedTargets.forEach(targetUid => {
+            const targetSpirit = gameState[playerKey].field.find(s => s.uid === targetUid);
+            if (targetSpirit && !targetSpirit.isExhausted) {
+                targetSpirit.isExhausted = true;
+                console.log(`[EFFECT LOG] ${targetSpirit.name} was exhausted by Windstorm.`);
+            }
+        });
+    }
+    else if (forEffect.keyword === 'power up') {
         selectedTargets.forEach(targetUid => {
             gameState = applyPowerUpEffect(gameState, targetUid, forEffect.power, forEffect.duration);
         });
@@ -398,33 +408,6 @@ function confirmTargets(gameState, playerKey) {
     // ออกจากสถานะเลือกเป้าหมาย
     // 1. ออกจากสถานะเลือกเป้าหมาย
     gameState.targetingState = { isTargeting: false, forEffect: null, cardSourceUid: null, selectedTargets: [] };
-    
-    // หลังจากจัดการเป้าหมายแล้ว ให้เช็คว่า Spirit ที่โจมตีมี Assault หรือไม่
-    // const attackerUid = gameState.attackState.attackerUid;
-    // const attacker = gameState[playerKey].field.find(s => s.uid === attackerUid);
-
-    // if (attacker) {
-    //     const assaultEffect = attacker.effects.find(effect => 
-    //         effect.keyword === 'assault' && effect.level.includes(getCardLevel(attacker).level)
-    //     );
-    //     const usedCount = gameState.assaultState.usedCounts[attacker.uid] || 0;
-    //     const hasValidNexus = gameState[playerKey].field.some(c => c.type === 'Nexus' && !c.isExhausted);
-
-    //     if (assaultEffect && usedCount < assaultEffect.count && hasValidNexus) {
-    //         console.log(`[ASSAULT] ${attacker.name} can use Assault after effect. Entering decision state.`);
-    //         gameState.assaultState.isDeciding = true; // ใช้ isDeciding จาก state ใหม่
-    //         gameState.assaultState.spiritUid = attacker.uid;
-    //         return gameState; // << หยุดรอให้ผู้เล่นตัดสินใจ Yes/No
-    //     }
-    // }
-
-    // หลังจากจัดการเป้าหมายแล้ว ให้เช็คว่าเราต้องกลับไปที่ลำดับการต่อสู้หรือไม่
-    // if (forEffect.timing === 'whenAttacks' && gameState.phase === 'attack') {
-    //     const { enterFlashTiming } = require('./battle.js');
-    //     // สั่งให้เข้า Flash Timing ที่เคยข้ามไป
-    //     console.log(`[SERVER LOG] "When Attacks" effect resolved. Proceeding to Flash Timing.`);
-    //     return enterFlashTiming(gameState, 'beforeBlock');
-    // }
 
     // หลังจากจัดการเป้าหมายเสร็จ, ตรวจสอบว่าเราต้องกลับไปเลือกเอฟเฟกต์ที่เหลือหรือไม่
     const resState = gameState.effectResolutionState;
@@ -433,6 +416,14 @@ function confirmTargets(gameState, playerKey) {
         // "เปิด" หน้าต่างเลือกเอฟเฟกต์อีกครั้ง
         resState.isActive = true; 
         return gameState; // ส่งกลับเพื่อให้ Client แสดงหน้าต่างเลือกเอฟเฟกต์ที่เหลือ
+    }
+
+    if (gameState.attackState.postBlockAction === 'enterFlash') {
+        const { enterFlashTiming } = require('./battle.js');
+        console.log(`[BATTLE LOG] Post-block action found. Entering Flash Timing.`);
+        // เอาธงออก แล้วเริ่ม Flash Timing
+        delete gameState.attackState.postBlockAction; 
+        return enterFlashTiming(gameState, 'afterBlock');
     }
 
     // โค้ดนี้สำหรับจัดการกรณีที่ใช้ Magic ระหว่าง Flash Timing (เหมือนเดิม)

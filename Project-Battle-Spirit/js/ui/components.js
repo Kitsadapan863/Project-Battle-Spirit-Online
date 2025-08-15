@@ -136,26 +136,41 @@ export function createCardElement(cardData, location, owner, gameState, myPlayer
             const isMyCard = owner === myPlayerKey;
             let canBeTargeted = false;
 
-            // --- Path 1: การเลือกเป้าหมายแบบปกติ (มีการระบุ target) ---
+            // 1. หาว่าใครเป็น "เจ้าของเอฟเฟกต์"
+            const effectOwnerKey = targetingState.cardSourceUid 
+                ? (gameState.player1.field.some(c => c.uid === targetingState.cardSourceUid) ? 'player1' : 'player2')
+                : (myPlayerKey === 'player1' ? 'player2' : 'player1'); // Fallback in case source is not on field
+
+            // 2. ตรวจสอบเงื่อนไขตาม target scope
             if (effect.target) {
                 const targetInfo = Array.isArray(effect.target) ? effect.target[0] : effect.target;
-                const cardType = cardData.type.toLowerCase();
                 
-                // ตรวจสอบชนิดของการ์ด
-               
-                if (targetInfo.type === cardType) {
-                    const scope = targetInfo.scope;
-                    // ตรวจสอบว่าเป็นเป้าหมายที่ถูกต้องตามขอบเขตหรือไม่
-                    if (scope === 'any' || (scope === 'player' && isMyCard) || (scope === 'opponent' && !isMyCard)) {
-                        canBeTargeted = true;
+                // เช็คว่าการ์ดใบนี้ตรงกับประเภทที่ระบุหรือไม่ (spirit, nexus)
+                if (targetInfo.type === cardData.type.toLowerCase()) {
+                    let isTargetScopeMatch = false;
+                    
+                    // Scope 'opponent' หมายถึง การ์ดของฝ่ายตรงข้าม "ของเจ้าของเอฟเฟกต์"
+                    if (targetInfo.scope === 'opponent' && owner !== effectOwnerKey) {
+                        isTargetScopeMatch = true;
                     }
-                  
-                    // ถ้าในเอฟเฟกต์มีการระบุเงื่อนไข costOrLess
-                    if (canBeTargeted && targetInfo.costOrLess !== undefined) {
-                      
-                        // ถ้า cost ของการ์ดใบนี้ มากกว่า ที่กำหนดไว้ ให้เลือกไม่ได้
-                        if (cardData.cost > targetInfo.costOrLess) {
+                    // Scope 'player' หมายถึง การ์ดของ "เจ้าของเอฟเฟกต์" เอง
+                    else if (targetInfo.scope === 'player' && owner === effectOwnerKey) {
+                        isTargetScopeMatch = true;
+                    }
+                    // Scope 'any' หมายถึงการ์ดของใครก็ได้
+                    else if (targetInfo.scope === 'any') {
+                        isTargetScopeMatch = true;
+                    }
+
+                    if (isTargetScopeMatch) {
+                        canBeTargeted = true; // ผ่านเงื่อนไขเบื้องต้น
+
+                        // เช็คเงื่อนไขย่อยอื่นๆ เช่น cost หรือ BP
+                        if (targetInfo.costOrLess !== undefined && cardData.cost > targetInfo.costOrLess) {
                             canBeTargeted = false;
+                        }
+                        if (targetInfo.isExhausted === false && cardData.isExhausted) {
+                            canBeTargeted = false; // สำหรับ Windstorm ที่เลือกได้เฉพาะตัวที่ไม่เหนื่อย
                         }
                     }
                 }

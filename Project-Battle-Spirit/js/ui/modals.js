@@ -160,13 +160,25 @@ export function updateAllModals(gameState, myPlayerKey, callbacks) {
         const effect = targetingState.forEffect;
         if (effect) {
             document.getElementById('targeting-prompt').textContent = effect.description;
-            const selectedCount = targetingState.selectedTargets?.length || 0;
+            
+            // 1. นับจำนวนเป้าหมายทั้งหมดที่มีให้เลือกในสนามจริงๆ
+            const numberOfValidTargets = document.querySelectorAll('.can-be-targeted').length;
+            
+            // 2. หาจำนวนที่เอฟเฟกต์ต้องการ
             const requiredCount = effect.target?.count || 1;
+
+            // 3. จำนวนที่ต้องเลือกจริงๆ คือค่าน้อยที่สุดระหว่างสองค่าบน
+            const actualRequiredSelection = Math.min(requiredCount, numberOfValidTargets);
+
+            // 4. อัปเดต UI ตามจำนวนที่ต้องเลือกจริงๆ
+            const selectedCount = targetingState.selectedTargets?.length || 0;
             const confirmBtn = document.getElementById('confirm-targets-btn');
-            confirmBtn.textContent = `Confirm Targets (${selectedCount}/${requiredCount})`;
-            confirmBtn.disabled = selectedCount < requiredCount;
+            confirmBtn.textContent = `Confirm Targets (${selectedCount}/${actualRequiredSelection})`;
+            
+            // ปุ่มจะกดได้ก็ต่อเมื่อเลือกครบตามจำนวนที่ต้องเลือกจริงๆ
+            confirmBtn.disabled = selectedCount < actualRequiredSelection;
         }
-    } else if (discardState.isDiscarding && discardState.playerKey === myPlayerKey) {
+    }  else if (discardState.isDiscarding && discardState.playerKey === myPlayerKey) {
         modals.discardOverlay.classList.add('visible');
         const selectedCount = discardState.cardsToDiscard?.length || 0;
         document.getElementById('discard-prompt').textContent = `Please select ${discardState.count} card(s) from your hand to discard. (${selectedCount}/${discardState.count})`;

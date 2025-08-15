@@ -2,6 +2,7 @@
 
 const { getSpiritLevelAndBP, getCardLevel } = require('./utils.js');
 const { applyCrush, applyClash, applyPowerUp, applyDiscard, applyDrawAndDiscard, applyAuraPowerUp } = require('./effectHandlers.js');
+const { applyWindstorm } = require('./effectHandlers.js');
 
 // ฟังก์ชันใหม่: ใช้สำหรับทำงานตามเอฟเฟกต์ "เดียว" ที่ถูกเลือก
 function applySingleEffect(gameState, card, effect, ownerKey) {
@@ -49,6 +50,8 @@ function applySingleEffect(gameState, card, effect, ownerKey) {
                 }
             }
             break;
+        case 'windstorm':
+            return applyWindstorm(gameState, card, effect, ownerKey);
     }
     return gameState;
 }
