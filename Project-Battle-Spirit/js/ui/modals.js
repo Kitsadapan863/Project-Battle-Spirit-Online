@@ -196,7 +196,7 @@ export function updateAllModals(gameState, myPlayerKey, callbacks) {
             document.getElementById('magic-payment-selected-value').textContent = magicPaymentState.selectedCores.length;
             document.getElementById('confirm-magic-btn').disabled = magicPaymentState.selectedCores.length < magicPaymentState.costToPay;
         }
-    } else if (summoningState.isSummoning && gameState.turn === myPlayerKey) {
+    } else if (summoningState.isSummoning && summoningState.summoningPlayer === myPlayerKey) {
         modals.summonPaymentOverlay.classList.add('visible');
         if (summoningState.cardToSummon) {
             document.getElementById('summon-payment-title').textContent = `Summoning ${summoningState.cardToSummon.name}`;
@@ -204,7 +204,7 @@ export function updateAllModals(gameState, myPlayerKey, callbacks) {
             document.getElementById('payment-selected-value').textContent = summoningState.selectedCores.length;
             document.getElementById('confirm-summon-btn').disabled = summoningState.selectedCores.length < summoningState.costToPay;
         }
-    } else if (placementState.isPlacing && gameState.turn === myPlayerKey) {
+    } else if (placementState.isPlacing && placementState.placingPlayer === myPlayerKey) {
         modals.placementOverlay.classList.add('visible');
         const targetCard = gameState[myPlayerKey].field.find(s => s.uid === placementState.targetSpiritUid);
         if (targetCard) {

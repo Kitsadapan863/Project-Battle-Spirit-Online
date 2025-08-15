@@ -138,7 +138,9 @@ gameBoard.addEventListener('click', (event) => {
                 sendActionToServer({ type: 'INITIATE_MAGIC', payload: { cardUid: cardId, timing: 'main' } });
             } else if (cardEl.classList.contains('can-flash')) {
                 sendActionToServer({ type: 'INITIATE_MAGIC', payload: { cardUid: cardId, timing: 'flash' } });
-            }
+            } else if (cardEl.classList.contains('can-high-speed-summon')) {
+            sendActionToServer({ type: 'INITIATE_SUMMON', payload: { cardUid: cardId, summonType: 'high_speed' } });
+        }
         } else if (cardEl.closest('#player-field') || cardEl.closest('#opponent-field')) {
             //SELECT_ATTACK_TARGET
             if (cardEl.classList.contains('can-be-attack-target')) {

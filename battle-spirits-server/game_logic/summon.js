@@ -4,7 +4,7 @@ const { cleanupField } = require('./card.js');
 const { resolveTriggeredEffects } = require('./effects.js');
 
 function initiateSummon(gameState, playerKey, payload) {
-    const { cardUid } = payload;
+    const { cardUid, summonType = 'normal' } = payload;
     const currentPlayer = gameState[playerKey];
 
     // --- DETAILED DEBUG LOGS ---
@@ -29,7 +29,14 @@ function initiateSummon(gameState, playerKey, payload) {
     console.log(`[SUMMON DEBUG] Card ${cardToSummon.name} found on server.`);
 
     const finalCost = calculateCost(cardToSummon, playerKey, gameState);
-    const totalAvailableCores = currentPlayer.reserve.length + currentPlayer.field.reduce((sum, card) => sum + (card.cores ? card.cores.length : 0), 0);
+    let totalAvailableCores;
+    if (summonType === 'high_speed') {
+        // ถ้าเป็น High Speed นับ Core จาก Reserve เท่านั้น
+        totalAvailableCores = currentPlayer.reserve.length;
+    } else {
+        // แบบปกติ นับ Core ทั้งหมด
+        totalAvailableCores = currentPlayer.reserve.length + currentPlayer.field.reduce((sum, card) => sum + (card.cores ? card.cores.length : 0), 0);
+    }
     const minCoresNeeded = cardToSummon.type === 'Spirit' ? 1 : 0;
 
     if (totalAvailableCores < finalCost + minCoresNeeded) {
@@ -42,38 +49,44 @@ function initiateSummon(gameState, playerKey, payload) {
         isSummoning: true,
         cardToSummon,
         costToPay: finalCost,
-        selectedCores: []
+        selectedCores: [],
+        summonType: summonType,
+        summoningPlayer: playerKey
     };
     return gameState;
 }
 
 function selectCoreForPayment(gameState, playerKey, payload) {
     const { coreId, from, spiritUid } = payload;
-
-    // --- START: โค้ดที่แก้ไข ---
     let paymentState;
 
-    // ตรวจสอบว่ากำลังจ่ายเงินสำหรับ Summon หรือ Magic
     if (gameState.summoningState.isSummoning) {
         paymentState = gameState.summoningState;
-        // สำหรับ Summon, คนจ่ายต้องเป็นเจ้าของเทิร์นเท่านั้น
-        if (gameState.turn !== playerKey) {
-            console.warn(`[SECURITY] ${playerKey} attempted to pay for summon during ${gameState.turn}'s turn.`);
-            return gameState;
-        }
     } else if (gameState.magicPaymentState.isPaying) {
         paymentState = gameState.magicPaymentState;
-        // สำหรับ Magic, ตรวจสอบจาก payingPlayer ที่ระบุไว้
-        if (paymentState.payingPlayer !== playerKey) {
-            console.warn(`[SECURITY] ${playerKey} attempted to pay for magic, but ${paymentState.payingPlayer} is the designated payer.`);
-            return gameState;
-        }
     } else {
-        // ไม่มีหน้าต่างจ่ายเงินเปิดอยู่
+        return gameState; // ไม่มีหน้าต่างจ่ายเงินเปิดอยู่
+    }
+
+    // --- START: แก้ไข Logic การตรวจสอบความถูกต้อง ---
+    const designatedPayer = paymentState.summoningPlayer || paymentState.payingPlayer;
+
+    // 1. ตรวจสอบว่าคนที่ส่ง Action เข้ามา (playerKey) คือคนที่ควรจะจ่ายเงินหรือไม่
+    if (designatedPayer !== playerKey) {
+        console.warn(`[SECURITY] Payment rejected. Action from ${playerKey}, but ${designatedPayer} is the designated payer.`);
         return gameState;
     }
-    // --- END: โค้ดที่แก้ไข ---
 
+    // 2. ถ้าเป็นการ Summon แบบ High Speed ให้ตรวจสอบเงื่อนไขเพิ่มเติม
+    if (paymentState.summonType === 'high_speed') {
+        if (from !== 'reserve') {
+            console.warn(`[SECURITY] High Speed summon rejected. Core must be from reserve.`);
+            return gameState;
+        }
+    }
+    // --- END: แก้ไข Logic ---
+
+    // 3. ถ้าผ่านทุกเงื่อนไข ให้ทำการเลือก/ยกเลิก Core (โค้ดส่วนนี้เหมือนเดิม)
     const { selectedCores, costToPay } = paymentState;
     const coreInfo = { coreId, from, spiritUid };
     const existingIndex = selectedCores.findIndex(c => c.coreId === coreId);
@@ -83,6 +96,7 @@ function selectCoreForPayment(gameState, playerKey, payload) {
     } else if (selectedCores.length < costToPay) {
         selectedCores.push(coreInfo);
     }
+    
     return gameState;
 }
 
@@ -92,8 +106,8 @@ function cancelSummon(gameState) {
 }
 
 function confirmSummon(gameState, playerKey) {
-    const { isSummoning, cardToSummon, costToPay, selectedCores } = gameState.summoningState;
-    if (!isSummoning || selectedCores.length < costToPay) return gameState;
+    const { isSummoning, cardToSummon, costToPay, selectedCores, summoningPlayer  } = gameState.summoningState;
+    if (!isSummoning || summoningPlayer !== playerKey || selectedCores.length < costToPay) return gameState;
 
     const currentPlayer = gameState[playerKey];
 
@@ -124,14 +138,16 @@ function confirmSummon(gameState, playerKey) {
     currentPlayer.field.push(summonedCard);
 
     gameState.summoningState = { isSummoning: false, cardToSummon: null, costToPay: 0, selectedCores: [] };
-    gameState.placementState = { isPlacing: true, targetSpiritUid: summonedCard.uid };
+    gameState.placementState = { isPlacing: true, targetSpiritUid: summonedCard.uid, placingPlayer: playerKey };
     
     return gameState;
 }
 
 function confirmPlacement(gameState, playerKey) {
-    if (!gameState.placementState.isPlacing) return gameState;
     
+    if (!gameState.placementState.isPlacing || playerKey !== gameState.placementState.placingPlayer) {
+        return gameState;
+    }
     const currentPlayer = gameState[playerKey];
     const targetCard = currentPlayer.field.find(c => c.uid === gameState.placementState.targetSpiritUid);
 
@@ -142,7 +158,15 @@ function confirmPlacement(gameState, playerKey) {
     // TODO: Resolve 'whenSummoned' effects
     gameState = resolveTriggeredEffects(gameState, targetCard, 'whenSummoned', playerKey);
     
-    gameState.placementState = { isPlacing: false, targetSpiritUid: null };
+    gameState.placementState = { isPlacing: false, targetSpiritUid: null, placingPlayer: null  };
+
+    if (gameState.flashState.isActive) {
+        const otherPlayer = (playerKey === 'player1') ? 'player2' : 'player1';
+        gameState.flashState.priority = otherPlayer;
+        gameState.flashState.hasPassed[playerKey] = false;
+        console.log(`[FLASH LOG] Summon by ${playerKey} completed. Priority passed to ${otherPlayer}.`);
+    }
+
     return cleanupField(gameState);
 }
 

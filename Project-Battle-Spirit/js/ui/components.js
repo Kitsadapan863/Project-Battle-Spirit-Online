@@ -88,6 +88,11 @@ export function createCardElement(cardData, location, owner, gameState, myPlayer
             if (cardData.type === 'Magic' && cardData.effects?.some(e => e.timing === 'flash')) {
                 cardDiv.classList.add('can-flash');
             }
+
+            // **(เพิ่ม)** ถ้าเป็น Spirit ที่มีความสามารถ High Speed
+            if (cardData.type === 'Spirit' && cardData.effects?.some(e => e.keyword === 'high_speed')) {
+                cardDiv.classList.add('can-high-speed-summon');
+            }
         }
         
         const discardState = gameState.discardState;
@@ -212,58 +217,60 @@ export function createCoreElement(coreData, locationInfo, gameState, myPlayerKey
     coreDiv.className = 'core';
     coreDiv.id = coreData.id;
 
-    const isMyTurn = gameState.turn === myPlayerKey;
-    const iHavePriority = gameState.flashState.isActive && gameState.flashState.priority === myPlayerKey;
-    const canInteract = isMyTurn || iHavePriority;
-
-    const isPayingForSummon = gameState.summoningState.isSummoning && isMyTurn;
-    const isPayingForMagic = gameState.magicPaymentState.isPaying && gameState.magicPaymentState.payingPlayer === myPlayerKey;
+    // --- START: โค้ดที่แก้ไขสมบูรณ์ ---
+    const isPayingForSummon = gameState.summoningState.isSummoning;
+    const isPayingForMagic = gameState.magicPaymentState.isPaying;
     const isPaying = isPayingForSummon || isPayingForMagic;
 
-    const isPlacing = gameState.placementState.isPlacing && isMyTurn;
-    const isEvolving = gameState.evolutionState.isActive;
+    const isMyTurn = gameState.turn === myPlayerKey;
+    const isPlacing = gameState.placementState.isPlacing && gameState.placementState.placingPlayer === myPlayerKey;
+    const isEvolving = gameState.evolutionState.isActive && gameState.flashState.priority === myPlayerKey;
+    // --- END: โค้ดที่แก้ไขสมบูรณ์ ---
 
-    // --- START: แก้ไข Logic ส่วนนี้ ---
+    if (isPaying) {
+        const payingPlayer = isPayingForSummon 
+            ? gameState.summoningState.summoningPlayer 
+            : gameState.magicPaymentState.payingPlayer;
 
-    // ลำดับ 1: ตรวจสอบ Evolution ก่อน
-    if (isEvolving && canInteract) {
+        if (payingPlayer === myPlayerKey) {
+            const isHighSpeed = gameState.summoningState.summonType === 'high_speed';
+
+            if (isHighSpeed && locationInfo.type !== 'reserve') {
+                // High Speed ใช้ได้แค่ Core จาก Reserve
+            } else {
+                const paymentState = isPayingForSummon ? gameState.summoningState : gameState.magicPaymentState;
+                const isSelected = paymentState.selectedCores.some(c => c.coreId === coreData.id);
+                coreDiv.classList.add('selectable-for-payment');
+                if (isSelected) {
+                    coreDiv.classList.add('selected-for-payment');
+                }
+            }
+        }
+    }
+    else if (isPlacing) {
+        const targetSpiritUid = gameState.placementState.targetSpiritUid;
+        const coreIsOnTargetSpirit = locationInfo.spiritUid === targetSpiritUid;
+        if (locationInfo.type === 'reserve' || (locationInfo.type === 'field' && !coreIsOnTargetSpirit)) {
+            coreDiv.classList.add('selectable-for-placement');
+        }
+    }
+    else if (isEvolving) {
         const targetSpiritUid = gameState.evolutionState.spiritUid;
         const isSelected = gameState.evolutionState.selectedCores.some(c => c.coreId === coreData.id);
         
-        // ทำให้เลือกได้เฉพาะ Core จาก Spirit "ตัวอื่น" เท่านั้น
         if (locationInfo.type === 'field' && locationInfo.spiritUid !== targetSpiritUid) {
             coreDiv.classList.add('selectable-for-evolution');
             if (isSelected) {
                 coreDiv.classList.add('selected-for-evolution');
             }
         }
-    } 
-    // ลำดับ 2: ถ้าไม่ใช่ Evolution ให้ตรวจสอบ Action อื่นๆ
-    else if (canInteract && (isPaying || isPlacing)) {
-        if (isPaying) {
-            const paymentState = gameState.summoningState.isSummoning ? gameState.summoningState : gameState.magicPaymentState;
-            const isSelected = paymentState.selectedCores.some(c => c.coreId === coreData.id);
-            coreDiv.classList.add('selectable-for-payment');
-            if (isSelected) {
-                coreDiv.classList.add('selected-for-payment');
-            }
-        } else { // isPlacing
-            const targetSpiritUid = gameState.placementState.targetSpiritUid;
-            const coreIsOnTargetSpirit = locationInfo.spiritUid === targetSpiritUid;
-            
-            if (locationInfo.type === 'reserve' || (locationInfo.type === 'field' && !coreIsOnTargetSpirit)) {
-                coreDiv.classList.add('selectable-for-placement');
-            }
-        }
     }
    
     const isMainPhase = gameState.phase === 'main';
     
-    if (isMyTurn && isMainPhase && clientState?.selectedCoreForMove?.coreId === coreData.id) {
+    if (isMyTurn && isMainPhase && !isPaying && !isPlacing && !isEvolving && clientState?.selectedCoreForMove?.coreId === coreData.id) {
         coreDiv.classList.add('selected-for-move');
     }
-    
-    // --- END: แก้ไข Logic ส่วนนี้ ---
     
     return coreDiv;
 }

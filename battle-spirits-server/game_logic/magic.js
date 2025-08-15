@@ -428,11 +428,16 @@ function confirmTargets(gameState, playerKey) {
 
     // โค้ดนี้สำหรับจัดการกรณีที่ใช้ Magic ระหว่าง Flash Timing (เหมือนเดิม)
     if (gameState.flashState.isActive) {
-        const otherPlayer = playerKey === 'player1' ? 'player2' : 'player1';
+        // หาผู้เล่นอีกฝ่าย
+        const otherPlayer = (playerKey === 'player1') ? 'player2' : 'player1';
+        
+        // ส่ง Priority ไปให้ผู้เล่นอีกฝ่าย
         gameState.flashState.priority = otherPlayer;
-        // รีเซ็ตสถานะ "Pass" ของผู้เล่นที่เพิ่งใช้การ์ดไป
+        
+        // รีเซ็ตสถานะ "Pass" ของเรา เพื่อให้เราสามารถเล่นอีกครั้งได้ถ้า Priority วนกลับมา
         gameState.flashState.hasPassed[playerKey] = false;
-        console.log(`[SERVER LOG] Targeting finished. Flash priority passed to ${otherPlayer}`);
+
+        console.log(`[FLASH LOG] Action by ${playerKey} completed. Priority passed to ${otherPlayer}.`);
     }
 
     return gameState;

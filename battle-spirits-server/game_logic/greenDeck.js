@@ -5,7 +5,7 @@ module.exports.greenCards = [
     {
         id: 'card-gabunohashi',
         name: 'Gabunohashi',
-        quantity: 40,
+        quantity: 3,
         image: `${pathsSpirit}/Gabunohashi.webp`, // Path to the uploaded image
         cost: 3,
         symbol_cost: { "green": 1 },
@@ -29,6 +29,29 @@ module.exports.greenCards = [
                     isExhausted: false // เพิ่มเงื่อนไข: เลือกได้เฉพาะตัวที่ยังไม่เหนื่อย
                 },
                 description: "[LV1][LV2] [Windstorm: 1] (When Attacks)\nWhen this Spirit is blocked, exhaust 1 opposing Spirit."
+            }
+        ],
+        symbol: { "green": 1 },
+    },
+    {
+        id: 'card-machg',
+        name: 'Mach G',
+        quantity: 37,
+        image: `${pathsSpirit}/Mach G.webp`, // Path to the uploaded image
+        cost: 1,
+        symbol_cost: { "green": 0 },
+        level: { 
+            "level-1": { "core": 1, "bp": 2000 }, 
+            "level-2": { "core": 3, "bp": 3000 } 
+        },
+        type: 'Spirit', 
+        color: 'green',
+        family: ["Parasite Bug"],
+        effects: [
+            {
+                timing: 'flash',
+                keyword: 'high_speed',
+                description: "[LV1][LV2] [High Speed] (Flash Step)\nThis Spirit card can be summoned from your hand during the Flash Step. The cost and cores to be placed on this Spirit must be paid from your Reserve."
             }
         ],
         symbol: { "green": 1 },

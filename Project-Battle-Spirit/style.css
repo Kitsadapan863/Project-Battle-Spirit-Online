@@ -1112,3 +1112,9 @@ body {
     box-shadow: 0 0 15px #e74c3c;
     animation: pulse-red 1.5s infinite;
 }
+
+.card.can-high-speed-summon {
+    border-color: #2ecc71;
+    box-shadow: 0 0 15px #2ecc71;
+    animation: pulse-green 1.5s infinite;
+}
