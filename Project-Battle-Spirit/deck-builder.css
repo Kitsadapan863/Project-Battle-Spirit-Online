@@ -28,3 +28,95 @@ h1, h2 { text-align: center; color: #3498db; text-shadow: 0 0 5px #3498db; }
 .deck-selection-actions { text-align: center; margin-top: 20px; }
 #play-game-btn { padding: 15px 40px; font-size: 1.3rem; background-color: #27ae60; border: none; border-radius: 8px; color: white; cursor: pointer; }
 #play-game-btn:disabled { background-color: #7f8c8d; cursor: not-allowed; }
+
+
+/* Styles for login.html */
+.auth-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 100vw;
+    height: 100vh;
+    background: #2c3e50;
+}
+
+.auth-form-container {
+    width: 90%;
+    max-width: 400px;
+    padding: 40px;
+    background: rgba(10, 20, 40, 0.9);
+    border-radius: 20px;
+    border: 2px solid #3498db;
+    box-shadow: 0 0 25px rgba(52, 152, 219, 0.5);
+    text-align: center;
+}
+
+.auth-form-container input {
+    width: 100%;
+    padding: 12px;
+    margin-bottom: 15px;
+    border-radius: 8px;
+    border: 1px solid #7f8c8d;
+    background: #34495e;
+    color: white;
+    font-size: 1em;
+}
+
+.auth-form-container button {
+    width: 100%;
+    padding: 12px;
+    border: none;
+    border-radius: 8px;
+    background-color: #3498db;
+    color: white;
+    font-size: 1.1em;
+    font-weight: bold;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.auth-form-container button:hover {
+    background-color: #2980b9;
+}
+
+#toggle-form-text {
+    margin-top: 20px;
+    color: #bdc3c7;
+}
+
+#toggle-form-link {
+    color: #3498db;
+    text-decoration: none;
+    font-weight: bold;
+}
+
+.error-message {
+    color: #e74c3c;
+    margin-top: 15px;
+    font-weight: bold;
+    min-height: 20px;
+}
+
+
+/* Styles for User Info */
+.user-info {
+    margin-bottom: 20px;
+    padding: 10px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+}
+.user-info p {
+    margin: 0 0 10px 0;
+    font-size: 1.1em;
+}
+#logout-btn {
+    padding: 10px 20px; /* เพิ่มขนาด padding เล็กน้อย */
+    border: none;
+    border-radius: 8px; /* ปรับให้เข้ากับปุ่มอื่น */
+    background-color: #c0392b;
+    color: white;
+    font-weight: bold;
+    cursor: pointer;
+    margin-top: 0px; /* เพิ่ม margin ด้านบนเพื่อให้ห่างจากข้อความต้อนรับ */
+    font-size: 1em; /* ปรับขนาด font ให้เข้ากับส่วนอื่น */
+}

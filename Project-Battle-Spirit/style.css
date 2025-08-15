@@ -1118,3 +1118,16 @@ body {
     box-shadow: 0 0 15px #2ecc71;
     animation: pulse-green 1.5s infinite;
 }
+
+#logout-btn {
+    padding: 10px 20px; /* เพิ่มขนาด padding เล็กน้อย */
+    border: none;
+    border-radius: 8px; /* ปรับให้เข้ากับปุ่มอื่น */
+    background-color: #c0392b;
+    color: white;
+    font-weight: bold;
+    cursor: pointer;
+    margin-top: 0px; /* เพิ่ม margin ด้านบนเพื่อให้ห่างจากข้อความต้อนรับ */
+    font-size: 1em; /* ปรับขนาด font ให้เข้ากับส่วนอื่น */
+    /* float: right; */
+}

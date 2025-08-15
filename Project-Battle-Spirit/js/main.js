@@ -4,12 +4,19 @@ import { setupInitialEventListeners, updateLocalGameState, setForceUIRender, get
 import { getDOMElements, createCardElement, formatCardEffects } from './ui/components.js';
 import { fetchAllCards } from './firebase-init.js'; // <-- Import ฟังก์ชันใหม่
 import { defaultDecks } from './default-decks.js'; 
+import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js";
 
 document.addEventListener('DOMContentLoaded', () => {
     const gameBoard = document.querySelector('.game-board');
     const selectionScreen = document.getElementById('game-mode-selection');
-    const statusMessage = document.querySelector('.selection-content p');
+    // const statusMessage = document.querySelector('.selection-content p');
+    const statusMessage = document.getElementById('status-message');
     const modeButtons = document.querySelector('.selection-buttons');
+    const auth = getAuth(); // เรียกใช้ auth
+    const userInfoDiv = document.getElementById('user-info');
+    const userEmailSpan = document.getElementById('user-email');
+    const logoutBtn = document.getElementById('logout-btn');
+     
     const dom = getDOMElements();
     
     let localGameState = {};
@@ -28,6 +35,24 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
     setForceUIRender(renderUI);
+
+        logoutBtn.addEventListener('click', () => {
+        signOut(auth).then(() => {
+            console.log('User signed out.');
+            window.location.href = 'login.html'; // กลับไปหน้า login
+        }).catch((error) => {
+            console.error('Sign out error:', error);
+        });
+    });
+
+    // เพื่อแสดงข้อมูลผู้ใช้เมื่อล็อกอินสำเร็จ
+    onAuthStateChanged(auth, (user) => {
+        if (user) {
+            // ถ้ามี user (ล็อกอินอยู่)
+            userInfoDiv.classList.remove('hidden');
+            userEmailSpan.textContent = user.email;
+        }
+    });
 
     const ws = new WebSocket('ws://localhost:8080');
 

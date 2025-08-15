@@ -5,20 +5,25 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Battle Spirits Field</title>
   <link rel="stylesheet" href="style.css">
+  <script type="module" src="./js/auth-guard.js"></script>
 </head>
 <body>
     <div id="game-mode-selection" class="selection-overlay">
-        <div class="selection-content">
-            <h1>Battle Spirits</h1>
-            <p>Connecting to server...</p>
-            <div class="selection-buttons hidden">
-                <a href="deck-selection.html" class="mode-btn">Play Game</a>
-                <a href="deck-builder.html" class="mode-btn">Deck Builder</a>
-            </div>
-        </div>
+
+<div class="selection-content">
+  <button id="logout-btn" >Logout</button>
+    <h1>Battle Spirits</h1>
+    
+    <div id="user-info" class="user-info hidden">
+        <p>Welcome, <span id="user-email"></span>!</p>
+        
     </div>
-    <!-- <div class="game-board hidden">
-        </div> -->
+    <p id="status-message">Connecting to server...</p> <div class="selection-buttons hidden">
+        <a href="deck-selection.html" class="mode-btn">Play Game</a>
+        <a href="deck-builder.html" class="mode-btn">Deck Builder</a>
+    </div>
+</div>
+
 
   <div class="game-board hidden">
       <div class="hand opponent-hand" id="opponent-hand">
