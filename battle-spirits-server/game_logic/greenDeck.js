@@ -110,7 +110,7 @@ module.exports.greenCards = [
     {
         id: 'nexus-fruit-of-wise-tree',
         name: 'The Fruit of Wise Tree',
-        quantity: 31, // หรือตามจำนวนที่ต้องการ
+        quantity: 3, // หรือตามจำนวนที่ต้องการ
         image: './images/card_green/nexus/The Fruit of Wise Tree.webp', // สร้าง Path รูปภาพให้ถูกต้อง
         cost: 4,
         symbol_cost: { "green": 2 },
@@ -137,6 +137,31 @@ module.exports.greenCards = [
             }
         ],
         symbol: { "green": 1 },
+    },
+    {
+        id: 'magic-thorn-prison',
+        name: 'Thorn Prison',
+        quantity: 28, // หรือตามจำนวนที่ต้องการ
+        image: './images/card_green/magic/Thorn Prison.webp', // สร้าง Path รูปภาพให้ถูกต้อง
+        cost: 4,
+        symbol_cost: { "green": 2 },
+        type: 'Magic', 
+        color: 'green',
+        effects: [
+            {
+                timing: 'flash',
+                keyword: 'force_exhaust', // Keyword ใหม่สำหรับบังคับ exhaust
+                target: {
+                    scope: 'opponent', // เป้าหมายคือ Spirit ของ "คู่ต่อสู้"
+                    type: 'spirit',
+                    count: 2,
+                    condition: {
+                        isExhausted: false // ต้องเป็น Spirit ที่ยังไม่เหนื่อยเท่านั้น
+                    }
+                },
+                description: "[Flash]\nThe opponent exhausts two Spirits they control."
+            }
+        ],
     },
 
 ];

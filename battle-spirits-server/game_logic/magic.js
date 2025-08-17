@@ -189,14 +189,14 @@ function confirmMagicPayment(gameState, playerKey) {
         });
         break;
         case 'conditional_aura_power_up':
-        console.log(`[EFFECT LOG] Applying turn-long buff: Conditional Power Up for ${playerKey}`);
-        currentPlayer.tempBuffs.push({
-            type: 'AURA_CONDITIONAL_BP',
-            duration: 'turn',
-            buffs: effectToUse.buffs, // [{ condition: { hasKeyword: 'clash' }, power: 3000 }, ...]
-            sourceCardName: cardToUse.name
-        });
-        break;
+            console.log(`[EFFECT LOG] Applying turn-long buff: Conditional Power Up for ${playerKey}`);
+            currentPlayer.tempBuffs.push({
+                type: 'AURA_CONDITIONAL_BP',
+                duration: 'turn',
+                buffs: effectToUse.buffs, // [{ condition: { hasKeyword: 'clash' }, power: 3000 }, ...]
+                sourceCardName: cardToUse.name
+            });
+            break;
         case 'addEffects':
             
             let validTargets = [];
@@ -213,6 +213,16 @@ function confirmMagicPayment(gameState, playerKey) {
             };
             }
 
+            break;
+        case 'force_exhaust':
+            console.log(`[EFFECT LOG] Entering targeting state for opponent due to: ${effectToUse.description}`);
+            gameState.targetingState = {
+                isTargeting: true,
+                forEffect: effectToUse,
+                cardSourceUid: cardToUse.uid,
+                targetPlayer: opponentPlayerKey, // <-- **จุดสำคัญ** ให้ฝ่ายตรงข้ามเป็นคนเลือก
+                selectedTargets: []
+            };
             break;
     }
 
@@ -319,7 +329,6 @@ function confirmTargets(gameState, playerKey) {
     if (!targetingState.isTargeting || targetingState.targetPlayer !== playerKey) {
         return gameState;
     }
-
     const { forEffect, selectedTargets } = targetingState;
     const opponentKey = playerKey === 'player1' ? 'player2' : 'player1';
     let destructionSuccessful = false; // สร้างตัวแปรเพื่อตรวจสอบความสำเร็จ
@@ -336,6 +345,16 @@ function confirmTargets(gameState, playerKey) {
             // --- END: แก้ไขการเรียกใช้ destroyCard ---
         });
 
+    }
+    else if (forEffect.keyword === 'force_exhaust') {
+        // playerKey คือคนที่ถูกบังคับให้เลือก ดังนั้นเป้าหมายคือ Spirit ของ playerKey เอง
+        selectedTargets.forEach(targetUid => {
+            const targetSpirit = gameState[playerKey].field.find(s => s.uid === targetUid);
+            if (targetSpirit) {
+                targetSpirit.isExhausted = true;
+                console.log(`[EFFECT LOG] ${targetSpirit.name} was exhausted by Thorn Prison.`);
+            }
+        });
     }else if (forEffect.keyword === 'windstorm') {
         selectedTargets.forEach(targetUid => {
             const targetSpirit = gameState[playerKey].field.find(s => s.uid === targetUid);

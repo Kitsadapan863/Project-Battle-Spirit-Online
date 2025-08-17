@@ -173,8 +173,20 @@ export function updateAllModals(gameState, myPlayerKey, callbacks) {
         if (effect) {
             document.getElementById('targeting-prompt').textContent = effect.description;
             
-            // 1. นับจำนวนเป้าหมายทั้งหมดที่มีให้เลือกในสนามจริงๆ
-            const numberOfValidTargets = document.querySelectorAll('.can-be-targeted').length;
+            // 1. นับจำนวนเป้าหมายที่ถูกต้องทั้งหมดในสนามจริงๆ
+            // เราต้องหาจาก gameState โดยตรง ไม่ใช่จาก DOM เพื่อความแม่นยำ
+            const targetPlayerState = gameState[targetingState.targetPlayer];
+            let numberOfValidTargets = 0;
+            if (targetPlayerState && targetPlayerState.field) {
+                numberOfValidTargets = targetPlayerState.field.filter(card => {
+                    // ใช้เงื่อนไขเดียวกันกับที่ทำให้การ์ดเรืองแสงใน components.js
+                    if (effect.keyword === 'force_exhaust') {
+                        return card.type === 'Spirit' && !card.isExhausted;
+                    }
+                    // (เพิ่มเงื่อนไขสำหรับเอฟเฟกต์อื่นๆ ที่นี่ถ้าจำเป็น)
+                    return false; // ถ้าไม่เข้าเงื่อนไขไหนเลย ก็ไม่นับ
+                }).length;
+            }
             
             // 2. หาจำนวนที่เอฟเฟกต์ต้องการ
             const requiredCount = effect.target?.count || 1;
@@ -187,9 +199,10 @@ export function updateAllModals(gameState, myPlayerKey, callbacks) {
             const confirmBtn = document.getElementById('confirm-targets-btn');
             confirmBtn.textContent = `Confirm Targets (${selectedCount}/${actualRequiredSelection})`;
             
-            // ปุ่มจะกดได้ก็ต่อเมื่อเลือกครบตามจำนวนที่ต้องเลือกจริงๆ
-            confirmBtn.disabled = selectedCount < actualRequiredSelection;
+            // ปุ่มจะกดได้ก็ต่อเมื่อเลือกครบตามจำนวนที่ต้องเลือกจริงๆ เท่านั้น
+            confirmBtn.disabled = selectedCount !== actualRequiredSelection;
         }
+
     }  else if (discardState.isDiscarding && discardState.playerKey === myPlayerKey) {
         modals.discardOverlay.classList.add('visible');
         const selectedCount = discardState.cardsToDiscard?.length || 0;

@@ -145,6 +145,15 @@ export function createCardElement(cardData, location, owner, gameState, myPlayer
             const effectOwnerKey = targetingState.cardSourceUid 
                 ? (gameState.player1.field.some(c => c.uid === targetingState.cardSourceUid) ? 'player1' : 'player2')
                 : (myPlayerKey === 'player1' ? 'player2' : 'player1'); // Fallback in case source is not on field
+                        // เพิ่มเงื่อนไขพิเศษสำหรับ Thorn Prison
+            if (effect.keyword === 'force_exhaust') {
+                // ถ้าการ์ดที่กำลังแสดงผลเป็น Spirit ของเราเอง (myPlayerKey) และยังไม่ Exhausted
+                if (cardData.type === 'Spirit' && owner === myPlayerKey && !cardData.isExhausted) {
+                    canBeTargeted = true;
+                }
+            } 
+            // Logic เดิมสำหรับเอฟเฟกต์อื่นๆ
+            else {
 
             // 2. ตรวจสอบเงื่อนไขตาม target scope
             if (effect.target) {
@@ -188,6 +197,8 @@ export function createCardElement(cardData, location, owner, gameState, myPlayer
                     canBeTargeted = true;
                 }
             }
+            }
+
             
             // ถ้าเงื่อนไขข้อใดข้อหนึ่งถูกต้อง ให้แสดงผลว่าเลือกได้
             if (canBeTargeted) {
