@@ -9,23 +9,23 @@
 </head>
 <body>
     <div id="game-mode-selection" class="selection-overlay">
-
-<div class="selection-content">
-  <button id="logout-btn" >Logout</button>
-    <h1>Battle Spirits</h1>
+        <div class="selection-content">
+          <button id="logout-btn" >Logout</button>
+            <h1>Battle Spirits</h1>
+            
+            <div id="user-info" class="user-info hidden">
+                <p>Welcome, <span id="user-email"></span>!</p>
+            </div>
+            <p id="status-message">Connecting to server...</p> 
+            <div class="selection-buttons hidden">
+                <a href="deck-selection.html" class="mode-btn">Play Game</a>
+                <a href="deck-builder.html" class="mode-btn">Deck Builder</a>
+            </div>
+        </div>
+      </div>
     
-    <div id="user-info" class="user-info hidden">
-        <p>Welcome, <span id="user-email"></span>!</p>
-        
-    </div>
-    <p id="status-message">Connecting to server...</p> <div class="selection-buttons hidden">
-        <a href="deck-selection.html" class="mode-btn">Play Game</a>
-        <a href="deck-builder.html" class="mode-btn">Deck Builder</a>
-    </div>
-</div>
-
-
-  <div class="game-board hidden">
+<div>
+    <div class="game-board hidden">
       <div class="hand opponent-hand" id="opponent-hand">
         <div class="card-container"></div>
       </div>
@@ -108,6 +108,9 @@
         <div class="card-container"></div>
       </div>
     </div>
+</div>
+
+
 
     <div id="game-over-modal" class="modal-overlay"><div class="modal-content"><h2 id="game-over-message"></h2><button id="restart-btn">Play Again</button></div></div>
     <div id="summon-payment-overlay" class="modal-overlay"><div class="modal-content payment-modal"><h3 id="summon-payment-title">Summoning...</h3><p id="summon-payment-prompt">Please select cores to pay the cost.</p><div class="payment-details"><span>Cost: <span id="payment-cost-value">0</span></span><span>Selected: <span id="payment-selected-value">0</span></span></div><div class="payment-buttons"><button id="confirm-summon-btn" disabled>Confirm Payment</button><button id="cancel-summon-btn">Cancel</button></div></div></div>
@@ -198,6 +201,17 @@
         <p id="effect-resolution-prompt">Multiple effects have triggered. Please choose the order to resolve them.</p>
         <div id="effect-resolution-buttons" class="confirmation-buttons" style="flex-direction: column; gap: 10px;">
             </div>
+    </div>
+</div>
+
+<div id="effect-cost-confirmation-modal" class="modal-overlay">
+    <div class="modal-content confirmation-modal" style="border-color: #28a745;">
+        <h3 id="effect-cost-title" style="color: #28a745;">Activate Effect?</h3>
+        <p id="effect-cost-prompt">Do you want to pay the cost to activate this effect?</p>
+        <div class="confirmation-buttons">
+            <button id="confirm-effect-cost-btn">Confirm</button>
+            <button id="cancel-effect-cost-btn">Cancel</button>
+        </div>
     </div>
 </div>
 

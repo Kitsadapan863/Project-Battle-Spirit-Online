@@ -197,6 +197,34 @@ function applyPowerUpEffect(gameState, cardUid, power, duration) {
     return gameState;
 }
 
+function returnToHand(gameState, cardUid, ownerKey) {
+    const owner = gameState[ownerKey];
+    if (!owner) return { updatedGameState: gameState, wasSuccessful: false };
+
+    const cardIndex = owner.field.findIndex(c => c.uid === cardUid);
+    if (cardIndex === -1) return { updatedGameState: gameState, wasSuccessful: false };
+
+    // นำการ์ดออกจากสนาม
+    const [returnedCard] = owner.field.splice(cardIndex, 1);
+    
+    // ย้าย Core ทั้งหมดกลับไปที่ Reserve
+    if (returnedCard.cores && returnedCard.cores.length > 0) {
+        owner.reserve.push(...returnedCard.cores);
+        returnedCard.cores = [];
+    }
+
+    // Reset สถานะของการ์ดก่อนนำขึ้นมือ
+    returnedCard.isExhausted = false;
+    returnedCard.tempBuffs = [];
+    
+    // นำการ์ดขึ้นมือ
+    owner.hand.push(returnedCard);
+    
+    console.log(`[RETURN LOG] ${ownerKey}'s ${returnedCard.name} was returned to hand.`);
+    
+    return { updatedGameState: gameState, wasSuccessful: true };
+}
+
 module.exports = {
     drawCard,
     destroyCard,
@@ -205,6 +233,7 @@ module.exports = {
     selectCardForDiscard,
     confirmDiscard,
     initiateDeckDiscard,
-    applyPowerUpEffect
+    applyPowerUpEffect,
+    returnToHand
     // เราจะเพิ่มฟังก์ชันอื่นๆ ที่นี่
 };

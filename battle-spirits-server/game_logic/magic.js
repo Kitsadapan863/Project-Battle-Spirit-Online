@@ -2,6 +2,7 @@
 const { calculateCost, getSpiritLevelAndBP, getCardLevel } = require('./utils.js');
 const { drawCard, initiateDeckDiscard, initiateDiscard, moveUsedMagicToTrash, destroyCard, applyPowerUpEffect, cleanupField } = require('./card.js');
 const { resolveTriggeredEffects } = require('./effects.js');
+const {returnToHand} = require('./card.js')
 
 // Helper function
 function findValidTargets(gameState, targetInfo) {
@@ -342,6 +343,12 @@ function confirmTargets(gameState, playerKey) {
                 targetSpirit.isExhausted = true;
                 console.log(`[EFFECT LOG] ${targetSpirit.name} was exhausted by Windstorm.`);
             }
+        });
+    }else if (forEffect.keyword === 'return_to_hand_with_cost') {
+        const targetScopeKey = forEffect.target.scope === 'opponent' ? opponentKey : playerKey;
+        selectedTargets.forEach(targetUid => {
+            const result = returnToHand(gameState, targetUid, targetScopeKey);
+            gameState = result.updatedGameState;
         });
     }
     else if (forEffect.keyword === 'power up') {

@@ -1129,5 +1129,5 @@ body {
     cursor: pointer;
     margin-top: 0px; /* เพิ่ม margin ด้านบนเพื่อให้ห่างจากข้อความต้อนรับ */
     font-size: 1em; /* ปรับขนาด font ให้เข้ากับส่วนอื่น */
-    /* float: right; */
+    
 }

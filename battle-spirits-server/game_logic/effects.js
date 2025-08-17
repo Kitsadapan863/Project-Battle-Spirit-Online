@@ -3,6 +3,7 @@
 const { getSpiritLevelAndBP, getCardLevel } = require('./utils.js');
 const { applyCrush, applyClash, applyPowerUp, applyDiscard, applyDrawAndDiscard, applyAuraPowerUp } = require('./effectHandlers.js');
 const { applyWindstorm } = require('./effectHandlers.js');
+const { returnToHand } = require('./card');
 
 // ฟังก์ชันใหม่: ใช้สำหรับทำงานตามเอฟเฟกต์ "เดียว" ที่ถูกเลือก
 function applySingleEffect(gameState, card, effect, ownerKey) {
@@ -52,6 +53,20 @@ function applySingleEffect(gameState, card, effect, ownerKey) {
             break;
         case 'windstorm':
             return applyWindstorm(gameState, card, effect, ownerKey);
+        case 'return_to_hand_with_cost':
+            // ไม่ทำงานทันที แต่จะไปเปิดหน้าต่างยืนยันแทน
+            if (gameState[ownerKey].reserve.length >= effect.cost.count) {
+                console.log(`[EFFECTS] Awaiting cost confirmation for ${card.name}'s effect.`);
+                gameState.effectCostConfirmationState = {
+                    isActive: true,
+                    playerKey: ownerKey,
+                    effect: effect,
+                    cardSourceUid: card.uid
+                };
+            } else {
+                console.log(`[EFFECTS] Cannot activate ${card.name}'s effect, not enough core in reserve.`);
+            }
+            break;
     }
     return gameState;
 }
@@ -137,4 +152,54 @@ function resolveChosenEffect(gameState, playerKey, payload) {
     return gameState;
 }
 
-module.exports = { resolveTriggeredEffects, resolveChosenEffect };
+/**
+ * จัดการเมื่อผู้เล่นยืนยันการจ่ายค่าใช้จ่ายของเอฟเฟกต์
+ */
+function confirmEffectCost(gameState, playerKey) {
+    const confirmState = gameState.effectCostConfirmationState;
+    if (!confirmState.isActive || confirmState.playerKey !== playerKey) return gameState;
+
+    const { effect, cardSourceUid } = confirmState;
+    const player = gameState[playerKey];
+
+    // 1. จ่าย Cost
+    if (player.reserve.length >= effect.cost.count) {
+        for (let i = 0; i < effect.cost.count; i++) {
+            const [core] = player.reserve.splice(0, 1);
+            player.costTrash.push(core); // หรือ costTrash ตามที่คุณต้องการ
+        }
+        console.log(`[EFFECTS] Cost paid for ${effect.keyword}.`);
+
+        // 2. เข้าสู่สถานะเลือกเป้าหมาย
+        gameState.targetingState = {
+            isTargeting: true,
+            forEffect: effect,
+            cardSourceUid: cardSourceUid,
+            targetPlayer: playerKey,
+            selectedTargets: []
+        };
+    }
+
+    // 3. Reset สถานะการยืนยัน
+    gameState.effectCostConfirmationState = { isActive: false, playerKey: null, effect: null, cardSourceUid: null };
+    return gameState;
+}
+
+/**
+ * จัดการเมื่อผู้เล่นยกเลิกการจ่ายค่าใช้จ่าย
+ */
+function cancelEffectCost(gameState, playerKey) {
+    const confirmState = gameState.effectCostConfirmationState;
+    if (!confirmState.isActive || confirmState.playerKey !== playerKey) return gameState;
+
+    console.log(`[EFFECTS] Player canceled cost payment.`);
+    gameState.effectCostConfirmationState = { isActive: false, playerKey: null, effect: null, cardSourceUid: null };
+    return gameState;
+}
+
+module.exports = { 
+    resolveTriggeredEffects, 
+    resolveChosenEffect,
+    confirmEffectCost, // Export ฟังก์ชันใหม่
+    cancelEffectCost   // Export ฟังก์ชันใหม่
+};

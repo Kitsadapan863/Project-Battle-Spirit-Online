@@ -241,11 +241,19 @@ function takeLifeDamage(gameState, playerKey) {
     const attacker = gameState[attackingPlayer].field.find(s => s.uid === attackerUid);
     if (attacker) {
         const damage = calculateTotalSymbols(attacker);
+        let lifeWasReduced = false;
         for (let i = 0; i < damage; i++) {
             if (gameState[defender].life > 0) {
                 gameState[defender].life--;
                 gameState[defender].reserve.push({ id: `core-from-life-${defender}-${Date.now()}-${i}` });
+                lifeWasReduced = true;
             }
+        }
+
+        // ถ้า Life ลดลงจริงๆ ให้ตรวจสอบเอฟเฟกต์
+        if (lifeWasReduced) {
+            console.log(`[BATTLE LOG] Life was reduced. Checking for 'onLifeDamageDealt' effects.`);
+            gameState = resolveTriggeredEffects(gameState, attacker, 'onLifeDamageDealt', attackingPlayer);
         }
     }
     gameState = clearBattleBuffs(gameState, attackingPlayer);

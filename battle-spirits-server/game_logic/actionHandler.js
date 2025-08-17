@@ -8,7 +8,7 @@ const { confirmDeckDiscard, confirmDiscard, selectCardForDiscard } = require('./
 const { confirmCoreRemoval, cancelCoreRemoval, moveCore } = require('./core');
 const {resolveRPS} = require('./pregame.js')
 const { initiateEvolution, selectCoreForEvolution, confirmEvolution, cancelEvolution } = require('./evolution'); 
-const { resolveChosenEffect } = require('./effects');
+const { resolveChosenEffect, confirmEffectCost, cancelEffectCost  } = require('./effects');
 
 function handleAction(gameState, playerKey, action) {
      // --- LOG DEBUG ---
@@ -60,6 +60,8 @@ function handleAction(gameState, playerKey, action) {
         // case 'SELECT_TARGET': return applyTargetedEffect(gameState, playerKey, action.payload);
         case 'SELECT_TARGET': return selectTarget(gameState, playerKey, action.payload);
         case 'RESOLVE_CHOSEN_EFFECT': return resolveChosenEffect(gameState, playerKey, action.payload);
+        case 'CONFIRM_EFFECT_COST': return confirmEffectCost(gameState, playerKey);
+        case 'CANCEL_EFFECT_COST': return cancelEffectCost(gameState, playerKey);
         case 'CONFIRM_TARGETS': return confirmTargets(gameState, playerKey);
         case 'CONFIRM_REVEAL': return confirmReveal(gameState, playerKey);
 

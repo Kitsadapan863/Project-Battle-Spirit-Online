@@ -18,7 +18,8 @@ export function updateAllModals(gameState, myPlayerKey, callbacks) {
         evolutionModal: document.getElementById('evolution-modal'),
         attackChoiceModal: document.getElementById('attack-choice-modal'),
         assaultModal: document.getElementById('assault-modal'),
-        effectResolutionModal: document.getElementById('effect-resolution-modal'),  
+        effectResolutionModal: document.getElementById('effect-resolution-modal'), 
+         effectCostConfirmationModal: document.getElementById('effect-cost-confirmation-modal'), 
         revealModal: document.getElementById('reveal-modal'),    
 
     };
@@ -49,7 +50,8 @@ export function updateAllModals(gameState, myPlayerKey, callbacks) {
         attackChoiceState,
         assaultState,
         effectResolutionState,
-        revealState 
+        revealState,
+        effectCostConfirmationState 
     } = gameState;
 
     // --- เริ่มต้น if/else if chain ที่นี่ ---
@@ -80,7 +82,17 @@ export function updateAllModals(gameState, myPlayerKey, callbacks) {
         }
      
 
-    }else if (effectResolutionState.isActive && effectResolutionState.playerKey === myPlayerKey) {
+    }else if (effectCostConfirmationState.isActive && effectCostConfirmationState.playerKey === myPlayerKey) { // <-- เพิ่ม else if นี้ (สำคัญมาก ต้องอยู่ลำดับต้นๆ)
+        modals.effectCostConfirmationModal.classList.add('visible');
+        const effect = effectCostConfirmationState.effect;
+        const card = gameState[myPlayerKey].field.find(c => c.uid === effectCostConfirmationState.cardSourceUid);
+        if (card && effect) {
+            document.getElementById('effect-cost-title').textContent = `Activate ${card.name}'s Effect?`;
+            const effectDesc = effect.description.replace(/\n/g, ' '); // ทำให้เป็นบรรทัดเดียว
+            document.getElementById('effect-cost-prompt').textContent = `Pay ${effect.cost.count} core from your Reserve to activate: "${effectDesc}"`;
+        }
+    }
+    else if (effectResolutionState.isActive && effectResolutionState.playerKey === myPlayerKey) {
         modals.effectResolutionModal.classList.add('visible');
         const card = gameState[myPlayerKey].field.find(c => c.uid === effectResolutionState.cardUid);
         

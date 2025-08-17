@@ -377,6 +377,14 @@ gameBoard.addEventListener('click', (event) => {
         }
     });
 
+    document.getElementById('confirm-effect-cost-btn').addEventListener('click', () => {
+        sendActionToServer({ type: 'CONFIRM_EFFECT_COST' });
+    });
+
+    document.getElementById('cancel-effect-cost-btn').addEventListener('click', () => {
+        sendActionToServer({ type: 'CANCEL_EFFECT_COST' });
+    });
+    
     document.getElementById('restart-btn').addEventListener('click', () => {
         // สั่งให้หน้าเว็บโหลดใหม่ทั้งหมดเพื่อเริ่มการเชื่อมต่อและเกมใหม่
         location.reload();
