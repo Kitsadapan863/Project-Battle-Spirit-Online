@@ -254,6 +254,13 @@ function takeLifeDamage(gameState, playerKey) {
         if (lifeWasReduced) {
             console.log(`[BATTLE LOG] Life was reduced. Checking for 'onLifeDamageDealt' effects.`);
             gameState = resolveTriggeredEffects(gameState, attacker, 'onLifeDamageDealt', attackingPlayer);
+
+            console.log(`[BATTLE LOG] Checking for 'onLifeReduced' effects for the defender.`);
+            // ตรวจสอบการ์ดทุกใบบนสนามของผู้ป้องกัน (playerKey)
+            const defenderField = [...gameState[playerKey].field]; // สร้างสำเนาเพื่อความปลอดภัย
+            defenderField.forEach(card => {
+                gameState = resolveTriggeredEffects(gameState, card, 'onLifeReduced', playerKey);
+            });
         }
     }
     gameState = clearBattleBuffs(gameState, attackingPlayer);

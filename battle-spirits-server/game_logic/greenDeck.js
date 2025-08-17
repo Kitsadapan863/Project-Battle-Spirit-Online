@@ -59,7 +59,7 @@ module.exports.greenCards = [
     {
         id: 'card-byak-garo',
         name: 'The BladeKingBeast Byak-Garo',
-        quantity: 34,
+        quantity: 3,
         image: `${pathsSpirit}/The BladeKingBeast Byak-Garo.webp`, // Path to the uploaded image
         cost: 6,
         symbol_cost: { "green": 3 },
@@ -107,5 +107,36 @@ module.exports.greenCards = [
         ],
         symbol: { "green": 1 },
     },
-   
+    {
+        id: 'nexus-fruit-of-wise-tree',
+        name: 'The Fruit of Wise Tree',
+        quantity: 31, // หรือตามจำนวนที่ต้องการ
+        image: './images/card_green/nexus/The Fruit of Wise Tree.webp', // สร้าง Path รูปภาพให้ถูกต้อง
+        cost: 4,
+        symbol_cost: { "green": 2 },
+        level: { 
+            "level-1": { "core": 0 }, 
+            "level-2": { "core": 3 } 
+        },
+        type: 'Nexus', 
+        color: 'green',
+        family: [], // Nexus ส่วนใหญ่ไม่มี Family
+        effects: [
+            {
+                level: [1, 2],
+                timing: 'onLifeReduced', // Timing ใหม่: เมื่อ Life ของเราลดลง
+                keyword: 'gain_core_from_void',
+                quantity: 1,
+                description: "[LV1][LV2] (Permanent)\nEach time a spirit your opponent controls deals any Damage to your Life, gain 1 core in your Reserve."
+            },
+            {
+                level: [2],
+                timing: 'onEndStep', // Timing ใหม่: ทำงานตอนจบเทิร์น
+                keyword: 'refresh_all_spirits',
+                description: "[LV2] (Your End Phase)\nRefresh all exhausted spirits you control."
+            }
+        ],
+        symbol: { "green": 1 },
+    },
+
 ];

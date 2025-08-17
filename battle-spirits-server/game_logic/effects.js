@@ -67,6 +67,21 @@ function applySingleEffect(gameState, card, effect, ownerKey) {
                 console.log(`[EFFECTS] Cannot activate ${card.name}'s effect, not enough core in reserve.`);
             }
             break;
+                case 'gain_core_from_void':
+            console.log(`[EFFECTS] ${card.name} activates, adding ${effect.quantity} core to reserve.`);
+            for (let i = 0; i < effect.quantity; i++) {
+                gameState[ownerKey].reserve.push({ id: `core-from-void-${Date.now()}-${i}` });
+            }
+            break;
+
+        case 'refresh_all_spirits':
+            console.log(`[EFFECTS] ${card.name} activates, refreshing all of ${ownerKey}'s spirits.`);
+            gameState[ownerKey].field.forEach(fieldCard => {
+                if (fieldCard.type === 'Spirit') {
+                    fieldCard.isExhausted = false;
+                }
+            });
+            break;
     }
     return gameState;
 }
@@ -196,6 +211,10 @@ function cancelEffectCost(gameState, playerKey) {
     gameState.effectCostConfirmationState = { isActive: false, playerKey: null, effect: null, cardSourceUid: null };
     return gameState;
 }
+
+
+
+
 
 module.exports = { 
     resolveTriggeredEffects, 

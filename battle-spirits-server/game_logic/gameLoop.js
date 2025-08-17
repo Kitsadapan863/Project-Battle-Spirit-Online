@@ -107,6 +107,14 @@ function endTurn(gameState) {
     const currentPlayerKey = gameState.turn;
     
     gameState.phase = 'end';
+
+    console.log(`[GAME LOOP] Checking for 'onEndStep' effects for ${currentPlayerKey}.`);
+    // ตรวจสอบการ์ดทุกใบบนสนามของผู้เล่นที่กำลังจะจบเทิร์น
+    const playerField = [...gameState[currentPlayerKey].field];
+    playerField.forEach(card => {
+        gameState = resolveTriggeredEffects(gameState, card, 'onEndStep', currentPlayerKey);
+    });
+
     gameState = clearTemporaryBuffs(gameState, 'player1');
     gameState = clearTemporaryBuffs(gameState, 'player2');
 
