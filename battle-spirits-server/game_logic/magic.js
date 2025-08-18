@@ -362,6 +362,13 @@ function confirmTargets(gameState, playerKey) {
                 targetSpirit.isExhausted = true;
                 console.log(`[EFFECT LOG] ${targetSpirit.name} was exhausted by Windstorm.`);
             }
+            // บันทึก Spirit ที่โดน exhaust ลงใน attackState
+            if (gameState.attackState.isAttacking) {
+                if (!gameState.attackState.exhaustedByWindstorm) {
+                    gameState.attackState.exhaustedByWindstorm = [];
+                }
+                gameState.attackState.exhaustedByWindstorm.push(...selectedTargets);
+            }
         });
     }else if (forEffect.keyword === 'return_to_hand_with_cost') {
         const targetScopeKey = forEffect.target.scope === 'opponent' ? opponentKey : playerKey;

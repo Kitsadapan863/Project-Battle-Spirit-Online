@@ -181,6 +181,7 @@ function resolveBattle(gameState) {
         const blockerResult = getSpiritLevelAndBP(blocker, blockerOwner, gameState);
 
         if (attackerResult.bp > blockerResult.bp) {
+            const attackerHasWindstorm = attacker.effects.some(e => e.keyword === 'windstorm');
             
             gameState = destroyCard(gameState, blockerUid, blockerOwner, 'battle').updatedGameState;
 
@@ -204,6 +205,17 @@ function resolveBattle(gameState) {
             }
             
             gameState = resolveTriggeredEffects(gameState, attacker, 'onOpponentDestroyedInBattle', attackerOwner);
+
+            // ถ้าตัวที่ชนะมี Windstorm ให้ตรวจสอบเอฟเฟกต์จาก The Storm Highland
+            if (attackerHasWindstorm) {
+                const playerField = [...gameState[attackerOwner].field];
+                playerField.forEach(cardOnField => {
+                    gameState = resolveTriggeredEffects(gameState, cardOnField, 'onOpponentDestroyedByWindstormSpirit', attackerOwner, {
+                        exhaustedUids: gameState.attackState.exhaustedByWindstorm || [] // ส่งรายชื่อ Spirit ที่ถูก Windstorm exhaust ไปด้วย
+                    });
+                });
+            }
+
         } else if (blockerResult.bp > attackerResult.bp) {
             
             gameState = destroyCard(gameState, attackerUid, attackerOwner, 'battle').updatedGameState;

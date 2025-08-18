@@ -180,7 +180,7 @@ export function updateAllModals(gameState, myPlayerKey, callbacks) {
             if (targetPlayerState && targetPlayerState.field) {
                 numberOfValidTargets = targetPlayerState.field.filter(card => {
                     // ใช้เงื่อนไขเดียวกันกับที่ทำให้การ์ดเรืองแสงใน components.js
-                    if (effect.keyword === 'force_exhaust') {
+                    if (effect.keyword === 'force_exhaust' || effect.keyword === 'windstorm') {
                         return card.type === 'Spirit' && !card.isExhausted;
                     }
                     // (เพิ่มเงื่อนไขสำหรับเอฟเฟกต์อื่นๆ ที่นี่ถ้าจำเป็น)

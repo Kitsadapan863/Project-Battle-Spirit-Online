@@ -157,6 +157,14 @@ function confirmPlacement(gameState, playerKey) {
 
     // TODO: Resolve 'whenSummoned' effects
     gameState = resolveTriggeredEffects(gameState, targetCard, 'whenSummoned', playerKey);
+
+    // 2. ตรวจสอบเอฟเฟกต์ 'onSpiritSummoned' (เอฟเฟกต์จาก Nexus ที่ส่งผลต่อการ์ดที่เพิ่งลงมา)
+    console.log(`[GAME LOG] Checking for 'onSpiritSummoned' effects.`);
+    const playerField = [...currentPlayer.field];
+    playerField.forEach(cardOnField => {
+        // ส่ง targetCard (Spirit ที่เพิ่งถูกอัญเชิญ) ไปเป็นข้อมูล context ให้ effect handler
+        gameState = resolveTriggeredEffects(gameState, cardOnField, 'onSpiritSummoned', playerKey, { summonedSpirit: targetCard });
+    });
     
     gameState.placementState = { isPlacing: false, targetSpiritUid: null, placingPlayer: null  };
 

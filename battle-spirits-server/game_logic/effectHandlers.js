@@ -252,12 +252,57 @@ function applyWindstorm(gameState, card, effect, ownerKey) {
             targetPlayer: opponentKey, 
             selectedTargets: []
         };
+        gameState.targetingState.windstormUserUid = card.uid;
     } else {
         console.log(`[EFFECT LOG] ${card.name}'s [Windstorm] triggered, but no valid targets.`);
     }
     return gameState;
 }
 
+function applyGainCoreByWindstorm(gameState, ownerKey, effect, context) {
+    // เพิ่มการตรวจสอบ context และ context.summonedSpirit ก่อนใช้งาน
+    if (!context || !context.summonedSpirit) {
+        console.error("[EFFECTS ERROR] applyGainCoreByWindstorm was called without a valid 'summonedSpirit' in context.");
+        return gameState;
+    }
+    const summonedSpirit = context.summonedSpirit;
+
+    const windstormEffect = summonedSpirit.effects.find(e => e.keyword === 'windstorm');
+    if (windstormEffect) {
+        const coreCount = windstormEffect.target.count || 1;
+        console.log(`[EFFECTS] Storm Highland adds ${coreCount} cores to ${summonedSpirit.name}.`);
+        for (let i = 0; i < coreCount; i++) {
+            summonedSpirit.cores.push({ id: `core-from-highland-${Date.now()}-${i}` });
+        }
+    }
+    return gameState;
+}
+
+function applyMoveToDeckBottom(gameState, ownerKey, effect, context) {
+    const exhaustedUids = context.exhaustedUids || [];
+    if (exhaustedUids.length === 0) return gameState;
+    
+    const opponentKey = ownerKey === 'player1' ? 'player2' : 'player1';
+
+    exhaustedUids.forEach(uid => {
+        const cardIndex = gameState[opponentKey].field.findIndex(c => c.uid === uid);
+        if (cardIndex > -1) {
+            const [movedCard] = gameState[opponentKey].field.splice(cardIndex, 1);
+            
+            // ย้าย Core กลับ Reserve
+            if (movedCard.cores.length > 0) {
+                gameState[opponentKey].reserve.push(...movedCard.cores);
+                movedCard.cores = [];
+            }
+            
+            // ย้ายการ์ดไปไว้ล่างสุดของเด็ค
+            gameState[opponentKey].deck.push(movedCard);
+            console.log(`[EFFECTS] Storm Highland moves ${movedCard.name} to the bottom of the deck.`);
+        }
+    });
+
+    return gameState;
+}
 module.exports = { 
     applyCrush, 
     applyClash, 
@@ -265,5 +310,7 @@ module.exports = {
     applyDiscard,
     applyDrawAndDiscard,
     applyAuraPowerUp,
-    applyWindstorm
+    applyWindstorm,
+    applyGainCoreByWindstorm,
+    applyMoveToDeckBottom
 };

@@ -2,11 +2,11 @@
 
 const { getSpiritLevelAndBP, getCardLevel } = require('./utils.js');
 const { applyCrush, applyClash, applyPowerUp, applyDiscard, applyDrawAndDiscard, applyAuraPowerUp } = require('./effectHandlers.js');
-const { applyWindstorm } = require('./effectHandlers.js');
+const { applyWindstorm, applyGainCoreByWindstorm, applyMoveToDeckBottom} = require('./effectHandlers.js');
 const { returnToHand } = require('./card');
 
 // ฟังก์ชันใหม่: ใช้สำหรับทำงานตามเอฟเฟกต์ "เดียว" ที่ถูกเลือก
-function applySingleEffect(gameState, card, effect, ownerKey) {
+function applySingleEffect(gameState, card, effect, ownerKey, context) {
     const cardLevel = getCardLevel(card).level;
     switch (effect.keyword) {
         case 'crush':
@@ -82,18 +82,32 @@ function applySingleEffect(gameState, card, effect, ownerKey) {
                 }
             });
             break;
+        case 'gain_core_by_windstorm_count':
+             return applyGainCoreByWindstorm(gameState, ownerKey, effect, context);
+        case 'move_exhausted_to_deck_bottom':
+             return applyMoveToDeckBottom(gameState, ownerKey, effect, context);
     }
     return gameState;
 }
 
 // แก้ไขฟังก์ชันเดิม: ให้ทำหน้าที่ตรวจสอบและเข้าสู่โหมดการเลือก
-function resolveTriggeredEffects(gameState, card, timing, ownerKey) {
+function resolveTriggeredEffects(gameState, card, timing, ownerKey, context = {}) {
     if (!card.effects || card.effects.length === 0) return gameState;
 
     const { level: cardLevel } = getSpiritLevelAndBP(card, ownerKey, gameState);
-    const triggeredEffects = card.effects.filter(effect =>
-        effect.timing === timing && effect.level.includes(cardLevel)
-    );
+    const triggeredEffects = card.effects.filter(effect => {
+        if (effect.timing !== timing) return false;
+        if (!effect.level.includes(cardLevel)) return false;
+
+        // ตรวจสอบเงื่อนไขพิเศษของเอฟเฟกต์
+        if (effect.condition?.hasKeyword) {
+            if (!context || !context.summonedSpirit || !context.summonedSpirit.effects.some(e => e.keyword === effect.condition.hasKeyword)) {
+                return false;
+            }
+        }
+        // ---
+        return true;
+    });
 
     if (triggeredEffects.length === 0) {
         return gameState;
@@ -101,7 +115,7 @@ function resolveTriggeredEffects(gameState, card, timing, ownerKey) {
 
     if (triggeredEffects.length === 1) {
         // มีเอฟเฟกต์เดียว ทำงานทันที
-        return applySingleEffect(gameState, card, triggeredEffects[0], ownerKey);
+        return applySingleEffect(gameState, card, triggeredEffects[0], ownerKey, context);
     }
 
     // มีหลายเอฟเฟกต์ ให้ผู้เล่นเลือก
@@ -112,7 +126,8 @@ function resolveTriggeredEffects(gameState, card, timing, ownerKey) {
         cardUid: card.uid,
         timing: timing,
         effectsToResolve: triggeredEffects.map((eff, i) => ({ ...eff, uniqueId: i })), // uniqueId ใช้สำหรับให้ client ส่งกลับมา
-        resolvedEffects: []
+        resolvedEffects: [],
+        context: context
     };
     return gameState;
 }
@@ -133,7 +148,7 @@ function resolveChosenEffect(gameState, playerKey, payload) {
     if (!card) return gameState;
 
     // 1. ทำงานตามเอฟเฟกต์ที่เลือก
-    gameState = applySingleEffect(gameState, card, chosenEffect, playerKey);
+    gameState = applySingleEffect(gameState, card, chosenEffect, playerKey, resState.context);
     resState.resolvedEffects.push(chosenEffect);
 
     // 2. *** LOGIC ใหม่: ตรวจสอบว่าต้อง "หยุดพัก" หรือไม่ ***

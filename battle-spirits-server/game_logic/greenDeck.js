@@ -1,5 +1,7 @@
 // battle-spirits-server/game_logic/greenDeck.js
-const pathsSpirit = './images/card_green/spirit'; // สมมติว่ามีโฟลเดอร์นี้
+const pathsSpirit = './images/card_green/spirit'; 
+const pathsMagic = './images/card_green/magic'; 
+const pathsNexus = './images/card_green/nexus'; 
 
 module.exports.greenCards = [
     {
@@ -79,10 +81,10 @@ module.exports.greenCards = [
                 target: {
                     scope: 'opponent',
                     type: 'spirit',
-                    count: 1,
+                    count: 2,
                     isExhausted: false // เพิ่มเงื่อนไข: เลือกได้เฉพาะตัวที่ยังไม่เหนื่อย
                 },
-                description: "[LV1][LV2] [Windstorm: 1] (When Attacks)\nWhen this Spirit is blocked, exhaust 1 opposing Spirit."
+                description: "[LV1][LV2] [Windstorm: 2] (When Attacks)\nWhen this Spirit is blocked, exhaust 1 opposing Spirit."
             },
             {
             level: [2],
@@ -102,7 +104,7 @@ module.exports.greenCards = [
                     lacks_keyword: 'tribute' // ต้องไม่มีความสามารถ Tribute (煌臨)
                 }
             },
-            description: "[LV2] (When Attacks)\nWhen this Spirit's attack reduces the opposing Life, by sending a core from your Reserve to your Trash, return two opposing Spirits without Tribute to the Hand."
+            description: "[LV2] (When Attacks)\nWhen this Spirit's attack reduces the opposing Life, by sending a core from your Reserve to your Trash, return two opposing Spirits without [Tribute] to the Hand."
         }
         ],
         symbol: { "green": 1 },
@@ -111,7 +113,7 @@ module.exports.greenCards = [
         id: 'nexus-fruit-of-wise-tree',
         name: 'The Fruit of Wise Tree',
         quantity: 3, // หรือตามจำนวนที่ต้องการ
-        image: './images/card_green/nexus/The Fruit of Wise Tree.webp', // สร้าง Path รูปภาพให้ถูกต้อง
+        image: `${pathsNexus}/The Fruit of Wise Tree.webp`, // สร้าง Path รูปภาพให้ถูกต้อง
         cost: 4,
         symbol_cost: { "green": 2 },
         level: { 
@@ -139,10 +141,43 @@ module.exports.greenCards = [
         symbol: { "green": 1 },
     },
     {
+        id: 'nexus-storm-highland',
+        name: 'The Storm Highland',
+        quantity: 3, // หรือตามจำนวนที่ต้องการ
+        image: `${pathsNexus}/The Storm Highland.webp`, // สร้าง Path รูปภาพให้ถูกต้อง
+        cost: 3,
+        symbol_cost: { "green": 1 },
+        level: { 
+            "level-1": { "core": 0 }, 
+            "level-2": { "core": 4 } 
+        },
+        type: 'Nexus', 
+        color: 'green',
+        family: [],
+        effects: [
+            {
+                level: [1, 2],
+                timing: 'onSpiritSummoned', // Timing ใหม่: ทำงานเมื่อมีการอัญเชิญ Spirit
+                condition: {
+                    hasKeyword: 'windstorm' // เงื่อนไข: Spirit ที่ถูกอัญเชิญต้องมี Windstorm
+                },
+                keyword: 'gain_core_by_windstorm_count',
+                description: "[LV1][LV2] (During Your Main Phase)\nEach time you summon a spirit with Windstorm, gain cores on that spirit equal to the number specified by that spirit's Windstorm."
+            },
+            {
+                level: [2],
+                timing: 'onOpponentDestroyedByWindstormSpirit', // Timing ใหม่: ทำงานเมื่อ Spirit ที่มี Windstorm ของเราชนะการต่อสู้
+                keyword: 'move_exhausted_to_deck_bottom',
+                description: "[LV2] (Permanent)\nEach time a spirit you control with Windstorm defeats a spirit, move all spirits that were exhausted due to the effect of the winning spirit's Windstorm to the bottom of their owner's Deck."
+            }
+        ],
+        symbol: { "green": 1 },
+    },
+    {
         id: 'magic-thorn-prison',
         name: 'Thorn Prison',
         quantity: 28, // หรือตามจำนวนที่ต้องการ
-        image: './images/card_green/magic/Thorn Prison.webp', // สร้าง Path รูปภาพให้ถูกต้อง
+        image: `${pathsMagic}/Thorn Prison.webp`, // สร้าง Path รูปภาพให้ถูกต้อง
         cost: 4,
         symbol_cost: { "green": 2 },
         type: 'Magic', 
