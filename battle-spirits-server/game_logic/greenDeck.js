@@ -61,9 +61,9 @@ module.exports.greenCards = [
     {
         id: 'card-byak-garo',
         name: 'The BladeKingBeast Byak-Garo',
-        quantity: 10,
+        quantity: 3,
         image: `${pathsSpirit}/The BladeKingBeast Byak-Garo.webp`, // Path to the uploaded image
-        cost: 3,
+        cost: 6,
         symbol_cost: { "green": 3 },
         level: { 
             "level-1": { "core": 1, "bp": 7000 }, 
@@ -112,10 +112,10 @@ module.exports.greenCards = [
     {
         id: 'card-emperor-kaiseratlas',
         name: 'The Emperor Kaiseratlas',
-        quantity: 15,
+        quantity: 3,
         image: `${pathsSpirit}/The Emperor Kaiseratlas.webp`, // สร้าง Path รูปภาพให้ถูกต้อง
-        cost: 3,
-        symbol_cost: { "green": 0 },
+        cost: 9,
+        symbol_cost: { "green": 4 },
         level: { 
             "level-1": { "core": 1, "bp": 6000 }, 
             "level-2": { "core": 4, "bp": 9000 } 
@@ -131,7 +131,7 @@ module.exports.greenCards = [
                 destination: 'void',
                 condition: {
                     type: 'spirit',
-                    costOrMore: 3 // Spirit ที่ใช้เป็น Tribute ต้องมี Cost 6 ขึ้นไป
+                    costOrMore: 6 // Spirit ที่ใช้เป็น Tribute ต้องมี Cost 6 ขึ้นไป
                 },
                 description: "[LV1][LV2] Tribute: Cost 6 or more -> Void\nAfter paying for the summoning cost, you must send all cores from one of your Cost 6 or more Spirits to the Void."
             },
@@ -142,11 +142,11 @@ module.exports.greenCards = [
                 cost: {
                     type: 'core',
                     from: 'reserve',
-                    to: 'trash', // หรือ void ตามที่คุณต้องการ
+                    to: 'void', // หรือ void ตามที่คุณต้องการ
                     count: 1
                 },
                 damage: 2,
-                description: "[LV2] (When Attacks)\nEach time this spirit defeats a spirit, you may remove 1 core from your Reserve. In that case, deal 2 Damage to your opponent's Life."
+                description: "[LV2] (When Attacks)\nWhen only the opposing Spirit is destroyed via BP comparison, by sending a core from your Reserve to the Void, send two opposing Lives to their Reserve."
             }
         ],
         symbol: { "green": 2 },

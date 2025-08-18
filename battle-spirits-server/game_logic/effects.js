@@ -5,6 +5,7 @@ const { applyCrush, applyClash, applyPowerUp, applyDiscard, applyDrawAndDiscard,
 const { applyWindstorm, applyGainCoreByWindstorm, applyMoveToDeckBottom} = require('./effectHandlers.js');
 const { returnToHand } = require('./card');
 
+
 // ฟังก์ชันใหม่: ใช้สำหรับทำงานตามเอฟเฟกต์ "เดียว" ที่ถูกเลือก
 function applySingleEffect(gameState, card, effect, ownerKey, context) {
     const cardLevel = getCardLevel(card).level;
@@ -86,6 +87,21 @@ function applySingleEffect(gameState, card, effect, ownerKey, context) {
              return applyGainCoreByWindstorm(gameState, ownerKey, effect, context);
         case 'move_exhausted_to_deck_bottom':
              return applyMoveToDeckBottom(gameState, ownerKey, effect, context);
+        case 'deal_life_damage_with_cost':
+            // ตรวจสอบว่าผู้เล่นมี core พอจ่ายหรือไม่
+            if (gameState[ownerKey].reserve.length >= effect.cost.count) {
+                console.log(`[EFFECTS] Awaiting cost confirmation for ${card.name}'s life damage effect.`);
+                // เข้าสู่สถานะรอการยืนยันจ่ายค่าร่าย
+                gameState.effectCostConfirmationState = {
+                    isActive: true,
+                    playerKey: ownerKey,
+                    effect: effect,
+                    cardSourceUid: card.uid
+                };
+            } else {
+                console.log(`[EFFECTS] Cannot activate ${card.name}'s effect, not enough core in reserve to pay the cost.`);
+            }
+            break;
     }
     return gameState;
 }
@@ -191,23 +207,48 @@ function confirmEffectCost(gameState, playerKey) {
 
     const { effect, cardSourceUid } = confirmState;
     const player = gameState[playerKey];
+    const opponentKey = playerKey === 'player1' ? 'player2' : 'player1';
 
     // 1. จ่าย Cost
     if (player.reserve.length >= effect.cost.count) {
         for (let i = 0; i < effect.cost.count; i++) {
             const [core] = player.reserve.splice(0, 1);
-            player.costTrash.push(core); // หรือ costTrash ตามที่คุณต้องการ
+            // ตรวจสอบปลายทางของ cost (ในที่นี้คือ void)
+            const destination = effect.cost.to || 'costTrash'; // ถ้าไม่ได้ระบุ ให้ไปที่ costTrash
+            if (destination === 'void') {
+                 // ถ้าปลายทางคือ void, core จะหายไปจากเกม ไม่ต้อง push ไปที่ไหน
+                console.log(`[EFFECTS] A core was sent to the Void.`);
+            } else {
+                player[destination].push(core);
+            }
         }
         console.log(`[EFFECTS] Cost paid for ${effect.keyword}.`);
 
-        // 2. เข้าสู่สถานะเลือกเป้าหมาย
-        gameState.targetingState = {
-            isTargeting: true,
-            forEffect: effect,
-            cardSourceUid: cardSourceUid,
-            targetPlayer: playerKey,
-            selectedTargets: []
-        };
+        // 2. ทำงานตาม keyword ของเอฟเฟกต์
+        if (effect.keyword === 'return_to_hand_with_cost') {
+            // เข้าสู่สถานะเลือกเป้าหมาย (ของเดิม)
+            gameState.targetingState = {
+                isTargeting: true,
+                forEffect: effect,
+                cardSourceUid: cardSourceUid,
+                targetPlayer: playerKey,
+                selectedTargets: []
+            };
+        } else if (effect.keyword === 'deal_life_damage_with_cost') {
+            // ลดไลฟ์คู่ต่อสู้ทันที
+            const damage = effect.damage || 0;
+            console.log(`[EFFECTS] ${cardSourceUid} deals ${damage} damage to ${opponentKey}'s life.`);
+            for (let i = 0; i < damage; i++) {
+                if (gameState[opponentKey].life > 0) {
+                    gameState[opponentKey].life--;
+                    gameState[opponentKey].reserve.push({ id: `core-from-life-${opponentKey}-${Date.now()}-${i}` });
+                }
+            }
+            // ตรวจสอบเกมโอเวอร์หลังจากลด life
+            const {checkGameOver}  = require('./gameLoop')
+            gameState = checkGameOver(gameState);
+        }
+
     }
 
     // 3. Reset สถานะการยืนยัน
