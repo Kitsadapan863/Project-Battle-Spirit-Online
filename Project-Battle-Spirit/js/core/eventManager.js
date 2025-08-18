@@ -121,6 +121,11 @@ gameBoard.addEventListener('click', (event) => {
     if (cardEl) {
         const cardId = cardEl.id;
 
+        if (localGameState.tributeState?.isTributing && cardEl.classList.contains('can-be-tribute')) {
+            sendActionToServer({ type: 'SELECT_TRIBUTE', payload: { tributeUid: cardId } });
+            return;
+        }
+
         if (cardEl.classList.contains('can-evolve')) {
             sendActionToServer({ type: 'INITIATE_EVOLUTION', payload: { spiritUid: cardId }});
             return;
@@ -383,6 +388,12 @@ gameBoard.addEventListener('click', (event) => {
 
     document.getElementById('cancel-effect-cost-btn').addEventListener('click', () => {
         sendActionToServer({ type: 'CANCEL_EFFECT_COST' });
+    });
+
+    document.getElementById('confirm-tribute-btn').addEventListener('click', (e) => {
+        if (!e.target.disabled) {
+            sendActionToServer({ type: 'CONFIRM_TRIBUTE' });
+        }
     });
     
     document.getElementById('restart-btn').addEventListener('click', () => {

@@ -19,7 +19,8 @@ export function updateAllModals(gameState, myPlayerKey, callbacks) {
         attackChoiceModal: document.getElementById('attack-choice-modal'),
         assaultModal: document.getElementById('assault-modal'),
         effectResolutionModal: document.getElementById('effect-resolution-modal'), 
-         effectCostConfirmationModal: document.getElementById('effect-cost-confirmation-modal'), 
+        effectCostConfirmationModal: document.getElementById('effect-cost-confirmation-modal'),
+        tributeSelectionModal: document.getElementById('tribute-selection-modal'), 
         revealModal: document.getElementById('reveal-modal'),    
 
     };
@@ -51,7 +52,8 @@ export function updateAllModals(gameState, myPlayerKey, callbacks) {
         assaultState,
         effectResolutionState,
         revealState,
-        effectCostConfirmationState 
+        effectCostConfirmationState,
+        tributeState 
     } = gameState;
 
     // --- เริ่มต้น if/else if chain ที่นี่ ---
@@ -82,7 +84,11 @@ export function updateAllModals(gameState, myPlayerKey, callbacks) {
         }
      
 
-    }else if (effectCostConfirmationState.isActive && effectCostConfirmationState.playerKey === myPlayerKey) { // <-- เพิ่ม else if นี้ (สำคัญมาก ต้องอยู่ลำดับต้นๆ)
+    }else if (tributeState.isTributing && tributeState.summoningPlayer === myPlayerKey) {
+        modals.tributeSelectionModal.classList.add('visible');
+        document.getElementById('confirm-tribute-btn').disabled = !tributeState.selectedTributeUid;
+    }
+    else if (effectCostConfirmationState.isActive && effectCostConfirmationState.playerKey === myPlayerKey) { // <-- เพิ่ม else if นี้ (สำคัญมาก ต้องอยู่ลำดับต้นๆ)
         modals.effectCostConfirmationModal.classList.add('visible');
         const effect = effectCostConfirmationState.effect;
         const card = gameState[myPlayerKey].field.find(c => c.uid === effectCostConfirmationState.cardSourceUid);

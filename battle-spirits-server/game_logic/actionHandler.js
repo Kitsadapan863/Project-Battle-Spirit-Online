@@ -1,7 +1,7 @@
 // game_logic/actionHandler.js
 const { advancePhase, endTurn } = require('./gameLoop');
 const { declareAttack, declareBlock, takeLifeDamage, passFlash, resolveFlashWindow, selectAttackTarget, chooseAttackType, useAssault, skipAssault  } = require('./battle');
-const { initiateSummon, selectCoreForPayment, cancelSummon, confirmSummon, selectCoreForPlacement, confirmPlacement } = require('./summon');
+const { initiateSummon, selectCoreForPayment, cancelSummon, confirmSummon, selectCoreForPlacement, confirmPlacement, selectTribute, confirmTribute } = require('./summon');
 const { initiateMagicPayment, confirmMagicPayment, cancelMagicPayment, chooseMagicEffect, cancelEffectChoice, 
       applyTargetedEffect, selectTarget, confirmTargets, confirmReveal  } = require('./magic');
 const { confirmDeckDiscard, confirmDiscard, selectCardForDiscard } = require('./card');
@@ -46,6 +46,8 @@ function handleAction(gameState, playerKey, action) {
         case 'SELECT_CORE_FOR_PAYMENT': return selectCoreForPayment(gameState, playerKey, action.payload);
         case 'CANCEL_SUMMON': return cancelSummon(gameState, playerKey);
         case 'CONFIRM_SUMMON': return confirmSummon(gameState, playerKey);
+        case 'SELECT_TRIBUTE': return selectTribute(gameState, playerKey, action.payload);
+        case 'CONFIRM_TRIBUTE': return confirmTribute(gameState, playerKey);
         case 'SELECT_CORE_FOR_PLACEMENT': return selectCoreForPlacement(gameState, playerKey, action.payload);
         case 'CONFIRM_PLACEMENT': return confirmPlacement(gameState, playerKey);
 

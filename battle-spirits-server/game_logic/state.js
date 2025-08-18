@@ -92,6 +92,12 @@ async function createNewGame(player1Socket, player2Socket) {
             effect: null,
             cardSourceUid: null
         },
+        tributeState: {
+            isTributing: false,
+            summoningPlayer: null,
+            cardToSummon: null,
+            selectedTributeUid: null
+        },
         rpsState: {isActive: true, winner: null, player1: { choice: null }, player2: { choice: null }},
         player1: { id: player1Socket.id, life: 5, deck: createDeck(greenCards), hand: [], field: [], reserve: [], costTrash: [], cardTrash: [], tempBuffs: [] },
         player2: { id: player2Socket.id, life: 5, deck: createDeck(greenCards), hand: [], field: [], reserve: [], costTrash: [], cardTrash: [], tempBuffs: [] },
@@ -103,7 +109,7 @@ async function createNewGame(player1Socket, player2Socket) {
         // gameState.player1.reserve.push({ id: `core-p1-init-${i}` });
         // gameState.player2.reserve.push({ id: `core-p2-init-${i}` });
     }
-    for (let i = 0; i < 10; i++) {
+    for (let i = 0; i < 20; i++) {
         // gameState.player1.hand.push(gameState.player1.deck.shift());
         // gameState.player2.hand.push(gameState.player2.deck.shift());
         gameState.player1.reserve.push({ id: `core-p1-init-${i}` });

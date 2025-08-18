@@ -61,9 +61,9 @@ module.exports.greenCards = [
     {
         id: 'card-byak-garo',
         name: 'The BladeKingBeast Byak-Garo',
-        quantity: 3,
+        quantity: 10,
         image: `${pathsSpirit}/The BladeKingBeast Byak-Garo.webp`, // Path to the uploaded image
-        cost: 6,
+        cost: 3,
         symbol_cost: { "green": 3 },
         level: { 
             "level-1": { "core": 1, "bp": 7000 }, 
@@ -108,6 +108,48 @@ module.exports.greenCards = [
         }
         ],
         symbol: { "green": 1 },
+    },
+    {
+        id: 'card-emperor-kaiseratlas',
+        name: 'The Emperor Kaiseratlas',
+        quantity: 15,
+        image: `${pathsSpirit}/The Emperor Kaiseratlas.webp`, // สร้าง Path รูปภาพให้ถูกต้อง
+        cost: 3,
+        symbol_cost: { "green": 0 },
+        level: { 
+            "level-1": { "core": 1, "bp": 6000 }, 
+            "level-2": { "core": 4, "bp": 9000 } 
+        },
+        type: 'Spirit', 
+        color: 'green',
+        family: ["Mounted Warrior", "Shellman"],
+        effects: [
+            {
+                level: [1, 2],
+                timing: 'onSummon', // ทำงานตอนจะอัญเชิญ
+                keyword: 'tribute',
+                destination: 'void',
+                condition: {
+                    type: 'spirit',
+                    costOrMore: 3 // Spirit ที่ใช้เป็น Tribute ต้องมี Cost 6 ขึ้นไป
+                },
+                description: "[LV1][LV2] Tribute: Cost 6 or more -> Void\nAfter paying for the summoning cost, you must send all cores from one of your Cost 6 or more Spirits to the Void."
+            },
+            {
+                level: [2],
+                timing: 'onOpponentDestroyedInBattle', // ทำงานเมื่อชนะการต่อสู้
+                keyword: 'deal_life_damage_with_cost',
+                cost: {
+                    type: 'core',
+                    from: 'reserve',
+                    to: 'trash', // หรือ void ตามที่คุณต้องการ
+                    count: 1
+                },
+                damage: 2,
+                description: "[LV2] (When Attacks)\nEach time this spirit defeats a spirit, you may remove 1 core from your Reserve. In that case, deal 2 Damage to your opponent's Life."
+            }
+        ],
+        symbol: { "green": 2 },
     },
     {
         id: 'nexus-fruit-of-wise-tree',
@@ -176,7 +218,7 @@ module.exports.greenCards = [
     {
         id: 'magic-thorn-prison',
         name: 'Thorn Prison',
-        quantity: 28, // หรือตามจำนวนที่ต้องการ
+        quantity: 3, // หรือตามจำนวนที่ต้องการ
         image: `${pathsMagic}/Thorn Prison.webp`, // สร้าง Path รูปภาพให้ถูกต้อง
         cost: 4,
         symbol_cost: { "green": 2 },

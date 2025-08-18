@@ -539,11 +539,11 @@ body {
     cursor: pointer;
     transition: all 0.2s ease;
 }
-#confirm-summon-btn, #confirm-flash-btn , #confirm-magic-btn{
+#confirm-summon-btn, #confirm-flash-btn , #confirm-magic-btn, #confirm-tribute-btn{
     background: linear-gradient(45deg, #28a745, #20c997);
     color: white;
 }
-#confirm-summon-btn:disabled, #confirm-flash-btn:disabled , #confirm-magic-btn:disabled{
+#confirm-summon-btn:disabled, #confirm-flash-btn:disabled , #confirm-magic-btn:disabled, #confirm-tribute-btn:disabled{
     background: #555;
     cursor: not-allowed;
 }
@@ -1130,4 +1130,16 @@ body {
     margin-top: 0px; /* เพิ่ม margin ด้านบนเพื่อให้ห่างจากข้อความต้อนรับ */
     font-size: 1em; /* ปรับขนาด font ให้เข้ากับส่วนอื่น */
     
+}
+
+.card.can-be-tribute {
+    border-color: #9b59b6; /* สีม่วง */
+    box-shadow: 0 0 15px #9b59b6;
+    animation: pulse-purple 1.5s infinite;
+}
+
+@keyframes pulse-purple {
+    0% { box-shadow: 0 0 5px #9b59b6; }
+    50% { box-shadow: 0 0 20px #9b59b6; }
+    100% { box-shadow: 0 0 5px #9b59b6; }
 }

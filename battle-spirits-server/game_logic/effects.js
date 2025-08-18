@@ -92,20 +92,22 @@ function applySingleEffect(gameState, card, effect, ownerKey, context) {
 
 // แก้ไขฟังก์ชันเดิม: ให้ทำหน้าที่ตรวจสอบและเข้าสู่โหมดการเลือก
 function resolveTriggeredEffects(gameState, card, timing, ownerKey, context = {}) {
-    if (!card.effects || card.effects.length === 0) return gameState;
+    // เพิ่ม Safety Check: ถ้า card เป็น undefined ให้หยุดทำงานทันที
+    if (!card || !card.effects || card.effects.length === 0) return gameState;
 
-    const { level: cardLevel } = getSpiritLevelAndBP(card, ownerKey, gameState);
+    const { level: cardLevel } = getCardLevel(card, ownerKey, gameState);
     const triggeredEffects = card.effects.filter(effect => {
         if (effect.timing !== timing) return false;
         if (!effect.level.includes(cardLevel)) return false;
 
-        // ตรวจสอบเงื่อนไขพิเศษของเอฟเฟกต์
-        if (effect.condition?.hasKeyword) {
+        // **จุดที่แก้ไข:** เพิ่มการตรวจสอบ 'timing' เข้าไปในเงื่อนไข
+        // โค้ดส่วนนี้จะทำงานเพื่อตรวจสอบ 'hasKeyword' ก็ต่อเมื่อเป็น timing 'onSpiritSummoned' เท่านั้น
+        if (timing === 'onSpiritSummoned' && effect.condition?.hasKeyword) {
             if (!context || !context.summonedSpirit || !context.summonedSpirit.effects.some(e => e.keyword === effect.condition.hasKeyword)) {
-                return false;
+                return false; // ไม่ตรงเงื่อนไขของ Storm Highland
             }
         }
-        // ---
+        
         return true;
     });
 
@@ -114,18 +116,16 @@ function resolveTriggeredEffects(gameState, card, timing, ownerKey, context = {}
     }
 
     if (triggeredEffects.length === 1) {
-        // มีเอฟเฟกต์เดียว ทำงานทันที
         return applySingleEffect(gameState, card, triggeredEffects[0], ownerKey, context);
     }
 
-    // มีหลายเอฟเฟกต์ ให้ผู้เล่นเลือก
     console.log(`[EFFECTS] Multiple effects triggered for ${card.name}. Awaiting player choice.`);
     gameState.effectResolutionState = {
         isActive: true,
         playerKey: ownerKey,
         cardUid: card.uid,
         timing: timing,
-        effectsToResolve: triggeredEffects.map((eff, i) => ({ ...eff, uniqueId: i })), // uniqueId ใช้สำหรับให้ client ส่งกลับมา
+        effectsToResolve: triggeredEffects.map((eff, i) => ({ ...eff, uniqueId: i })),
         resolvedEffects: [],
         context: context
     };

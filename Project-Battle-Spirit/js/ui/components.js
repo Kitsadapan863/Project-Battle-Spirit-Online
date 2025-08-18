@@ -121,6 +121,17 @@ export function createCardElement(cardData, location, owner, gameState, myPlayer
             }
         }
 
+        const tributeState = gameState.tributeState;
+        if (tributeState.isTributing && owner === myPlayerKey) {
+            const tributeEffect = tributeState.cardToSummon.effects.find(e => e.keyword === 'tribute');
+            if (tributeEffect && cardData.type === 'Spirit' && cardData.cost >= tributeEffect.condition.costOrMore) {
+                cardDiv.classList.add('can-be-tribute'); // Class ใหม่สำหรับทำให้เรืองแสง
+                if (tributeState.selectedTributeUid === cardData.uid) {
+                    cardDiv.classList.add('selected-for-discard'); // ใช้ Class เดิมเพื่อให้มีกรอบแดง
+                }
+            }
+        }
+
         // ตรวจสอบสถานะ Exhausted สำหรับการ์ดทุกใบบนสนาม
         if (cardData.isExhausted) {
             cardDiv.classList.add('exhausted');
@@ -261,7 +272,7 @@ export function createCoreElement(coreData, locationInfo, gameState, myPlayerKey
     else if (isPlacing) {
         const targetSpiritUid = gameState.placementState.targetSpiritUid;
         const coreIsOnTargetSpirit = locationInfo.spiritUid === targetSpiritUid;
-        if (locationInfo.type === 'reserve' || (locationInfo.type === 'field' && !coreIsOnTargetSpirit)) {
+        if (locationInfo.type.includes('reserve') || (locationInfo.type === 'field' && !coreIsOnTargetSpirit)) {
             coreDiv.classList.add('selectable-for-placement');
         }
     }

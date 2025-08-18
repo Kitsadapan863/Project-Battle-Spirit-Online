@@ -6,20 +6,31 @@ const { resolveTriggeredEffects } = require('./effects.js');
 function initiateSummon(gameState, playerKey, payload) {
     const { cardUid, summonType = 'normal' } = payload;
     const currentPlayer = gameState[playerKey];
+    const cardToSummon = currentPlayer.hand.find(c => c.uid === cardUid);
 
-    // --- DETAILED DEBUG LOGS ---
     console.log(`[SUMMON DEBUG] Attempting to initiate summon for card UID: ${cardUid}`);
     console.log(`[SUMMON DEBUG] Player ${playerKey}'s hand on server contains ${currentPlayer.hand.length} cards:`);
     // แสดง UID ของการ์ดทุกใบบนมือ
     currentPlayer.hand.forEach(card => console.log(`- Card: ${card.name}, UID: ${card.uid}`));
-    // --- END DEBUG LOGS ---
+
+    const tributeEffect = cardToSummon.effects.find(e => e.keyword === 'tribute');
+    if (tributeEffect) {
+        // ตรวจสอบว่ามี Spirit ที่สามารถใช้เป็น Tribute ได้ในสนามหรือไม่
+        const hasValidTribute = currentPlayer.field.some(s => 
+            s.type === 'Spirit' && s.cost >= tributeEffect.condition.costOrMore
+        );
+
+        if (!hasValidTribute) {
+            console.log(`[SUMMON DEBUG] Action rejected: No valid Spirit for Tribute.`);
+            return gameState; // อัญเชิญไม่ได้ถ้าไม่มีตัว Tribute
+        }
+    }
 
     if (gameState.summoningState.isSummoning) {
         console.log('[SUMMON DEBUG] Action rejected: A summon is already in progress.');
         return gameState;
     }
 
-    const cardToSummon = currentPlayer.hand.find(c => c.uid === cardUid);
     
     if (!cardToSummon) {
         console.error(`[SUMMON DEBUG] CRITICAL ERROR: Card with UID ${cardUid} NOT FOUND in player's hand on the server.`);
@@ -35,7 +46,8 @@ function initiateSummon(gameState, playerKey, payload) {
         totalAvailableCores = currentPlayer.reserve.length;
     } else {
         // แบบปกติ นับ Core ทั้งหมด
-        totalAvailableCores = currentPlayer.reserve.length + currentPlayer.field.reduce((sum, card) => sum + (card.cores ? card.cores.length : 0), 0);
+        // totalAvailableCores = currentPlayer.reserve.length + currentPlayer.field.reduce((sum, card) => sum + (card.cores ? card.cores.length : 0), 0);
+        totalAvailableCores = currentPlayer.field.reduce((sum, card) => sum + (card.cores ? card.cores.length : 0), 0) + currentPlayer.reserve.length;
     }
     const minCoresNeeded = cardToSummon.type === 'Spirit' ? 1 : 0;
 
@@ -59,34 +71,60 @@ function initiateSummon(gameState, playerKey, payload) {
 function selectCoreForPayment(gameState, playerKey, payload) {
     const { coreId, from, spiritUid } = payload;
     let paymentState;
+    let isSummonPayment = false;
 
     if (gameState.summoningState.isSummoning) {
         paymentState = gameState.summoningState;
+        isSummonPayment = true;
     } else if (gameState.magicPaymentState.isPaying) {
         paymentState = gameState.magicPaymentState;
     } else {
-        return gameState; // ไม่มีหน้าต่างจ่ายเงินเปิดอยู่
-    }
-
-    // --- START: แก้ไข Logic การตรวจสอบความถูกต้อง ---
-    const designatedPayer = paymentState.summoningPlayer || paymentState.payingPlayer;
-
-    // 1. ตรวจสอบว่าคนที่ส่ง Action เข้ามา (playerKey) คือคนที่ควรจะจ่ายเงินหรือไม่
-    if (designatedPayer !== playerKey) {
-        console.warn(`[SECURITY] Payment rejected. Action from ${playerKey}, but ${designatedPayer} is the designated payer.`);
         return gameState;
     }
 
-    // 2. ถ้าเป็นการ Summon แบบ High Speed ให้ตรวจสอบเงื่อนไขเพิ่มเติม
+    // **จุดที่แก้ไข:** เพิ่ม Logic การตรวจสอบ Tribute ที่ซับซ้อนและแม่นยำขึ้น
+    if (isSummonPayment && from === 'card') {
+        const cardToSummon = paymentState.cardToSummon;
+        const tributeEffect = cardToSummon?.effects.find(e => e.keyword === 'tribute');
+
+        if (tributeEffect) {
+            // 1. หา Spirit ทั้งหมดในสนามที่เป็น Tribute Target ที่ถูกต้อง
+            const allValidTributeSpirits = gameState[playerKey].field.filter(s => 
+                s.type === 'Spirit' && s.cost >= tributeEffect.condition.costOrMore
+            );
+
+            // 2. จาก Spirit เหล่านั้น หาว่ามีใบไหนที่ "ปลอดภัย" (ยังไม่ถูกเลือก Core สุดท้ายไป)
+            const safeTributeSpirits = allValidTributeSpirits.filter(spirit => {
+                const isMarkedForDestruction = paymentState.selectedCores.some(core => core.spiritUid === spirit.uid) && spirit.cores.length === 1;
+                return !isMarkedForDestruction;
+            });
+
+            // 3. หา Spirit ที่ผู้เล่นกำลังคลิกอยู่
+            const spiritBeingClicked = gameState[playerKey].field.find(s => s.uid === spiritUid);
+            
+            // 4. ตรวจสอบว่าการกระทำนี้กำลังจะทำลาย Tribute Target หรือไม่
+            if (spiritBeingClicked && spiritBeingClicked.cores.length === 1 && allValidTributeSpirits.some(t => t.uid === spiritBeingClicked.uid)) {
+                // 5. ถ้าจำนวน Spirit ที่ปลอดภัยมีแค่ 1 ใบ และใบนั้นคือใบที่กำลังจะถูกคลิกพอดี -> ให้ปฏิเสธ
+                if (safeTributeSpirits.length === 1 && safeTributeSpirits[0].uid === spiritBeingClicked.uid) {
+                    console.log(`[SUMMON VALIDATION] Rejected: Cannot remove the last core from the ONLY remaining Tribute target.`);
+                    return gameState;
+                }
+            }
+        }
+    }
+
+    const designatedPayer = paymentState.summoningPlayer || paymentState.payingPlayer;
+    if (designatedPayer !== playerKey) {
+        return gameState;
+    }
+
     if (paymentState.summonType === 'high_speed') {
         if (from !== 'reserve') {
-            console.warn(`[SECURITY] High Speed summon rejected. Core must be from reserve.`);
             return gameState;
         }
     }
-    // --- END: แก้ไข Logic ---
-
-    // 3. ถ้าผ่านทุกเงื่อนไข ให้ทำการเลือก/ยกเลิก Core (โค้ดส่วนนี้เหมือนเดิม)
+    
+    // Core selection/deselection logic
     const { selectedCores, costToPay } = paymentState;
     const coreInfo = { coreId, from, spiritUid };
     const existingIndex = selectedCores.findIndex(c => c.coreId === coreId);
@@ -129,6 +167,19 @@ function confirmSummon(gameState, playerKey) {
     }
 
     gameState = cleanupField(gameState);
+
+    const tributeEffect = cardToSummon.effects.find(e => e.keyword === 'tribute');
+    if (tributeEffect) {
+        // **จุดที่แก้ไข 3:** ไม่ต้องเก็บ paidCores แล้ว เพราะเราจัดการไปแล้ว
+        gameState.tributeState = {
+            isTributing: true,
+            summoningPlayer: playerKey,
+            cardToSummon: cardToSummon,
+            selectedTributeUid: null
+        };
+        gameState.summoningState = { isSummoning: false, cardToSummon: null, costToPay: 0, selectedCores: [] };
+        return gameState;
+    }
 
     const cardIndex = currentPlayer.hand.findIndex(c => c.uid === cardToSummon.uid);
     const [summonedCard] = currentPlayer.hand.splice(cardIndex, 1);
@@ -210,11 +261,88 @@ function selectCoreForPlacement(gameState, playerKey, payload) {
     return gameState;
 }
 
+/**
+ * ผู้เล่นเลือก Spirit ที่จะใช้เป็น Tribute
+ */
+function selectTribute(gameState, playerKey, payload) {
+    const { tributeUid } = payload;
+    const tributeState = gameState.tributeState;
+    if (!tributeState.isTributing || tributeState.summoningPlayer !== playerKey) return gameState;
+
+    tributeState.selectedTributeUid = tributeUid;
+    return gameState;
+}
+
+
+/**
+ * ยืนยันการอัญเชิญแบบ Tribute
+ */
+function confirmTribute(gameState, playerKey) {
+    const tributeState = gameState.tributeState;
+    if (!tributeState.isTributing || tributeState.summoningPlayer !== playerKey || !tributeState.selectedTributeUid) return gameState;
+
+    const { cardToSummon, selectedTributeUid } = tributeState;
+    const currentPlayer = gameState[playerKey];
+    
+    // --- START: MODIFIED SECTION ---
+
+    // 1. หาข้อมูลเอฟเฟกต์ Tribute จากการ์ดที่กำลังจะอัญเชิญ
+    const tributeEffect = cardToSummon.effects.find(e => e.keyword === 'tribute');
+    if (!tributeEffect) {
+        console.error(`[TRIBUTE ERROR] Tribute effect not found on ${cardToSummon.name}`);
+        gameState.tributeState = { isTributing: false };
+        return gameState;
+    }
+
+    // 2. หา Spirit ที่จะถูก Tribute
+    const tributeCardIndex = currentPlayer.field.findIndex(c => c.uid === selectedTributeUid);
+    if (tributeCardIndex === -1) {
+        gameState.tributeState = { isTributing: false };
+        return gameState;
+    }
+    const [tributeCard] = currentPlayer.field.splice(tributeCardIndex, 1);
+    
+    // 3. ย้าย Core ของ Tribute ไปยังตำแหน่งที่ 'destination' ระบุไว้
+    if (tributeCard.cores.length > 0) {
+        const destinationZone = tributeEffect.destination || 'costTrash'; // ถ้าไม่ได้ระบุ ให้ไป costTrash เป็นค่าเริ่มต้น
+        
+        if (gameState[playerKey][destinationZone]) {
+            gameState[playerKey][destinationZone].push(...tributeCard.cores);
+            tributeCard.cores = [];
+            console.log(`[TRIBUTE LOG] Moved ${tributeCard.cores.length} cores from ${tributeCard.name} to ${destinationZone}.`);
+        } else {
+            console.error(`[TRIBUTE ERROR] Destination zone "${destinationZone}" not found for player ${playerKey}.`);
+            // คืน Core ไปที่ reserve เพื่อป้องกันการหาย
+            // currentPlayer.reserve.push(...tributeCard.cores);
+        }
+    }
+    
+    // 4. ย้ายการ์ด Tribute ไปยัง cardTrash
+    currentPlayer.cardTrash.push(tributeCard);
+    console.log(`[SUMMON LOG] Tributed ${tributeCard.name}.`);
+    
+    // --- END: MODIFIED SECTION ---
+
+    // 5. อัญเชิญ Spirit ใบใหม่ลงสนาม
+    const cardIndex = currentPlayer.hand.findIndex(c => c.uid === cardToSummon.uid);
+    const [summonedCard] = currentPlayer.hand.splice(cardIndex, 1);
+    currentPlayer.field.push(summonedCard);
+    
+    // 6. Reset State และเข้าสู่ Placement
+    gameState.tributeState = { isTributing: false };
+    gameState.placementState = { isPlacing: true, targetSpiritUid: summonedCard.uid, placingPlayer: playerKey };
+
+    return gameState;
+}
+
+
 module.exports = {
     initiateSummon,
     selectCoreForPayment,
     selectCoreForPlacement,
     cancelSummon,
     confirmSummon,
-    confirmPlacement
+    confirmPlacement,
+    selectTribute,
+    confirmTribute
 };
