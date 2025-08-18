@@ -49,7 +49,7 @@ module.exports.greenCards = [
         },
         type: 'Spirit', 
         color: 'green',
-        family: ["Plant Spirit"],
+        family: ["Winged Beast", "Vanity Deity"],
         effects: [
             {
                 level: [1, 2, 3],
@@ -61,7 +61,7 @@ module.exports.greenCards = [
                     count: 3,
                     isExhausted: false 
                 },
-                description: "[LV1][LV2] [Windstorm: 3] (When Attacks)\nWhen this Spirit is blocked, exhaust 1 opposing Spirit."
+                description: "[LV1][LV2][LV3] [Windstorm: 3] (When Attacks)\nWhen this Spirit is blocked, exhaust 1 opposing Spirit."
             },
             {
                 level: [3],
