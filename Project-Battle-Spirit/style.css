@@ -539,15 +539,15 @@ body {
     cursor: pointer;
     transition: all 0.2s ease;
 }
-#confirm-summon-btn, #confirm-flash-btn , #confirm-magic-btn, #confirm-tribute-btn{
+#confirm-summon-btn, #confirm-flash-btn , #confirm-magic-btn, #confirm-tribute-btn, #confirm-effect-cost-btn{
     background: linear-gradient(45deg, #28a745, #20c997);
     color: white;
 }
-#confirm-summon-btn:disabled, #confirm-flash-btn:disabled , #confirm-magic-btn:disabled, #confirm-tribute-btn:disabled{
+#confirm-summon-btn:disabled, #confirm-flash-btn:disabled , #confirm-magic-btn:disabled, #confirm-tribute-btn:disabled, #confirm-effect-cost-btn:disabled{
     background: #555;
     cursor: not-allowed;
 }
-#cancel-summon-btn, #cancel-flash-btn, #cancel-magic-btn {
+#cancel-summon-btn, #cancel-flash-btn, #cancel-magic-btn , #cancel-effect-cost-btn{
     background: linear-gradient(45deg, #dc3545, #c82333);
     color: white;
 }

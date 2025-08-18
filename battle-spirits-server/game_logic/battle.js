@@ -273,6 +273,21 @@ function takeLifeDamage(gameState, playerKey) {
             defenderField.forEach(card => {
                 gameState = resolveTriggeredEffects(gameState, card, 'onLifeReduced', playerKey);
             });
+
+            // ตรวจสอบบัฟ 'gain_core_on_life_damage' ที่ตัวผู้โจมตี
+            const coreGainBuff = gameState[attackingPlayer].tempBuffs.find(
+                buff => buff.type === 'gain_core_on_life_damage'
+            );
+
+            if (coreGainBuff) {
+                const quantity = coreGainBuff.quantity || 0;
+                const destination = coreGainBuff.destination || 'reserve';
+                console.log(`[EFFECT LOG] ${coreGainBuff.sourceCardName}'s effect triggered! Gained ${quantity} cores in ${destination}.`);
+
+                for (let i = 0; i < quantity; i++) {
+                    gameState[attackingPlayer][destination].push({ id: `core-from-${coreGainBuff.sourceCardName}-${Date.now()}-${i}` });
+                }
+            }
         }
     }
     gameState = clearBattleBuffs(gameState, attackingPlayer);

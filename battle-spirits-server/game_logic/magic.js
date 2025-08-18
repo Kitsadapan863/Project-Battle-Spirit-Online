@@ -150,6 +150,8 @@ function confirmMagicPayment(gameState, playerKey) {
             console.log(`[EFFECT LOG] Applying turn-long buff: ${effectToUse.buff_type}`);
             currentPlayer.tempBuffs.push({
                 type: effectToUse.buff_type, // 'core_on_crush_attack'
+                quantity: effectToUse.quantity,
+                destination: effectToUse.destination,
                 sourceCardName: cardToUse.name
             });
             break;

@@ -36,6 +36,49 @@ module.exports.greenCards = [
         symbol: { "green": 1 },
     },
     {
+        id: 'card-providence-hououga',
+        name: 'The Providence Hououga',
+        quantity: 1,
+        image: `${pathsSpirit}/The Providence Hououga.webp`, 
+        cost: 10,
+        symbol_cost: { "green": 6 },
+        level: { 
+            "level-1": { "core": 1, "bp": 6000 }, 
+            "level-2": { "core": 4, "bp": 10000 },
+            "level-3": { "core": 10, "bp": 16000 }  
+        },
+        type: 'Spirit', 
+        color: 'green',
+        family: ["Plant Spirit"],
+        effects: [
+            {
+                level: [1, 2, 3],
+                timing: 'whenBlocked', 
+                keyword: 'windstorm', 
+                target: {
+                    scope: 'opponent',
+                    type: 'spirit',
+                    count: 3,
+                    isExhausted: false 
+                },
+                description: "[LV1][LV2] [Windstorm: 3] (When Attacks)\nWhen this Spirit is blocked, exhaust 1 opposing Spirit."
+            },
+            {
+                level: [3],
+                timing: "onLifeDamageDealt",
+                keyword: "refresh_with_cost",
+                cost: {
+                    type: "core",
+                    from: "reserve",
+                    to: "void",
+                    count: 1
+                },
+                description: "[LV3] (When Attacks)\nEach time this spirit deals any Damage to your opponent's Life, you may remove 1 core from your Reserve. In that case, refresh this spirit."
+            }
+        ],
+        symbol: { "green": 1 },
+    },
+    {
         id: 'card-machg',
         name: 'Mach G',
         quantity: 3,
@@ -240,5 +283,29 @@ module.exports.greenCards = [
             }
         ],
     },
-
+    {
+        id: 'magic-speed-star',
+        name: 'Speed Star',
+        quantity: 2, // หรือตามจำนวนที่ต้องการ
+        image: `${pathsMagic}/Speed Star.webp`, // สร้าง Path รูปภาพให้ถูกต้อง
+        cost: 5,
+        symbol_cost: { "green": 3 },
+        type: 'Magic', 
+        color: 'green',
+        effects: [
+            {
+                timing: "main",
+                keyword: "core charge",
+                buff_type: "gain_core_on_life_damage",
+                quantity: 2,
+                destination: "reserve",
+                description: "[Main]\nDuring this turn, each time an attacking spirit you control deals any Damage to your opponent's Life, gain 2 cores in your Reserve."
+            },
+            {
+                timing: 'flash', keyword: 'power up', power: 3000, duration: 'turn',
+                target: { scope: 'any', type: 'spirit', count: 1 },
+                description: '[Flash]\nDuring this turn, 1 Spirits gets +3000 BP.'
+            }
+        ],
+    },
 ];

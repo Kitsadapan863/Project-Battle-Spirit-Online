@@ -102,6 +102,21 @@ function applySingleEffect(gameState, card, effect, ownerKey, context) {
                 console.log(`[EFFECTS] Cannot activate ${card.name}'s effect, not enough core in reserve to pay the cost.`);
             }
             break;
+        case 'refresh_with_cost':
+            // ตรวจสอบว่าผู้เล่นมี core พอจ่ายหรือไม่
+            if (gameState[ownerKey].reserve.length >= effect.cost.count) {
+                console.log(`[EFFECTS] Awaiting cost confirmation for ${card.name}'s refresh effect.`);
+                // เข้าสู่สถานะรอการยืนยันจ่ายค่าร่าย
+                gameState.effectCostConfirmationState = {
+                    isActive: true,
+                    playerKey: ownerKey,
+                    effect: effect,
+                    cardSourceUid: card.uid
+                };
+            } else {
+                console.log(`[EFFECTS] Cannot activate ${card.name}'s refresh effect, not enough core in reserve.`);
+            }
+            break;
     }
     return gameState;
 }
@@ -247,6 +262,15 @@ function confirmEffectCost(gameState, playerKey) {
             // ตรวจสอบเกมโอเวอร์หลังจากลด life
             const {checkGameOver}  = require('./gameLoop')
             gameState = checkGameOver(gameState);
+            
+        }else if (effect.keyword === 'refresh_with_cost') {
+            // ค้นหา Spirit ที่เป็นเจ้าของเอฟเฟกต์
+            const sourceCard = player.field.find(c => c.uid === cardSourceUid);
+            if (sourceCard) {
+                // สั่งให้หายเหนื่อย (Refresh)
+                sourceCard.isExhausted = false;
+                console.log(`[EFFECTS] ${sourceCard.name} has been refreshed.`);
+            }
         }
 
     }
