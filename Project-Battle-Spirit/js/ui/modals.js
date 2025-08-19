@@ -189,6 +189,13 @@ export function updateAllModals(gameState, myPlayerKey, callbacks) {
                     if (effect.keyword === 'force_exhaust' || effect.keyword === 'windstorm') {
                         return card.type === 'Spirit' && !card.isExhausted;
                     }
+                    else if (effect.keyword === 'place_core_on_target') {
+                        // เป้าหมายคือ Spirit ฝั่งเรา (scope: 'player')
+                        return card.type.toLowerCase() === effect.target.type;
+                    }
+                    else if (effect.keyword === 'cores_charge') {
+                        return card.type.toLowerCase() === effect.target.type;
+                    }
                     // (เพิ่มเงื่อนไขสำหรับเอฟเฟกต์อื่นๆ ที่นี่ถ้าจำเป็น)
                     return false; // ถ้าไม่เข้าเงื่อนไขไหนเลย ก็ไม่นับ
                 }).length;

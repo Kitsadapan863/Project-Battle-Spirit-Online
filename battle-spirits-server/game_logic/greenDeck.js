@@ -8,7 +8,7 @@ module.exports.greenCards = [
         id: 'card-gabunohashi',
         name: 'Gabunohashi',
         quantity: 3,
-        image: `${pathsSpirit}/Gabunohashi.webp`, // Path to the uploaded image
+        image: `${pathsSpirit}/Gabunohashi.webp`,
         cost: 3,
         symbol_cost: { "green": 1 },
         level: { 
@@ -21,16 +21,74 @@ module.exports.greenCards = [
         effects: [
             {
                 level: [1, 2],
-                // Timing ที่ถูกต้องคือ 'whenBlocked' ไม่ใช่ 'whenAttacks'
                 timing: 'whenBlocked', 
                 keyword: 'windstorm', 
                 target: {
                     scope: 'opponent',
                     type: 'spirit',
                     count: 1,
-                    isExhausted: false // เพิ่มเงื่อนไข: เลือกได้เฉพาะตัวที่ยังไม่เหนื่อย
+                    isExhausted: false 
                 },
                 description: "[LV1][LV2] [Windstorm: 1] (When Attacks)\nWhen this Spirit is blocked, exhaust 1 opposing Spirit."
+            }
+        ],
+        symbol: { "green": 1 },
+    },
+    {
+        id: 'card-airCommodore-geran',
+        name: 'The AirCommodore Geran',
+        quantity: 2,
+        image: `${pathsSpirit}/The AirCommodore Geran.webp`,
+        cost: 4,
+        symbol_cost: { "green": 2 },
+        level: { 
+            "level-1": { "core": 1, "bp": 3000 }, 
+            "level-2": { "core": 4, "bp": 6000 } 
+        },
+        type: 'Spirit', 
+        color: 'green',
+        family: ["Winged Beast", "Deified General"],
+        effects: [
+            {
+                level: [1, 2], timing: 'whenBlocked', keyword: 'windstorm', 
+                target: { scope: 'opponent', type: 'spirit', count: 1, isExhausted: false },
+                description: "[LV1][LV2] [Windstorm: 1] (When Attacks)\nWhen this Spirit is blocked, exhaust 1 opposing Spirit."
+            },
+            {
+                level: [2], timing: 'permanent', keyword: 'increase windstorm', count: 1,
+                description: "[LV2]\nIncrease the number of targets specified by the [Windstorm] of your Spirits by +1."
+            }
+        ],
+        symbol: { "green": 1 },
+    },
+    {
+        id: 'card-maparrot',
+        name: 'Maparrot',
+        quantity: 3,
+        image: `${pathsSpirit}/Maparrot.webp`, // Path to the uploaded image
+        cost: 3,
+        symbol_cost: { "green": 1 },
+        level: { 
+            "level-1": { "core": 1, "bp": 1000 }, 
+            "level-2": { "core": 2, "bp": 3000 },
+            "level-3": { "core": 5, "bp": 5000 } 
+        },
+        type: 'Spirit', 
+        color: 'green',
+        family: ["Song Bird"],
+        effects: [
+            {
+                level: [1, 2, 3],
+                timing: "whenSummoned",
+                keyword: "place_core_on_target",
+                quantity: 1,
+                source: "void",
+                target: {
+                    scope: "player",
+                    type: "spirit",
+                    count: 1
+                },
+                description: "[LV1][LV2][LV3] (When Summoned)\nGain 1 core on target spirit you control."
             }
         ],
         symbol: { "green": 1 },
@@ -92,6 +150,29 @@ module.exports.greenCards = [
         type: 'Spirit', 
         color: 'green',
         family: ["Parasite Bug"],
+        effects: [
+            {
+                timing: 'flash',
+                keyword: 'high_speed',
+                description: "[LV1][LV2] [High Speed] (Flash Step)\nThis Spirit card can be summoned from your hand during the Flash Step. The cost and cores to be placed on this Spirit must be paid from your Reserve."
+            }
+        ],
+        symbol: { "green": 1 },
+    },
+    {
+        id: 'card-amenborg',
+        name: 'Amenborg',
+        quantity: 3,
+        image: `${pathsSpirit}/Amenborg.webp`, 
+        cost: 2,
+        symbol_cost: { "green": 1 },
+        level: { 
+            "level-1": { "core": 1, "bp": 2000 }, 
+            "level-2": { "core": 3, "bp": 4000 } 
+        },
+        type: 'Spirit', 
+        color: 'green',
+        family: ["Parasite"],
         effects: [
             {
                 timing: 'flash',
@@ -305,6 +386,38 @@ module.exports.greenCards = [
                 timing: 'flash', keyword: 'power up', power: 3000, duration: 'turn',
                 target: { scope: 'any', type: 'spirit', count: 1 },
                 description: '[Flash]\nDuring this turn, 1 Spirits gets +3000 BP.'
+            }
+        ],
+    },
+    {
+        id: 'magic-full-add',
+        name: 'Full Add',
+        quantity: 1, // หรือตามจำนวนที่ต้องการ
+        image: `${pathsMagic}/Full Add.webp`, // สร้าง Path รูปภาพให้ถูกต้อง
+        cost: 5,
+        symbol_cost: { "green": 3 },
+        type: 'Magic', 
+        color: 'green',
+        effects: [
+            {
+                timing: "main",
+                keyword: "cores_charge",
+                target_level: 2,
+                source: "void",
+                target: {
+                    scope: "player",
+                    type: "nexus",
+                    count: 1,
+                    condition: {
+                        max_level: 1
+                    }
+                },
+                description: "[Main]\nGain enough cores on target nexus you control to make it LV2 (you cannot gain more than enough)."
+            },
+            {
+                timing: 'flash', keyword: 'power up', power: 2000, duration: 'turn',
+                target: { scope: 'any', type: 'spirit', count: 1 },
+                description: '[Flash]\nDuring this turn, 1 Spirits gets +2000 BP.'
             }
         ],
     },

@@ -199,27 +199,6 @@ function applyDrawAndDiscard(gameState, effect, ownerKey) {
 }
 
 /**
- * จัดการเอฟเฟกต์เพิ่มพลัง (BP) ให้กับ Spirit ทั้ง Family
- */
-// function applyFamilyPowerUp(gameState, ownerKey, targetFamilies, power, duration) {
-//     console.log(`[Effect Handler] Applying +${power} BP buff to all "${targetFamilies.join(', ')}" spirits for ${ownerKey}.`);
-    
-//     // วนลูปการ์ดทุกใบบนสนามของผู้เล่น
-//     gameState[ownerKey].field.forEach(card => {
-//         // ตรวจสอบว่าเป็น Spirit และมี family ที่ถูกต้องหรือไม่
-//         if (card.type === 'Spirit' && card.family?.some(f => targetFamilies.includes(f))) {
-//             if (!card.tempBuffs) {
-//                 card.tempBuffs = [];
-//             }
-//             card.tempBuffs.push({ type: 'BP', value: power, duration: duration });
-//             console.log(`- Buffed ${card.name}.`);
-//         }
-//     });
-
-//     return gameState;
-// }
-
-/**
  * จัดการเอฟเฟกต์ที่สร้าง Aura เพิ่มพลังให้ทั้ง Family ตลอดเทิร์น
  */
 function applyAuraPowerUp(gameState, ownerKey, effect) {
@@ -237,7 +216,30 @@ function applyAuraPowerUp(gameState, ownerKey, effect) {
 
 function applyWindstorm(gameState, card, effect, ownerKey) {
     const opponentKey = ownerKey === 'player1' ? 'player2' : 'player1';
-    
+    let modifiedEffect = JSON.parse(JSON.stringify(effect)); 
+    let windstormBonus = 0;
+
+    gameState[ownerKey].field.forEach(fieldCard => {
+        if (fieldCard.effects) {
+            const fieldCardLevel = getCardLevel(fieldCard).level;
+            fieldCard.effects.forEach(auraEffect => {
+                // ตรวจสอบว่ามีเอฟเฟกต์ที่ต้องการและทำงานในเลเวลปัจจุบันหรือไม่
+                if (
+                    auraEffect.keyword === 'increase windstorm' &&
+                    auraEffect.level.includes(fieldCardLevel)
+                ) {
+                    windstormBonus += auraEffect.count;
+                }
+            });
+        }
+    });
+
+    // 3. ถ้ามีโบนัส, ให้นำไปเพิ่มจำนวนเป้าหมายของ Windstorm
+    if (windstormBonus > 0) {
+        console.log(`[AURA EFFECT] Windstorm count for ${card.name} is increased by +${windstormBonus}.`);
+        modifiedEffect.target.count += windstormBonus;
+    }
+
     // หาเป้าหมายที่ถูกต้อง (Spirit ของฝ่ายตรงข้ามที่ยังไม่เหนื่อย)
     const validTargets = gameState[opponentKey].field.filter(c => 
         c.type === 'Spirit' && !c.isExhausted
@@ -247,7 +249,7 @@ function applyWindstorm(gameState, card, effect, ownerKey) {
         console.log(`[EFFECT LOG] ${card.name}'s [Windstorm] triggers. Entering targeting state.`);
         gameState.targetingState = {
             isTargeting: true,
-            forEffect: effect,
+            forEffect: modifiedEffect,
             cardSourceUid: card.uid,
             targetPlayer: opponentKey, 
             selectedTargets: []

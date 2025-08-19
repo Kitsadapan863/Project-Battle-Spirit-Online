@@ -68,13 +68,12 @@ function applySingleEffect(gameState, card, effect, ownerKey, context) {
                 console.log(`[EFFECTS] Cannot activate ${card.name}'s effect, not enough core in reserve.`);
             }
             break;
-                case 'gain_core_from_void':
+        case 'gain_core_from_void':
             console.log(`[EFFECTS] ${card.name} activates, adding ${effect.quantity} core to reserve.`);
             for (let i = 0; i < effect.quantity; i++) {
                 gameState[ownerKey].reserve.push({ id: `core-from-void-${Date.now()}-${i}` });
             }
             break;
-
         case 'refresh_all_spirits':
             console.log(`[EFFECTS] ${card.name} activates, refreshing all of ${ownerKey}'s spirits.`);
             gameState[ownerKey].field.forEach(fieldCard => {
@@ -116,6 +115,16 @@ function applySingleEffect(gameState, card, effect, ownerKey, context) {
             } else {
                 console.log(`[EFFECTS] Cannot activate ${card.name}'s refresh effect, not enough core in reserve.`);
             }
+            break;
+        case 'place_core_on_target' || 'cores_charge':
+            console.log(`[EFFECTS] ${card.name} triggers 'place_core_on_target'. Entering targeting state.`);
+            gameState.targetingState = {
+                isTargeting: true,
+                forEffect: effect,
+                cardSourceUid: card.uid,
+                targetPlayer: ownerKey, // ผู้เล่นที่ร่ายเป็นคนเลือกเป้าหมาย
+                selectedTargets: []
+            };
             break;
     }
     return gameState;
@@ -291,10 +300,6 @@ function cancelEffectCost(gameState, playerKey) {
     gameState.effectCostConfirmationState = { isActive: false, playerKey: null, effect: null, cardSourceUid: null };
     return gameState;
 }
-
-
-
-
 
 module.exports = { 
     resolveTriggeredEffects, 

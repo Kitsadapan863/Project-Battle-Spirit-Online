@@ -226,18 +226,18 @@ function confirmMagicPayment(gameState, playerKey) {
                 selectedTargets: []
             };
             break;
-    }
-
-    // หลังจากใช้ Magic เสร็จแล้ว ให้สลับ Priority ในช่วง Flash Timing
-    // if (gameState.flashState.isActive) {
-    //     const otherPlayer = playerKey === 'player1' ? 'player2' : 'player1';
-    //     gameState.flashState.priority = otherPlayer;
-        
-    //     // รีเซ็ตสถานะ "Pass" ของผู้เล่นที่เพิ่งใช้การ์ดไป
-    //     gameState.flashState.hasPassed[playerKey] = false;
-
-    //     console.log(`[SERVER LOG] Magic used. Flash priority passed to ${otherPlayer}`);
-    // }
+        case 'cores_charge':
+            console.log(`[EFFECT LOG] Entering targeting state for effect: ${effectToUse.description}`);
+            // เข้าสู่สถานะเลือกเป้าหมาย
+            gameState.targetingState = { 
+                isTargeting: true, 
+                forEffect: effectToUse, 
+                cardSourceUid: cardToUse.uid,
+                targetPlayer: playerKey, // คนที่ร่ายเป็นคนเลือกเป้าหมาย
+                selectedTargets: []
+            };
+            break;
+    }  
 
     // Move used magic card to trash
     const cardIndex = currentPlayer.hand.findIndex(c => c.uid === cardToUse.uid);
@@ -347,6 +347,43 @@ function confirmTargets(gameState, playerKey) {
             // --- END: แก้ไขการเรียกใช้ destroyCard ---
         });
 
+    }else if (forEffect.keyword === 'place_core_on_target') {
+        selectedTargets.forEach(targetUid => {
+            // ค้นหา Spirit ที่เป็นเป้าหมายในสนามของผู้เล่น
+            const targetSpirit = gameState[playerKey].field.find(s => s.uid === targetUid);
+            if (targetSpirit) {
+                const quantity = forEffect.quantity || 1;
+                console.log(`[EFFECT LOG] Placing ${quantity} core(s) from the Void onto ${targetSpirit.name}.`);
+                for (let i = 0; i < quantity; i++) {
+                    // เพิ่ม Core ใหม่เข้าไปใน Spirit เป้าหมาย
+                    targetSpirit.cores.push({ id: `core-from-effect-${Date.now()}-${i}` });
+                }
+            }
+        });
+    }else if (forEffect.keyword === 'cores_charge') {
+        selectedTargets.forEach(targetUid => {
+            // 1. ค้นหา Nexus ที่เป็นเป้าหมายในสนาม
+            const targetNexus = gameState[playerKey].field.find(c => c.uid === targetUid);
+
+            if (targetNexus && targetNexus.type === 'Nexus') {
+                // 2. หาจำนวน core ที่ต้องการสำหรับ LV2 จากข้อมูลของการ์ด
+                const coresNeededForLv2 = targetNexus.level[`level-${forEffect.target_level}`]?.core;
+                
+                // 3. หาจำนวน core ที่มีอยู่ปัจจุบัน
+                const currentCores = targetNexus.cores.length;
+
+                // 4. คำนวณหาจำนวน core ที่ต้องเพิ่ม
+                if (coresNeededForLv2 !== undefined && currentCores < coresNeededForLv2) {
+                    const coresToAdd = coresNeededForLv2 - currentCores;
+                    console.log(`[EFFECT LOG] Full Charge: Adding ${coresToAdd} core(s) to ${targetNexus.name} to reach LV2.`);
+                    
+                    // 5. เพิ่ม core จาก Void ตามจำนวนที่คำนวณได้
+                    for (let i = 0; i < coresToAdd; i++) {
+                        targetNexus.cores.push({ id: `core-from-full-charge-${Date.now()}-${i}` });
+                    }
+                }
+            }
+        });
     }
     else if (forEffect.keyword === 'force_exhaust') {
         // playerKey คือคนที่ถูกบังคับให้เลือก ดังนั้นเป้าหมายคือ Spirit ของ playerKey เอง
