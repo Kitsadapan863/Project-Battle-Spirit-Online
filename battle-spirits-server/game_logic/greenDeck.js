@@ -58,7 +58,7 @@ module.exports.greenCards = [
                     type: 'spirit',
                     costOrMore: 3 
                 },
-                description: "[LV1][LV2] Tribute: Cost 3 or more -> Trash\nAfter paying for the summoning cost, you must send all cores from one of your Cost 3 or more Spirits to the Void."
+                description: "Tribute: Cost 3 or more -> Trash\nAfter paying for the summoning cost, you must send all cores from one of your Cost 3 or more Spirits to the Void."
             },
             {
                 level: [1, 2],
@@ -352,7 +352,7 @@ module.exports.greenCards = [
                     type: 'spirit',
                     costOrMore: 6 // Spirit ที่ใช้เป็น Tribute ต้องมี Cost 6 ขึ้นไป
                 },
-                description: "[LV1][LV2] Tribute: Cost 6 or more -> Void\nAfter paying for the summoning cost, you must send all cores from one of your Cost 6 or more Spirits to the Void."
+                description: "Tribute: Cost 6 or more -> Void\nAfter paying for the summoning cost, you must send all cores from one of your Cost 6 or more Spirits to the Void."
             },
             {
                 level: [2],
@@ -369,6 +369,55 @@ module.exports.greenCards = [
             }
         ],
         symbol: { "green": 2 },
+    },
+    {
+        id: 'card-greatKing-blacktaurus',
+        name: 'The GreatKing Blacktaurus',
+        quantity: 10,
+        image: `${pathsSpirit}/The GreatKing Blacktaurus.webp`, // สร้าง Path รูปภาพให้ถูกต้อง
+        cost: 8,
+        symbol_cost: { "green": 4 },
+        level: { 
+            "level-1": { "core": 1, "bp": 6000 }, 
+            "level-2": { "core": 3, "bp": 9000 },
+            "level-3": { "core": 7, "bp": 12000 }  
+        },
+        type: 'Spirit', 
+        color: 'green',
+        family: ["Shell Insect", "Blade Beast"],
+        effects: [
+            {
+                level: [1, 2, 3],
+                timing: 'onSummon', // ทำงานตอนจะอัญเชิญ
+                keyword: 'tribute',
+                destination: 'void',
+                condition: {
+                    type: 'spirit',
+                    costOrMore: 3 // Spirit ที่ใช้เป็น Tribute ต้องมี Cost 6 ขึ้นไป
+                },
+                description: "Tribute: Cost 3 or more -> Void\nAfter paying for the summoning cost, you must send all cores from one of your Cost 3 or more Spirits to the Void."
+            },
+            {
+                level: [1, 2, 3],
+                timing: 'onOpponentDestroyedInBattle',
+                keyword: 'deal_life_damage', 
+                damage: 1,
+                description: '[LV1][LV2][LV3] (When Attacks)\nWhen only the opposing Spirit is destroyed via BP comparison, send an opposing Life to their Reserve.'
+            },
+            {
+                level: [2, 3],
+                timing: "onLifeDamageDealt",
+                keyword: "refresh_with_cost",
+                cost: {
+                    type: "core",
+                    from: "spiritThis",
+                    to: "void",
+                    count: 2
+                },
+                description: '[LV2][LV3] (When Attacks)\nWhen the opposing Life is reduced, by sending two cores from this Spirit to the Void, refresh this Spirit.'
+            }
+        ],
+        symbol: { "green": 1 },
     },
     {
         id: 'nexus-fruit-of-wise-tree',

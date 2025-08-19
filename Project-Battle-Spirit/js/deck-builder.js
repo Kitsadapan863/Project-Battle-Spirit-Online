@@ -20,8 +20,17 @@ document.addEventListener('DOMContentLoaded', async () => { // <-- ทำให�
     onAuthStateChanged(auth, (user) => {
         if (user) {
             currentUser = user;
-            // เมื่อล็อกอินแล้ว ให้โหลดเด็คแรกของผู้ใช้ (ถ้ามี)
-            loadFirstUserDeck(); 
+            // ตรวจสอบ URL parameters เพื่อดูว่าเป็นการแก้ไขเด็คหรือไม่
+            const urlParams = new URLSearchParams(window.location.search);
+            const deckNameToEdit = urlParams.get('deckNameToEdit');
+
+            if (deckNameToEdit) {
+                // ถ้ามีชื่อเด็คส่งมา ให้โหลดเด็คนั้น
+                loadDeck(deckNameToEdit);
+            } else {
+                // ถ้าไม่มี ให้โหลดเด็คแรกของผู้ใช้ (ถ้ามี) เหมือนเดิม
+                loadFirstUserDeck(); 
+            }
         } else {
             // ถ้าผู้ใช้ไม่ได้ล็อกอิน ให้ redirect ไปหน้า login
             console.log("No user logged in, redirecting...");
@@ -30,20 +39,80 @@ document.addEventListener('DOMContentLoaded', async () => { // <-- ทำให�
     });
 
     let currentDeck = {};
-    const allCards = await fetchAllCards(); // <-- ดึงข้อมูลการ์ดตอนเริ่ม
+    const allCards = await fetchAllCards(); 
+
+    let activeFilters = {
+        color: 'all',
+        type: 'all',
+        cost: 'all'
+    };
+
+    // เพิ่ม Event Listener ให้กับปุ่มฟิลเตอร์ทั้งหมด
+    document.querySelectorAll('.filter-btn').forEach(button => {
+        button.addEventListener('click', () => {
+            const filterType = button.dataset.filter;
+            const filterValue = button.dataset.value;
+
+            // อัปเดตค่าฟิลเตอร์ที่เลือก
+            activeFilters[filterType] = filterValue;
+
+            // อัปเดต UI ของปุ่ม (ทำให้ปุ่มที่เลือก active)
+            document.querySelectorAll(`.filter-btn[data-filter="${filterType}"]`).forEach(btn => {
+                btn.classList.remove('active');
+            });
+            button.classList.add('active');
+
+            // แสดงผลการ์ดใหม่ตามฟิลเตอร์
+            renderCollection(); 
+        });
+    });
 
     function renderCollection() {
         collectionView.innerHTML = '';
-        allCards.forEach(card => {
-            const cardInDeckQty = currentDeck[card.id] || 0;
 
+        const colorOrder = ['red', 'purple', 'green', 'white', 'yellow', 'blue'];
+        const typeOrder = ['Spirit', 'Nexus', 'Magic'];
+
+        // 1. กรองการ์ดตามฟิลเตอร์ที่เลือก
+        const filteredCards = allCards.filter(card => {
+            const colorMatch = activeFilters.color === 'all' || card.color === activeFilters.color;
+            const typeMatch = activeFilters.type === 'all' || card.type === activeFilters.type;
+            
+            let costMatch = activeFilters.cost === 'all';
+            if (!costMatch) {
+                const costFilter = activeFilters.cost;
+                if (costFilter.includes('+')) { // สำหรับ "6+"
+                    costMatch = card.cost >= parseInt(costFilter);
+                } else {
+                    costMatch = card.cost == costFilter;
+                }
+            }
+            
+            return colorMatch && typeMatch && costMatch;
+        });
+
+        // 2. จัดเรียงการ์ดที่ผ่านการกรองแล้ว
+        const sortedAndFilteredCards = filteredCards.sort((a, b) => {
+            const colorA = colorOrder.indexOf(a.color);
+            const colorB = colorOrder.indexOf(b.color);
+            if (colorA !== colorB) return colorA - colorB;
+
+            const typeA = typeOrder.indexOf(a.type);
+            const typeB = typeOrder.indexOf(b.type);
+            if (typeA !== typeB) return typeA - typeB;
+
+            return a.cost - b.cost;
+        });
+
+        // 3. แสดงผลการ์ด
+        sortedAndFilteredCards.forEach(card => {
+            const cardInDeckQty = currentDeck[card.id] || 0;
             const cardWrapper = document.createElement('div');
             cardWrapper.className = 'collection-card';
             cardWrapper.innerHTML = `
                 <img src="${card.image}" alt="${card.name}" title="${card.name}">
                 ${cardInDeckQty > 0 ? `<div class="card-count-badge">${cardInDeckQty}</div>` : ''}
             `;
-            
             cardWrapper.addEventListener('click', () => addCardToDeck(card.id));
             collectionView.appendChild(cardWrapper);
         });
@@ -72,6 +141,7 @@ document.addEventListener('DOMContentLoaded', async () => { // <-- ทำให�
             const deckItem = document.createElement('div');
             deckItem.className = 'deck-card-item';
             deckItem.innerHTML = `
+                <img src="${card.image}" class="deck-card-thumbnail" alt="${card.name}">
                 <span class="card-name">${card.name}</span>
                 <span class="card-quantity">x${quantity}</span>
             `;

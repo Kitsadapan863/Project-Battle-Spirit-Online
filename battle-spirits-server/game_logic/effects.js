@@ -248,25 +248,39 @@ function confirmEffectCost(gameState, playerKey) {
     const { effect, cardSourceUid } = confirmState;
     const player = gameState[playerKey];
     const opponentKey = playerKey === 'player1' ? 'player2' : 'player1';
+    let costPaid = false;
 
-    // 1. จ่าย Cost
-    if (player.reserve.length >= effect.cost.count) {
-        for (let i = 0; i < effect.cost.count; i++) {
-            const [core] = player.reserve.splice(0, 1);
-            // ตรวจสอบปลายทางของ cost (ในที่นี้คือ void)
-            const destination = effect.cost.to || 'costTrash'; // ถ้าไม่ได้ระบุ ให้ไปที่ costTrash
-            if (destination === 'void') {
-                 // ถ้าปลายทางคือ void, core จะหายไปจากเกม ไม่ต้อง push ไปที่ไหน
-                console.log(`[EFFECTS] A core was sent to the Void.`);
-            } else {
-                player[destination].push(core);
+    // 1. ตรวจสอบและจ่าย Cost ตาม 'from' ที่ระบุใน effect
+    if (effect.cost.from === 'reserve') {
+        if (player.reserve.length >= effect.cost.count) {
+            for (let i = 0; i < effect.cost.count; i++) {
+                const [core] = player.reserve.splice(0, 1);
+                const destination = effect.cost.to || 'costTrash';
+                if (destination !== 'void') {
+                    player[destination].push(core);
+                }
             }
+            costPaid = true;
         }
+    } else if (effect.cost.from === 'spiritThis') {
+        const sourceCard = player.field.find(c => c.uid === cardSourceUid);
+        if (sourceCard && sourceCard.cores.length >= effect.cost.count) {
+            for (let i = 0; i < effect.cost.count; i++) {
+                const [core] = sourceCard.cores.splice(0, 1);
+                const destination = effect.cost.to || 'costTrash';
+                 if (destination !== 'void') {
+                    player[destination].push(core);
+                }
+            }
+            costPaid = true;
+        }
+    }
+
+    // 2. ถ้าจ่าย Cost สำเร็จ ให้ทำงานตามเอฟเฟกต์
+    if (costPaid) {
         console.log(`[EFFECTS] Cost paid for ${effect.keyword}.`);
 
-        // 2. ทำงานตาม keyword ของเอฟเฟกต์
         if (effect.keyword === 'return_to_hand_with_cost') {
-            // เข้าสู่สถานะเลือกเป้าหมาย (ของเดิม)
             gameState.targetingState = {
                 isTargeting: true,
                 forEffect: effect,
@@ -275,7 +289,6 @@ function confirmEffectCost(gameState, playerKey) {
                 selectedTargets: []
             };
         } else if (effect.keyword === 'deal_life_damage_with_cost') {
-            // ลดไลฟ์คู่ต่อสู้ทันที
             const damage = effect.damage || 0;
             console.log(`[EFFECTS] ${cardSourceUid} deals ${damage} damage to ${opponentKey}'s life.`);
             for (let i = 0; i < damage; i++) {
@@ -284,20 +297,16 @@ function confirmEffectCost(gameState, playerKey) {
                     gameState[opponentKey].reserve.push({ id: `core-from-life-${opponentKey}-${Date.now()}-${i}` });
                 }
             }
-            // ตรวจสอบเกมโอเวอร์หลังจากลด life
-            const {checkGameOver}  = require('./gameLoop')
             gameState = checkGameOver(gameState);
-            
-        }else if (effect.keyword === 'refresh_with_cost') {
-            // ค้นหา Spirit ที่เป็นเจ้าของเอฟเฟกต์
+        } else if (effect.keyword === 'refresh_with_cost') {
             const sourceCard = player.field.find(c => c.uid === cardSourceUid);
             if (sourceCard) {
-                // สั่งให้หายเหนื่อย (Refresh)
                 sourceCard.isExhausted = false;
                 console.log(`[EFFECTS] ${sourceCard.name} has been refreshed.`);
             }
         }
-
+    } else {
+        console.log(`[EFFECTS] Cost could not be paid for ${effect.keyword}.`);
     }
 
     // 3. Reset สถานะการยืนยัน

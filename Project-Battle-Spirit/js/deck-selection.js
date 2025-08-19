@@ -1,7 +1,7 @@
 // Project-Battle-Spirit/js/deck-selection.js
 import { defaultDecks } from './default-decks.js';
 import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js";
-import { getFirestore, collection, getDocs, doc, getDoc } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js";
+import { getFirestore, collection, getDocs, doc, getDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js";
 import { db } from './firebase-init.js';
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -24,6 +24,9 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     function createDeckItem(deckName, isDefault = false) {
+        const deckItemWrapper = document.createElement('div');
+        deckItemWrapper.className = 'deck-item-wrapper';
+
         const deckItem = document.createElement('div');
         deckItem.className = 'deck-item';
         deckItem.textContent = deckName;
@@ -32,16 +35,56 @@ document.addEventListener('DOMContentLoaded', () => {
             deckItem.classList.add('default-deck');
         }
 
+        // ทำให้ทั้ง div สามารถกดเลือกเพื่อเล่นได้
         deckItem.addEventListener('click', () => {
             document.querySelectorAll('.deck-item').forEach(d => d.classList.remove('selected'));
             deckItem.classList.add('selected');
             
             selectedDeckName = deckName;
-            isDefaultDeck = isDefault; // เก็บสถานะว่าเป็นเด็คเริ่มต้นหรือไม่
+            isDefaultDeck = isDefault;
             playGameBtn.disabled = false;
         });
 
-        return deckItem;
+        deckItemWrapper.appendChild(deckItem);
+
+        // เพิ่มปุ่ม Edit และ Delete สำหรับเด็คที่ผู้ใช้สร้างเองเท่านั้น
+        if (!isDefault) {
+            const actionsDiv = document.createElement('div');
+            actionsDiv.className = 'deck-item-actions';
+
+            const editBtn = document.createElement('button');
+            editBtn.textContent = 'Edit';
+            editBtn.className = 'edit-deck-btn';
+            editBtn.addEventListener('click', (e) => {
+                e.stopPropagation(); // ป้องกันไม่ให้ event click ของ deckItem ทำงาน
+                // ส่งชื่อเด็คไปที่หน้า builder ผ่าน URL parameter
+                window.location.href = `deck-builder.html?deckNameToEdit=${encodeURIComponent(deckName)}`;
+            });
+
+            const deleteBtn = document.createElement('button');
+            deleteBtn.textContent = 'Delete';
+            deleteBtn.className = 'delete-deck-btn';
+            deleteBtn.addEventListener('click', async (e) => {
+                e.stopPropagation();
+                if (confirm(`Are you sure you want to delete the deck "${deckName}"?`)) {
+                    try {
+                        const deckRef = doc(db, "users", auth.currentUser.uid, "decks", deckName);
+                        await deleteDoc(deckRef);
+                        alert(`Deck "${deckName}" has been deleted.`);
+                        loadDecks(auth.currentUser.uid); // โหลดรายการเด็คใหม่
+                    } catch (error) {
+                        console.error("Error deleting deck: ", error);
+                        alert("Failed to delete deck.");
+                    }
+                }
+            });
+
+            actionsDiv.appendChild(editBtn);
+            actionsDiv.appendChild(deleteBtn);
+            deckItemWrapper.appendChild(actionsDiv);
+        }
+
+        return deckItemWrapper;
     }
 
     async function loadDecks(userId) {

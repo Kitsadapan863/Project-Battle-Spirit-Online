@@ -120,3 +120,109 @@ h1, h2 { text-align: center; color: #3498db; text-shadow: 0 0 5px #3498db; }
     margin-top: 0px; /* เพิ่ม margin ด้านบนเพื่อให้ห่างจากข้อความต้อนรับ */
     font-size: 1em; /* ปรับขนาด font ให้เข้ากับส่วนอื่น */
 }
+
+.deck-item-wrapper {
+    position: relative;
+    overflow: hidden; /* ซ่อนปุ่มที่เลยขอบ */
+    border-radius: 8px;
+}
+
+.deck-item-actions {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    display: flex;
+    justify-content: space-around;
+    background-color: rgba(0, 0, 0, 0.7);
+    padding: 8px 0;
+    transform: translateY(100%); /* ซ่อนปุ่มไว้ด้านล่าง */
+    transition: transform 0.2s ease-in-out;
+}
+
+.deck-item-wrapper:hover .deck-item-actions {
+    transform: translateY(0); /* แสดงปุ่มเมื่อ hover */
+}
+
+.deck-item-actions button {
+    padding: 5px 10px;
+    border: none;
+    border-radius: 5px;
+    color: white;
+    cursor: pointer;
+    font-size: 0.8em;
+}
+
+.edit-deck-btn {
+    background-color: #3498db; /* Blue */
+}
+
+.delete-deck-btn {
+    background-color: #e74c3c; /* Red */
+}
+
+.deck-card-item {
+    display: flex;
+    align-items: center; /* จัดให้ element ในแถวอยู่ตรงกลางแนวตั้ง */
+    gap: 10px; /* เพิ่มระยะห่างระหว่าง element */
+}
+
+.deck-card-thumbnail {
+    width: 30px; /* กำหนดความกว้างของรูปภาพ */
+    height: 42px; /* กำหนดความสูงของรูปภาพ */
+    object-fit: cover; /* ทำให้รูปภาพเต็มกรอบโดยไม่เสียสัดส่วน */
+    border-radius: 3px; /* ทำให้ขอบรูปมนเล็กน้อย */
+}
+
+.deck-card-item .card-name {
+    flex-grow: 1; /* ทำให้ชื่อการ์ดขยายเต็มพื้นที่ที่เหลือ */
+}
+
+/* Styles for Collection Filters */
+.collection-filters {
+    padding: 10px;
+    margin-bottom: 15px;
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.filter-group {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap; /* ทำให้ปุ่มขึ้นบรรทัดใหม่ได้ถ้าไม่พอ */
+}
+
+.filter-label {
+    font-weight: bold;
+    color: #bdc3c7;
+    margin-right: 5px;
+}
+
+.filter-btn {
+    padding: 5px 12px;
+    border: 1px solid #7f8c8d;
+    background-color: #34495e;
+    color: #ecf0f1;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.filter-btn:hover {
+    background-color: #46627f;
+}
+
+.filter-btn.active {
+    border-color: #3498db;
+    background-color: #3498db;
+    box-shadow: 0 0 8px #3498db;
+}
+
+/* Optional: Add specific colors for color buttons */
+.filter-btn.color-red.active { background-color: #c0392b; border-color: #c0392b; box-shadow: 0 0 8px #e74c3c; }
+.filter-btn.color-green.active { background-color: #27ae60; border-color: #27ae60; box-shadow: 0 0 8px #2ecc71; }
+.filter-btn.color-blue.active { background-color: #2980b9; border-color: #2980b9; box-shadow: 0 0 8px #3498db; }

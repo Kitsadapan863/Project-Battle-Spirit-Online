@@ -83,31 +83,44 @@ function selectCoreForPayment(gameState, playerKey, payload) {
     }
 
     // **จุดที่แก้ไข:** เพิ่ม Logic การตรวจสอบ Tribute ที่ซับซ้อนและแม่นยำขึ้น
-    if (isSummonPayment && from === 'card') {
-        const cardToSummon = paymentState.cardToSummon;
-        const tributeEffect = cardToSummon?.effects.find(e => e.keyword === 'tribute');
+    const { selectedCores, costToPay, cardToSummon } = paymentState;
+    const tributeEffect = cardToSummon?.effects.find(e => e.keyword === 'tribute');
+    if (tributeEffect && from === 'card') {
+        // 1. หา Spirit ทั้งหมดในสนามที่เข้าเงื่อนไขการเป็น Tribute
+        const allValidTributeTargets = gameState[playerKey].field.filter(s =>
+            s.type === 'Spirit' && s.cost >= tributeEffect.condition.costOrMore
+        );
 
-        if (tributeEffect) {
-            // 1. หา Spirit ทั้งหมดในสนามที่เป็น Tribute Target ที่ถูกต้อง
-            const allValidTributeSpirits = gameState[playerKey].field.filter(s => 
-                s.type === 'Spirit' && s.cost >= tributeEffect.condition.costOrMore
-            );
-
-            // 2. จาก Spirit เหล่านั้น หาว่ามีใบไหนที่ "ปลอดภัย" (ยังไม่ถูกเลือก Core สุดท้ายไป)
-            const safeTributeSpirits = allValidTributeSpirits.filter(spirit => {
-                const isMarkedForDestruction = paymentState.selectedCores.some(core => core.spiritUid === spirit.uid) && spirit.cores.length === 1;
-                return !isMarkedForDestruction;
-            });
-
-            // 3. หา Spirit ที่ผู้เล่นกำลังคลิกอยู่
+        // 2. ตรวจสอบว่าการเลือก Core ครั้งนี้ จะทำให้ไม่มี Spirit ให้ Tribute เหลือหรือไม่
+        const coreIsAlreadySelected = selectedCores.some(c => c.coreId === coreId);
+        
+        if (!coreIsAlreadySelected) { // ตรวจสอบเฉพาะตอนที่กำลังจะ "เลือก" core ใหม่เท่านั้น
             const spiritBeingClicked = gameState[playerKey].field.find(s => s.uid === spiritUid);
-            
-            // 4. ตรวจสอบว่าการกระทำนี้กำลังจะทำลาย Tribute Target หรือไม่
-            if (spiritBeingClicked && spiritBeingClicked.cores.length === 1 && allValidTributeSpirits.some(t => t.uid === spiritBeingClicked.uid)) {
-                // 5. ถ้าจำนวน Spirit ที่ปลอดภัยมีแค่ 1 ใบ และใบนั้นคือใบที่กำลังจะถูกคลิกพอดี -> ให้ปฏิเสธ
-                if (safeTributeSpirits.length === 1 && safeTributeSpirits[0].uid === spiritBeingClicked.uid) {
-                    console.log(`[SUMMON VALIDATION] Rejected: Cannot remove the last core from the ONLY remaining Tribute target.`);
-                    return gameState;
+
+            // เช็คว่า Spirit ที่กำลังจะถูกดึง Core ออก เป็นหนึ่งในเป้าหมาย Tribute หรือไม่
+            if (spiritBeingClicked && allValidTributeTargets.some(t => t.uid === spiritUid)) {
+                
+                // ตรวจสอบว่าการดึง Core ครั้งนี้เป็นเม็ดสุดท้ายหรือไม่
+                if (spiritBeingClicked.cores.length === selectedCores.filter(c => c.spiritUid === spiritUid).length + 1) {
+                    
+                    // หาจำนวน Spirit ที่ "ปลอดภัย" (คือ Spirit ที่จะไม่ถูกทำลายจากการจ่ายค่าร่ายครั้งนี้)
+                    let safeTargets = 0;
+                    allValidTributeTargets.forEach(target => {
+                        // Spirit ที่กำลังจะถูกทำลาย จะไม่ถูกนับว่าเป็นเป้าหมายที่ปลอดภัย
+                        if (target.uid === spiritUid) return;
+
+                        // Spirit อื่นๆ จะปลอดภัย ถ้ามี core เหลือมากกว่าจำนวนที่ถูกเลือกไปจ่าย
+                        const coresSelectedFromTarget = selectedCores.filter(c => c.spiritUid === target.uid).length;
+                        if (target.cores.length > coresSelectedFromTarget) {
+                            safeTargets++;
+                        }
+                    });
+
+                    // ถ้าไม่มี Spirit อื่นที่ปลอดภัยเหลืออยู่เลย การกระทำนี้จะถูกปฏิเสธ
+                    if (safeTargets === 0) {
+                        console.log(`[TRIBUTE VALIDATION] Rejected: Cannot remove the last core from the only available Tribute target.`);
+                        return gameState;
+                    }
                 }
             }
         }
@@ -125,7 +138,7 @@ function selectCoreForPayment(gameState, playerKey, payload) {
     }
     
     // Core selection/deselection logic
-    const { selectedCores, costToPay } = paymentState;
+
     const coreInfo = { coreId, from, spiritUid };
     const existingIndex = selectedCores.findIndex(c => c.coreId === coreId);
 

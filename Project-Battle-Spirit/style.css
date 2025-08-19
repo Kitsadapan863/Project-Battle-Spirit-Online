@@ -844,6 +844,7 @@ body {
     top: 50%;
     transform: translateY(-50%);
     width: 280px;
+    max-height: 85vh;
     background: rgba(10, 20, 40, 0.9);
     border: 2px solid #00d2ff;
     border-radius: 15px;

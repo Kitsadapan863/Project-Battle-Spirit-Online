@@ -13,10 +13,40 @@
         <h1>Deck Builder</h1>
         <a href="index.html" class="back-to-menu-btn">Back to Menu</a>
         <div class="builder-main-area">
-            <div class="card-collection-panel">
+<div class="card-collection-panel">
                 <h2>Card Collection</h2>
+
+                <div id="collection-filters" class="collection-filters">
+                    <div class="filter-group">
+                        <span class="filter-label">Color:</span>
+                        <button class="filter-btn" data-filter="color" data-value="all">All</button>
+                        <button class="filter-btn color-red" data-filter="color" data-value="red">Red</button>
+                        <button class="filter-btn color-green" data-filter="color" data-value="green">Green</button>
+                        <button class="filter-btn color-blue" data-filter="color" data-value="blue">Blue</button>
+                        </div>
+                    <div class="filter-group">
+                        <span class="filter-label">Type:</span>
+                        <button class="filter-btn" data-filter="type" data-value="all">All</button>
+                        <button class="filter-btn" data-filter="type" data-value="Spirit">Spirit</button>
+                        <button class="filter-btn" data-filter="type" data-value="Nexus">Nexus</button>
+                        <button class="filter-btn" data-filter="type" data-value="Magic">Magic</button>
+                    </div>
+                    <div class="filter-group">
+                        <span class="filter-label">Cost:</span>
+                        <button class="filter-btn" data-filter="cost" data-value="all">All</button>
+                        <button class="filter-btn" data-filter="cost" data-value="0">0</button>
+                        <button class="filter-btn" data-filter="cost" data-value="1">1</button>
+                        <button class="filter-btn" data-filter="cost" data-value="2">2</button>
+                        <button class="filter-btn" data-filter="cost" data-value="3">3</button>
+                        <button class="filter-btn" data-filter="cost" data-value="4">4</button>
+                        <button class="filter-btn" data-filter="cost" data-value="5">5</button>
+                        <button class="filter-btn" data-filter="cost" data-value="6">6+</button>
+                    </div>
+                </div>
                 <div id="collection-view" class="card-grid"></div>
             </div>
+
+
             <div class="deck-list-panel">
                 <h2>Your Deck (<span id="deck-count">0</span>)</h2>
                 <div class="deck-actions">
