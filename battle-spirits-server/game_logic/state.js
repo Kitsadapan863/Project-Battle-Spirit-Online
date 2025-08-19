@@ -3,6 +3,7 @@ const { playerCards } = require('./playerDeck.js');
 const { opponentCards } = require('./opponentDeck.js');
 const {redCards} = require('./redDeck.js')
 const { greenCards } = require('./greenDeck.js');
+const { whiteCards } = require('./whiteDeck.js');
 const admin = require('firebase-admin');
 
 // เชื่อมต่อ Firebase
@@ -99,8 +100,8 @@ async function createNewGame(player1Socket, player2Socket) {
             selectedTributeUid: null
         },
         rpsState: {isActive: true, winner: null, player1: { choice: null }, player2: { choice: null }},
-        player1: { id: player1Socket.id, life: 5, deck: createDeck(greenCards), hand: [], field: [], reserve: [], costTrash: [], cardTrash: [], tempBuffs: [] },
-        player2: { id: player2Socket.id, life: 5, deck: createDeck(greenCards), hand: [], field: [], reserve: [], costTrash: [], cardTrash: [], tempBuffs: [] },
+        player1: { id: player1Socket.id, life: 5, deck: createDeck(whiteCards), hand: [], field: [], reserve: [], costTrash: [], cardTrash: [], tempBuffs: [] },
+        player2: { id: player2Socket.id, life: 5, deck: createDeck(redCards), hand: [], field: [], reserve: [], costTrash: [], cardTrash: [], tempBuffs: [] },
     };
 
     for (let i = 0; i < 10; i++) {

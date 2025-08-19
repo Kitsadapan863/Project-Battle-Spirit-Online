@@ -86,45 +86,47 @@ function selectCoreForPayment(gameState, playerKey, payload) {
     const { selectedCores, costToPay, cardToSummon } = paymentState;
     const tributeEffect = cardToSummon?.effects.find(e => e.keyword === 'tribute');
     if (tributeEffect && from === 'card') {
-        // 1. หา Spirit ทั้งหมดในสนามที่เข้าเงื่อนไขการเป็น Tribute
-        const allValidTributeTargets = gameState[playerKey].field.filter(s =>
-            s.type === 'Spirit' && s.cost >= tributeEffect.condition.costOrMore
-        );
+            const allValidTributeTargets = gameState[playerKey].field.filter(s =>
+                s.type === 'Spirit' && s.cost >= tributeEffect.condition.costOrMore
+            );
 
-        // 2. ตรวจสอบว่าการเลือก Core ครั้งนี้ จะทำให้ไม่มี Spirit ให้ Tribute เหลือหรือไม่
-        const coreIsAlreadySelected = selectedCores.some(c => c.coreId === coreId);
-        
-        if (!coreIsAlreadySelected) { // ตรวจสอบเฉพาะตอนที่กำลังจะ "เลือก" core ใหม่เท่านั้น
-            const spiritBeingClicked = gameState[playerKey].field.find(s => s.uid === spiritUid);
+            const coreIsAlreadySelected = selectedCores.some(c => c.coreId === coreId);
+            
+            if (!coreIsAlreadySelected) {
+                const spiritBeingClicked = gameState[playerKey].field.find(s => s.uid === spiritUid);
 
-            // เช็คว่า Spirit ที่กำลังจะถูกดึง Core ออก เป็นหนึ่งในเป้าหมาย Tribute หรือไม่
-            if (spiritBeingClicked && allValidTributeTargets.some(t => t.uid === spiritUid)) {
-                
-                // ตรวจสอบว่าการดึง Core ครั้งนี้เป็นเม็ดสุดท้ายหรือไม่
-                if (spiritBeingClicked.cores.length === selectedCores.filter(c => c.spiritUid === spiritUid).length + 1) {
+                if (spiritBeingClicked && allValidTributeTargets.some(t => t.uid === spiritUid)) {
                     
-                    // หาจำนวน Spirit ที่ "ปลอดภัย" (คือ Spirit ที่จะไม่ถูกทำลายจากการจ่ายค่าร่ายครั้งนี้)
-                    let safeTargets = 0;
-                    allValidTributeTargets.forEach(target => {
-                        // Spirit ที่กำลังจะถูกทำลาย จะไม่ถูกนับว่าเป็นเป้าหมายที่ปลอดภัย
-                        if (target.uid === spiritUid) return;
+                    // 1. หาจำนวน Core ที่ LV1 ต้องการ
+                    const coresNeededForLv1 = spiritBeingClicked.level['level-1']?.core || 1;
+                    const coresOnSpirit = spiritBeingClicked.cores.length;
+                    const coresAlreadySelected = selectedCores.filter(c => c.spiritUid === spiritUid).length;
 
-                        // Spirit อื่นๆ จะปลอดภัย ถ้ามี core เหลือมากกว่าจำนวนที่ถูกเลือกไปจ่าย
-                        const coresSelectedFromTarget = selectedCores.filter(c => c.spiritUid === target.uid).length;
-                        if (target.cores.length > coresSelectedFromTarget) {
-                            safeTargets++;
+                    // 2. ตรวจสอบว่าถ้าดึง Core นี้ออกไปแล้วจะทำให้เลเวลต่ำกว่า 1 หรือไม่
+                    if ((coresOnSpirit - (coresAlreadySelected + 1)) < coresNeededForLv1) {
+                        
+                        // หาจำนวน Spirit ที่ "ปลอดภัย"
+                        let safeTargets = 0;
+                        allValidTributeTargets.forEach(target => {
+                            if (target.uid === spiritUid) return;
+
+                            const coresNeeded = target.level['level-1']?.core || 1;
+                            const coresSelectedFromTarget = selectedCores.filter(c => c.spiritUid === target.uid).length;
+                            
+                            if (target.cores.length - coresSelectedFromTarget >= coresNeeded) {
+                                safeTargets++;
+                            }
+                        });
+
+                        if (safeTargets === 0) {
+                            console.log(`[TRIBUTE VALIDATION] Rejected: This action would destroy the only available Tribute target.`);
+                            return gameState;
                         }
-                    });
-
-                    // ถ้าไม่มี Spirit อื่นที่ปลอดภัยเหลืออยู่เลย การกระทำนี้จะถูกปฏิเสธ
-                    if (safeTargets === 0) {
-                        console.log(`[TRIBUTE VALIDATION] Rejected: Cannot remove the last core from the only available Tribute target.`);
-                        return gameState;
                     }
                 }
             }
         }
-    }
+
 
     const designatedPayer = paymentState.summoningPlayer || paymentState.payingPlayer;
     if (designatedPayer !== playerKey) {

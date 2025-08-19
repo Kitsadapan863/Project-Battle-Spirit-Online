@@ -1,5 +1,5 @@
 // game_logic/magic.js
-const { calculateCost, getSpiritLevelAndBP, getCardLevel } = require('./utils.js');
+const { calculateCost, getSpiritLevelAndBP, getCardLevel, isImmune  } = require('./utils.js');
 const { drawCard, initiateDeckDiscard, initiateDiscard, moveUsedMagicToTrash, destroyCard, applyPowerUpEffect, cleanupField } = require('./card.js');
 const { resolveTriggeredEffects } = require('./effects.js');
 const {returnToHand} = require('./card.js')
@@ -10,8 +10,6 @@ function findValidTargets(gameState, targetInfo) {
     // ... A full implementation would check scope, type, BP etc against all cards on the field
     return []; // Placeholder
 }
-
-
 
 function initiateMagicPayment(gameState, playerKey, payload) {
     const { cardUid, timing } = payload;
@@ -331,20 +329,38 @@ function confirmTargets(gameState, playerKey) {
     if (!targetingState.isTargeting || targetingState.targetPlayer !== playerKey) {
         return gameState;
     }
-    const { forEffect, selectedTargets } = targetingState;
+    const { forEffect, selectedTargets,cardSourceUid  } = targetingState;
     const opponentKey = playerKey === 'player1' ? 'player2' : 'player1';
     let destructionSuccessful = false; // สร้างตัวแปรเพื่อตรวจสอบความสำเร็จ
 
+    // หาการ์ดที่เป็นต้นกำเนิดของเอฟเฟกต์
+    let sourceCard = null;
+    // 1. ค้นหาในสนามของทั้งสองฝั่งก่อน
+    sourceCard = gameState.player1.field.find(c => c.uid === cardSourceUid) || gameState.player2.field.find(c => c.uid === cardSourceUid);
+    
+    // 2. ถ้าไม่เจอในสนาม (อาจเป็น Magic ที่กำลังร่าย) ให้หาจาก magicPaymentState
+    if (!sourceCard && gameState.magicPaymentState.cardToUse?.uid === cardSourceUid) {
+        sourceCard = gameState.magicPaymentState.cardToUse;
+    }
+
+    // 3. Safety check: ถ้ายังหาไม่เจอ ให้หยุดทำงานเพื่อป้องกัน error
+    if (!sourceCard) {
+        console.error(`[ARMOR ERROR] Could not find the source card (uid: ${cardSourceUid}) for the effect.`);
+        // Reset state เพื่อไม่ให้เกมค้าง
+        gameState.targetingState = { isTargeting: false, forEffect: null, cardSourceUid: null, selectedTargets: [] };
+        return gameState;
+    }
+
     if (forEffect.keyword === 'destroy') {
         selectedTargets.forEach(targetUid => {
-            // --- START: แก้ไขการเรียกใช้ destroyCard ---
             const targetScopeKey = forEffect.target.scope === 'opponent' ? opponentKey : playerKey;
-            const result = destroyCard(gameState, targetUid, targetScopeKey, 'effect');
-            gameState = result.updatedGameState; // อัปเดต gameState ให้ถูกต้อง
-            if (result.wasSuccessful) {
-                destructionSuccessful = true; // ถ้าสำเร็จ ให้ตั้งค่าเป็น true
+            const targetCard = gameState[targetScopeKey].field.find(c => c.uid === targetUid);
+            
+            // ตรวจสอบ Armor ก่อนทำลาย
+            if (targetCard && !isImmune(targetCard, sourceCard, gameState)) {
+                const result = destroyCard(gameState, targetUid, targetScopeKey, 'effect');
+                gameState = result.updatedGameState;
             }
-            // --- END: แก้ไขการเรียกใช้ destroyCard ---
         });
 
     }else if (forEffect.keyword === 'place_core_on_target') {
@@ -386,12 +402,13 @@ function confirmTargets(gameState, playerKey) {
         });
     }
     else if (forEffect.keyword === 'force_exhaust') {
-        // playerKey คือคนที่ถูกบังคับให้เลือก ดังนั้นเป้าหมายคือ Spirit ของ playerKey เอง
         selectedTargets.forEach(targetUid => {
             const targetSpirit = gameState[playerKey].field.find(s => s.uid === targetUid);
-            if (targetSpirit) {
+
+            // ตรวจสอบ Armor ก่อนสั่ง Exhaust
+            if (targetSpirit && !isImmune(targetSpirit, sourceCard, gameState)) {
                 targetSpirit.isExhausted = true;
-                console.log(`[EFFECT LOG] ${targetSpirit.name} was exhausted by Thorn Prison.`);
+                console.log(`[EFFECT LOG] ${targetSpirit.name} was exhausted.`);
             }
         });
     }else if (forEffect.keyword === 'windstorm') {
@@ -418,7 +435,12 @@ function confirmTargets(gameState, playerKey) {
     }
     else if (forEffect.keyword === 'power up') {
         selectedTargets.forEach(targetUid => {
-            gameState = applyPowerUpEffect(gameState, targetUid, forEffect.power, forEffect.duration);
+            const targetSpirit = gameState.player1.field.find(s => s.uid === targetUid) || gameState.player2.field.find(s => s.uid === targetUid);
+
+            // ตรวจสอบ Armor ก่อนเพิ่มพลัง
+            if (targetSpirit && !isImmune(targetSpirit, sourceCard, gameState)) {
+                 gameState = applyPowerUpEffect(gameState, targetUid, forEffect.power, forEffect.duration);
+            }
         });
     }else if (forEffect.keyword === 'addEffects') {
         selectedTargets.forEach(targetUid => {

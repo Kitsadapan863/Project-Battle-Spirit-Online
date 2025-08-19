@@ -130,3 +130,24 @@ export function getSpiritLevelAndBP(spiritCard, ownerKey, gameState) {
     
     return { level: level, bp: currentBP, isBuffed: isBuffed };
 }
+
+/**
+ * ตรวจสอบว่า targetCard มี Armor ป้องกัน sourceCard หรือไม่ (เวอร์ชัน Client)
+ */
+export function isImmune(targetCard, sourceCard, gameState) {
+    if (!targetCard || !sourceCard || !targetCard.effects) {
+        return false;
+    }
+
+    const { level } = getCardLevel(targetCard);
+    const armorEffect = targetCard.effects.find(
+        (effect) => effect.keyword === 'armor' && effect.level.includes(level)
+    );
+
+    if (armorEffect && armorEffect.colors.includes(sourceCard.color)) {
+        // ไม่ต้อง console.log ในฝั่ง client ก็ได้
+        return true;
+    }
+
+    return false;
+}

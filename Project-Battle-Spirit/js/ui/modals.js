@@ -1,4 +1,4 @@
-import { getSpiritLevelAndBP } from "../utils.js";
+import { getSpiritLevelAndBP, isImmune  } from "../utils.js";
 import { createCardElement } from "./components.js";
 
 export function updateAllModals(gameState, myPlayerKey, callbacks) {
@@ -269,15 +269,19 @@ export function updateAllModals(gameState, myPlayerKey, callbacks) {
         // ++ เพิ่ม Logic การตรวจสอบ Clash เข้ามาตรงนี้ ++
         const takeDamageBtn = document.getElementById('take-damage-btn');
         if (attackState.isClash) {
-            // หาว่ามี Spirit ที่สามารถ Block ได้หรือไม่ (คือ Spirit ที่ยังไม่ Exhausted)
-            const canBlock = gameState[myPlayerKey].field.some(s => s.type === 'Spirit' && !s.isExhausted);
+            const potentialBlockers = gameState[myPlayerKey].field.filter(s => s.type === 'Spirit' && !s.isExhausted);
             
-            if (canBlock) {
-                // ถ้ามีตัวที่ Block ได้ ให้ปิดปุ่มรับดาเมจ
+            // ตรวจสอบว่ามี Blocker ที่ "ไม่ติด Armor" หรือไม่
+            const hasValidBlocker = potentialBlockers.some(blocker => 
+                !isImmune(blocker, attacker, gameState)
+            );
+            
+            if (hasValidBlocker) {
+                // ถ้ามีตัวที่บล็อกได้จริงๆ ให้ปิดปุ่มรับดาเมจ
                 takeDamageBtn.disabled = true;
-                takeDamageBtn.textContent = 'Must Block!'; // (Optional) เปลี่ยนข้อความบนปุ่ม
+                takeDamageBtn.textContent = 'Must Block!';
             } else {
-                // ถ้าไม่มีตัว Block เลย ก็เปิดให้กดรับดาเมจได้
+                // ถ้าไม่มีตัวบล็อก (หรือทุกตัวติด Armor) ก็ให้กดรับดาเมจได้
                 takeDamageBtn.disabled = false;
                 takeDamageBtn.textContent = 'Take Life Damage';
             }

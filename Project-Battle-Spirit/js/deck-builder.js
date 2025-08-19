@@ -17,22 +17,33 @@ document.addEventListener('DOMContentLoaded', async () => { // <-- ทำให�
     let currentUser = null;
 
     // ติดตามสถานะการล็อกอินของผู้ใช้
-    onAuthStateChanged(auth, (user) => {
+    onAuthStateChanged(auth, async (user) => {
         if (user) {
             currentUser = user;
-            // ตรวจสอบ URL parameters เพื่อดูว่าเป็นการแก้ไขเด็คหรือไม่
+            
             const urlParams = new URLSearchParams(window.location.search);
             const deckNameToEdit = urlParams.get('deckNameToEdit');
 
             if (deckNameToEdit) {
-                // ถ้ามีชื่อเด็คส่งมา ให้โหลดเด็คนั้น
-                loadDeck(deckNameToEdit);
+                // --- กรณีที่ 1: ผู้ใช้กด Edit Deck ---
+                // โหลดเด็คที่ระบุใน URL มาแสดง
+                await loadDeck(deckNameToEdit);
             } else {
-                // ถ้าไม่มี ให้โหลดเด็คแรกของผู้ใช้ (ถ้ามี) เหมือนเดิม
-                loadFirstUserDeck(); 
+                // --- กรณีที่ 2: ผู้ใช้เข้ามาหน้านี้โดยตรง ---
+                // ค้นหาเด็คทั้งหมดของผู้ใช้
+                const decksCollectionRef = collection(db, "users", currentUser.uid, "decks");
+                const querySnapshot = await getDocs(decksCollectionRef);
+                
+                if (!querySnapshot.empty) {
+                    // ถ้าผู้ใช้มีเด็คอยู่แล้ว ให้โหลดเด็คแรกมาแสดง
+                    const firstDeckDoc = querySnapshot.docs[0];
+                    await loadDeck(firstDeckDoc.id);
+                } else {
+                    // ถ้าผู้ใช้ยังไม่มีเด็คเลย ให้แสดงหน้าเปล่าๆ
+                    updateAll();
+                }
             }
         } else {
-            // ถ้าผู้ใช้ไม่ได้ล็อกอิน ให้ redirect ไปหน้า login
             console.log("No user logged in, redirecting...");
             window.location.href = 'login.html';
         }
@@ -206,44 +217,27 @@ document.addEventListener('DOMContentLoaded', async () => { // <-- ทำให�
     }
 
     async function loadDeck(deckName) {
-        if (!currentUser) return;
+            if (!currentUser) return;
+            try {
+                const deckRef = doc(db, "users", currentUser.uid, "decks", deckName);
+                const docSnap = await getDoc(deckRef);
 
-        try {
-            const deckRef = doc(db, "users", currentUser.uid, "decks", deckName);
-            const docSnap = await getDoc(deckRef);
-
-            if (docSnap.exists()) {
-                currentDeck = docSnap.data();
-                deckNameInput.value = deckName;
-                updateAll();
-                console.log(`Deck "${deckName}" loaded.`);
-            } else {
-                console.log(`No deck named "${deckName}" found for this user.`);
-                // ถ้าไม่เจอเด็คที่ระบุ ให้เคลียร์เด็คปัจจุบัน
-                currentDeck = {};
+                if (docSnap.exists()) {
+                    currentDeck = docSnap.data();
+                    deckNameInput.value = deckName;
+                    console.log(`Deck "${deckName}" loaded.`);
+                } else {
+                    // ถ้าหาเด็คไม่เจอ ให้แสดง log แต่ไม่ต้องเคลียร์หน้าจอ
+                    console.log(`No deck named "${deckName}" found for this user.`);
+                    alert(`Could not find a deck named: ${deckName}`);
+                }
+            } catch (error) {
+                console.error("Error loading deck: ", error);
+            } finally {
+                // อัปเดต UI ไม่ว่าจะโหลดสำเร็จหรือไม่
                 updateAll();
             }
-        } catch (error) {
-            console.error("Error loading deck: ", error);
         }
-    }
-
-    // ฟังก์ชันใหม่: โหลดเด็คแรกที่เจอของผู้ใช้เมื่อเปิดหน้า
-    async function loadFirstUserDeck() {
-        if (!currentUser) return;
-        
-        const decksCollectionRef = collection(db, "users", currentUser.uid, "decks");
-        const querySnapshot = await getDocs(decksCollectionRef);
-        
-        if (!querySnapshot.empty) {
-            // ถ้ามีเด็คที่บันทึกไว้ ให้โหลดเด็คแรกมาแสดง
-            const firstDeckDoc = querySnapshot.docs[0];
-            loadDeck(firstDeckDoc.id);
-        } else {
-            // ถ้ายังไม่มีเด็คเลย ให้เริ่มด้วยเด็คว่างๆ
-            updateAll();
-        }
-    }
     
     saveDeckBtn.addEventListener('click', saveDeck);
     clearDeckBtn.addEventListener('click', () => {
@@ -253,6 +247,6 @@ document.addEventListener('DOMContentLoaded', async () => { // <-- ทำให�
         }
     });
 
-    loadDeck('MyNewDeck');
+    // loadDeck('MyNewDeck');
     updateAll();
 });

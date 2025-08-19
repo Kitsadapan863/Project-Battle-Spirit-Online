@@ -312,7 +312,7 @@ module.exports.greenCards = [
             cost: { // ระบุค่าใช้จ่ายในการใช้งาน
                 type: 'core',
                 from: 'reserve',
-                to: 'trash',
+                to: 'costTrash',
                 count: 1
             },
             target: { // ระบุเป้าหมายของเอฟเฟกต์
@@ -373,7 +373,7 @@ module.exports.greenCards = [
     {
         id: 'card-greatKing-blacktaurus',
         name: 'The GreatKing Blacktaurus',
-        quantity: 10,
+        quantity: 3,
         image: `${pathsSpirit}/The GreatKing Blacktaurus.webp`, // สร้าง Path รูปภาพให้ถูกต้อง
         cost: 8,
         symbol_cost: { "green": 4 },

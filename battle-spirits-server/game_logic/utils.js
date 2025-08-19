@@ -197,9 +197,35 @@ function calculateTotalSymbols(spiritCard) {
     return total > 0 ? total : 1;
 }
 
+/**
+ * ตรวจสอบว่า targetCard มี Armor ป้องกัน sourceCard หรือไม่
+ * @param {object} targetCard - การ์ดเป้าหมายที่กำลังจะโดนเอฟเฟกต์
+ * @param {object} sourceCard - การ์ดที่เป็นต้นกำเนิดของเอฟเฟกต์
+ * @param {object} gameState - สถานะเกมปัจจุบัน
+ * @returns {boolean} - true ถ้ามีเกราะป้องกัน, false ถ้าไม่มี
+ */
+function isImmune(targetCard, sourceCard, gameState) {
+    if (!targetCard || !sourceCard || !targetCard.effects) {
+        return false;
+    }
+
+    const { level } = getCardLevel(targetCard);
+    const armorEffect = targetCard.effects.find(
+        (effect) => effect.keyword === 'armor' && effect.level.includes(level)
+    );
+
+    if (armorEffect && armorEffect.colors.includes(sourceCard.color)) {
+        console.log(`[ARMOR] ${targetCard.name} is immune to ${sourceCard.color} effects from ${sourceCard.name}.`);
+        return true;
+    }
+
+    return false;
+}
+
 module.exports = {
     getCardLevel,
     getSpiritLevelAndBP,
     calculateCost,
-    calculateTotalSymbols
+    calculateTotalSymbols,
+    isImmune
 };

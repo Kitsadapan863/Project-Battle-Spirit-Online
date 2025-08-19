@@ -1,5 +1,5 @@
 // game_logic/battle.js
-const { getSpiritLevelAndBP, calculateTotalSymbols, getCardLevel } = require('./utils.js');
+const { getSpiritLevelAndBP, calculateTotalSymbols, getCardLevel, isImmune  } = require('./utils.js');
 const { resolveTriggeredEffects } = require('./effects.js'); // Note: This will be the next file to create
 const { destroyCard } = require('./card.js');
 const { checkGameOver } = require('./gameLoop.js');
@@ -238,12 +238,20 @@ function takeLifeDamage(gameState, playerKey) {
     // ถ้าเป็นการโจมตีแบบ [Clash]
     if (gameState.attackState.isClash) {
         const defenderState = gameState[playerKey];
-        // ตรวจสอบว่าผู้ป้องกันมี Spirit ที่สามารถป้องกันได้หรือไม่
-        const canBlock = defenderState.field.some(s => s.type === 'Spirit' && !s.isExhausted);
+        const attackingPlayerKey = playerKey === 'player1' ? 'player2' : 'player1';
+        const attacker = gameState[attackingPlayerKey].field.find(s => s.uid === gameState.attackState.attackerUid);
+
+        // 1. ค้นหา Spirit ทั้งหมดที่สามารถบล็อกได้ (ยังไม่เหนื่อย)
+        const potentialBlockers = defenderState.field.filter(s => s.type === 'Spirit' && !s.isExhausted);
+
+        // 2. จาก Spirit เหล่านั้น, ตรวจสอบว่ามีอย่างน้อย 1 ใบที่ "ไม่ติด Armor" ต่อผู้โจมตีหรือไม่
+        const hasValidBlocker = potentialBlockers.some(blocker => 
+            !isImmune(blocker, attacker, gameState)
+        );
         
-        // ถ้าสามารถป้องกันได้ ให้ปฏิเสธ Action นี้และส่ง gameState เดิมกลับไป
-        if (canBlock) {
-            console.log(`[SERVER] REJECTED: ${playerKey} tried to take life damage from a Clash attack while having a valid blocker.`);
+        // 3. ถ้ามี Spirit ที่สามารถบล็อกได้ (และไม่ติด Armor) เหลืออยู่, ผู้เล่นจะถูกบังคับให้บล็อก
+        if (hasValidBlocker) {
+            console.log(`[CLASH] REJECTED: ${playerKey} must block the Clash attack with a valid Spirit.`);
             return gameState; 
         }
     }
