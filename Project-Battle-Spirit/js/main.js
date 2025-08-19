@@ -61,6 +61,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const selectedDeckName = sessionStorage.getItem('selectedDeckName');
         const isDefault = sessionStorage.getItem('isDefaultDeck') === 'true';
+        const customDeckData = sessionStorage.getItem('selectedDeckData');
         
         if (selectedDeckName) {
             const allCards = await fetchAllCards();
@@ -72,6 +73,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 if(defaultDeckData) {
                     deckToBuild = defaultDeckData.cards;
                 }
+            }else if (customDeckData) {
+                // ========== START: โค้ดที่เพิ่มเข้ามา ==========
+                // ถ้าเป็นเด็คที่ผู้ใช้สร้าง ให้ดึงข้อมูลจาก sessionStorage
+                console.log(`Loading custom deck from session storage: ${selectedDeckName}`);
+                deckToBuild = JSON.parse(customDeckData);
+                // ========== END: โค้ดที่เพิ่มเข้ามา ==========
             } else {
                 console.log(`Loading custom deck: ${selectedDeckName}`);
                 const savedDeckJSON = localStorage.getItem(`deck_${selectedDeckName}`);
@@ -103,7 +110,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 }));
                 
                 sessionStorage.removeItem('selectedDeckName');
-                sessionStorage.removeItem('isDefaultDeck'); // เพิ่มการล้างค่า isDefaultDeck
+                sessionStorage.removeItem('isDefaultDeck');
+                sessionStorage.removeItem('selectedDeckData')
             } else {
                  alert('Deck not found or failed to load card data. Returning to deck selection.');
                  window.location.href = 'deck-selection.html';

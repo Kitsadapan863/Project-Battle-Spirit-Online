@@ -3,7 +3,7 @@
 const { getSpiritLevelAndBP, getCardLevel } = require('./utils.js');
 const { applyCrush, applyClash, applyPowerUp, applyDiscard, applyDrawAndDiscard, applyAuraPowerUp } = require('./effectHandlers.js');
 const { applyWindstorm, applyGainCoreByWindstorm, applyMoveToDeckBottom} = require('./effectHandlers.js');
-const { returnToHand } = require('./card');
+
 
 
 // ฟังก์ชันใหม่: ใช้สำหรับทำงานตามเอฟเฟกต์ "เดียว" ที่ถูกเลือก
@@ -125,6 +125,22 @@ function applySingleEffect(gameState, card, effect, ownerKey, context) {
                 targetPlayer: ownerKey, // ผู้เล่นที่ร่ายเป็นคนเลือกเป้าหมาย
                 selectedTargets: []
             };
+            break;
+        case 'deal_life_damage':
+            const damage = effect.damage || 0;
+            const opponentKey = ownerKey === 'player1' ? 'player2' : 'player1'
+            if (damage > 0) {
+                console.log(`[EFFECTS] ${card.name}'s effect deals ${damage} additional damage to ${opponentKey}'s life.`);
+                for (let i = 0; i < damage; i++) {
+                    if (gameState[opponentKey].life > 0) {
+                        gameState[opponentKey].life--;
+                        gameState[opponentKey].reserve.push({ id: `core-from-effect-${card.name}-${Date.now()}-${i}` });
+                    }
+                }
+                // ตรวจสอบเกมโอเวอร์หลังจากลด life
+                const { checkGameOver } = require('./gameLoop.js');
+                gameState = checkGameOver(gameState);
+            }
             break;
     }
     return gameState;

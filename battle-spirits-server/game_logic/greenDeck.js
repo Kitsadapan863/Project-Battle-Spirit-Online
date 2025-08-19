@@ -35,6 +35,101 @@ module.exports.greenCards = [
         symbol: { "green": 1 },
     },
     {
+        id: 'card-shiningWings-jewelgΣ',
+        name: 'The ShiningWings JewelgΣ',
+        quantity: 3,
+        image: `${pathsSpirit}/The ShiningWings JewelgΣ.webp`,
+        cost: 7,
+        symbol_cost: { "green": 4 },
+        level: { 
+            "level-1": { "core": 1, "bp": 6000 }, 
+            "level-2": { "core": 4, "bp": 10000 } 
+        },
+        type: 'Spirit', 
+        color: 'green',
+        family: ["Shellman"],
+        effects: [
+            {
+                level: [1, 2],
+                timing: 'onSummon', 
+                keyword: 'tribute',
+                destination: 'costTrash',
+                condition: {
+                    type: 'spirit',
+                    costOrMore: 3 
+                },
+                description: "[LV1][LV2] Tribute: Cost 3 or more -> Trash\nAfter paying for the summoning cost, you must send all cores from one of your Cost 3 or more Spirits to the Void."
+            },
+            {
+                level: [1, 2],
+                timing: 'whenBlocked', 
+                keyword: 'windstorm', 
+                target: {
+                    scope: 'opponent',
+                    type: 'spirit',
+                    count: 2,
+                    isExhausted: false 
+                },
+                description: "[LV1][LV2] [Windstorm: 2] (When Attacks)\nWhen this Spirit is blocked, exhaust 1 opposing Spirit."
+            },
+            {
+                level: [2],
+                timing: 'onLifeDamageDealt', 
+                keyword: 'deal_life_damage', 
+                damage: 1,
+                description: "[LV2] (When Attacks)\nWhen this Spirit's attack reduces the opposing Life, send a core from the opposing Life to their Reserve"
+            }
+        ],
+        symbol: { "green": 1 },
+    },
+    {
+        id: 'card-rakudacho',
+        name: 'Rakudacho',
+        quantity: 1,
+        image: `${pathsSpirit}/Rakudacho.webp`,
+        cost: 3,
+        symbol_cost: { "green": 2 },
+        level: { 
+            "level-1": { "core": 1, "bp": 1000 }, 
+            "level-2": { "core": 3, "bp": 3000 } 
+        },
+        type: 'Spirit', 
+        color: 'green',
+        family: ["Imp"],
+        effects: [
+            {
+                level: [1, 2],
+                timing: 'whenBlocked', 
+                keyword: 'windstorm', 
+                target: {
+                    scope: 'opponent',
+                    type: 'spirit',
+                    count: 1,
+                    isExhausted: false 
+                },
+                description: "[LV1][LV2] [Windstorm: 1] (When Attacks)\nWhen this Spirit is blocked, exhaust 1 opposing Spirit."
+            }
+        ],
+        symbol: { "green": 1 },
+    },
+    {
+        id: 'card-dio-mantis',
+        name: 'Dio-Mantis',
+        quantity: 1,
+        image: `${pathsSpirit}/Dio-Mantis.webp`,
+        cost: 2,
+        symbol_cost: { "green": 1 },
+        level: { 
+            "level-1": { "core": 1, "bp": 3000 }, 
+            "level-2": { "core": 3, "bp": 5000 } 
+        },
+        type: 'Spirit', 
+        color: 'green',
+        family: ["Parasite"],
+        effects: [],
+        symbol: { "green": 1 },
+    },
+    {
         id: 'card-airCommodore-geran',
         name: 'The AirCommodore Geran',
         quantity: 2,

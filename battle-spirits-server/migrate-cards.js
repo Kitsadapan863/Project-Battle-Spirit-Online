@@ -2,6 +2,7 @@
 const admin = require('firebase-admin');
 const { playerCards } = require('./game_logic/playerDeck.js');
 const { redCards } = require('./game_logic/redDeck.js');
+const { greenCards } = require('./game_logic/greenDeck.js')
 
 // **สำคัญ:** แก้ 'path/to/your/serviceAccountKey.json' ให้เป็นชื่อไฟล์ที่คุณดาวน์โหลดมา
 const serviceAccount = require('./serviceAccountKey.json'); 
@@ -16,7 +17,7 @@ const cardsCollection = db.collection('cards');
 async function uploadCards() {
     console.log('Starting card migration...');
 
-    const allCards = [...playerCards, ...redCards];
+    const allCards = [...playerCards, ...redCards, ...greenCards];
     const uniqueCards = allCards.reduce((acc, current) => {
         if (!acc.find(item => item.id === current.id)) {
             acc.push(current);

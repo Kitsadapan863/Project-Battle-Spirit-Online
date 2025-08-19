@@ -39,6 +39,22 @@ const redDeck = {
     'magic-extra-draw': 3,
 };
 
+const greenDeck = {
+    'card-airCommodore-geran': 3,
+    'card-amenborg': 3,
+    'card-byak-garo': 3,
+    'card-emperor-kaiseratlas': 3,
+    'card-gabunohashi': 3,
+    'card-machg': 3,
+    'card-maparrot': 3,
+    'card-providence-hououga': 2,
+    'magic-double-draw': 2,
+    'magic-full-add': 3,
+    'magic-speed-star': 3,
+    'magic-thorn-prison': 3,
+    'nexus-fruit-of-wise-tree': 3,
+    'nexus-storm-highland': 3
+}
 
 export const defaultDecks = [
     {
@@ -48,5 +64,9 @@ export const defaultDecks = [
     {
         name: 'Default Red Deck',
         cards: redDeck
+    },
+        {
+        name: 'Default Green Deck',
+        cards: greenDeck
     }
 ];

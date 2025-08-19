@@ -14,7 +14,7 @@ const firebaseConfig = {
 
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
+export const db = getFirestore(app);
 
 // สร้างฟังก์ชันกลางสำหรับดึงข้อมูลการ์ดทั้งหมด
 export async function fetchAllCards() {
