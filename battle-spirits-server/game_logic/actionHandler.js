@@ -8,7 +8,7 @@ const { confirmDeckDiscard, confirmDiscard, selectCardForDiscard } = require('./
 const { confirmCoreRemoval, cancelCoreRemoval, moveCore } = require('./core');
 const {resolveRPS} = require('./pregame.js')
 const { initiateEvolution, selectCoreForEvolution, confirmEvolution, cancelEvolution } = require('./evolution'); 
-const { resolveChosenEffect, confirmEffectCost, cancelEffectCost  } = require('./effects');
+const { resolveChosenEffect, confirmEffectCost, cancelEffectCost, activateSpiritFlashEffect, confirmNegation } = require('./effects');
 
 function handleAction(gameState, playerKey, action) {
      // --- LOG DEBUG ---
@@ -71,6 +71,9 @@ function handleAction(gameState, playerKey, action) {
         case 'CONFIRM_DECK_DISCARD': return confirmDeckDiscard(gameState);
         case 'SELECT_CARD_FOR_DISCARD': return selectCardForDiscard(gameState, playerKey, action.payload);
         case 'CONFIRM_DISCARD': return confirmDiscard(gameState, playerKey);
+
+        case 'ACTIVATE_SPIRIT_FLASH_EFFECT': return activateSpiritFlashEffect(gameState, playerKey, action.payload);
+        case 'CONFIRM_NEGATION': return confirmNegation(gameState, playerKey, action.payload);
 
         // Core Movement
         case 'MOVE_CORE': return moveCore(gameState, playerKey, action.payload);

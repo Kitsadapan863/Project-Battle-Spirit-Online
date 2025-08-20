@@ -1,7 +1,7 @@
 // game_logic/magic.js
 const { calculateCost, getSpiritLevelAndBP, getCardLevel, isImmune  } = require('./utils.js');
 const { drawCard, initiateDeckDiscard, initiateDiscard, moveUsedMagicToTrash, destroyCard, applyPowerUpEffect, cleanupField } = require('./card.js');
-const { resolveTriggeredEffects } = require('./effects.js');
+const { resolveTriggeredEffects, checkExhaustTriggers } = require('./effects.js');
 const {returnToHand} = require('./card.js')
 
 // Helper function
@@ -86,10 +86,61 @@ function confirmMagicPayment(gameState, playerKey) {
     }
 
     gameState = cleanupField(gameState);
+    console.log(`--- STARTING NEGATION CHECK ---`);
+    console.log(`Magic Card to check against: ${cardToUse.name}, Color: ${cardToUse.color}`);
+    console.log(`Checking for negating spirits on ${opponentPlayerKey}'s field...`);
     
-    gameState.magicPaymentState = { isPaying: false, cardToUse: null, costToPay: 0, selectedCores: [], timing: null, effectToUse: null };
+    // 2. ตรวจสอบหาตัว Negate (หลังจากจ่าย Cost สำเร็จ)
+    const negatingSpirits = gameState[opponentPlayerKey].field.filter(spirit => {
+        if (spirit.isExhausted) return false;
+        const { level } = getCardLevel(spirit);
+        const negateEffect = spirit.effects.find(e => 
+            e.keyword === 'ice_wall' && e.level.includes(level)
+        );
+        return negateEffect && negateEffect.negatable_colors.includes(cardToUse.color);
+    });
+
+    // 3. ถ้าเจอ Spirit ที่สามารถ Negate ได้
+    if (negatingSpirits.length > 0) {
+        console.log(`[NEGATE] Opponent has cards that can negate this magic. Entering negate state.`);
+        gameState.negateState = {
+            isActive: true,
+            negatingPlayer: opponentPlayerKey,
+            magicCardToUse: cardToUse, // การ์ดที่จ่ายเงินแล้ว
+            magicCaster: playerKey,    // ผู้ร่าย
+            magicEffectToUse: effectToUse,
+            negatingSpirits: negatingSpirits.map(s => s.uid)
+        };
+        // เคลียร์ state การจ่ายเงิน เพราะจ่ายเสร็จแล้ว
+        gameState.magicPaymentState = { isPaying: false, cardToUse: null, costToPay: 0, selectedCores: [] };
+        // หยุดรอ Action จากผู้เล่นอีกฝั่ง
+        return gameState;
+    }
+
+    // 4. ถ้าไม่เจอตัว Negate ให้ทำงานตามเอฟเฟกต์ทันที
+    console.log(`[MAGIC LOG] No negation found. Resolving effect for ${cardToUse.name}.`);
+    gameState = resolveMagicEffect(gameState, playerKey, cardToUse, effectToUse);
+
+    // 5. ย้าย Magic ที่ใช้แล้วไปกองทิ้ง
+    const cardIndex = currentPlayer.hand.findIndex(c => c.uid === cardToUse.uid);
+    if (cardIndex > -1) {
+        const [usedCard] = currentPlayer.hand.splice(cardIndex, 1);
+        currentPlayer.cardTrash.push(usedCard);
+    }
     
-    // Apply the magic effect
+    // 6. เคลียร์ state การจ่ายเงิน
+    gameState.magicPaymentState = { isPaying: false, cardToUse: null, costToPay: 0, selectedCores: [] };
+    
+ 
+    return gameState;
+}
+
+/**
+ * ทำงานตามเอฟเฟกต์ของ Magic Card หลังจากจ่าย Cost และผ่านการตรวจสอบ Negate แล้ว
+ */
+function resolveMagicEffect(gameState, playerKey, cardToUse, effectToUse) {
+    const opponentPlayerKey = playerKey === 'player1' ? 'player2' : 'player1';
+
     switch (effectToUse.keyword) {
         case 'draw':
             const quantity = effectToUse.quantity || 0;
@@ -236,15 +287,6 @@ function confirmMagicPayment(gameState, playerKey) {
             };
             break;
     }  
-
-    // Move used magic card to trash
-    const cardIndex = currentPlayer.hand.findIndex(c => c.uid === cardToUse.uid);
-    if (cardIndex > -1) {
-        const [usedCard] = currentPlayer.hand.splice(cardIndex, 1);
-        currentPlayer.cardTrash.push(usedCard);
-    }
-    
-    // --- เพิ่ม return ที่ท้ายฟังก์ชัน ---
     return gameState;
 }
 
@@ -357,13 +399,14 @@ function confirmTargets(gameState, playerKey) {
             const targetCard = gameState[targetScopeKey].field.find(c => c.uid === targetUid);
             
             // ตรวจสอบ Armor ก่อนทำลาย
-            if (targetCard && !isImmune(targetCard, sourceCard, gameState)) {
+            if (targetCard && !isImmune(targetCard, sourceCard, targetScopeKey, gameState)) {
                 const result = destroyCard(gameState, targetUid, targetScopeKey, 'effect');
                 gameState = result.updatedGameState;
             }
         });
 
-    }else if (forEffect.keyword === 'place_core_on_target') {
+    }
+    else if (forEffect.keyword === 'place_core_on_target') {
         selectedTargets.forEach(targetUid => {
             // ค้นหา Spirit ที่เป็นเป้าหมายในสนามของผู้เล่น
             const targetSpirit = gameState[playerKey].field.find(s => s.uid === targetUid);
@@ -417,6 +460,7 @@ function confirmTargets(gameState, playerKey) {
             if (targetSpirit && !targetSpirit.isExhausted) {
                 targetSpirit.isExhausted = true;
                 console.log(`[EFFECT LOG] ${targetSpirit.name} was exhausted by Windstorm.`);
+                gameState = checkExhaustTriggers(gameState, targetSpirit, playerKey);
             }
             // บันทึก Spirit ที่โดน exhaust ลงใน attackState
             if (gameState.attackState.isAttacking) {
@@ -486,6 +530,20 @@ function confirmTargets(gameState, playerKey) {
                 }
             }
         });
+    }else if (forEffect.keyword === 'flash_exhaust_self_for_bp_boost') {
+        selectedTargets.forEach(targetUid => {
+            // forEffect.power ถูกส่งมาจาก activateSpiritFlashEffect
+            const powerToAdd = forEffect.power || 0; 
+            if (powerToAdd > 0) {
+                gameState = applyPowerUpEffect(gameState, targetUid, powerToAdd, forEffect.effect.duration);
+            }
+        });
+
+        // หลังจากใช้ความสามารถเสร็จ ให้สลับ Priority ใน Flash Step
+        const otherPlayer = playerKey === 'player1' ? 'player2' : 'player1';
+        gameState.flashState.priority = otherPlayer;
+        gameState.flashState.hasPassed[playerKey] = false;
+        console.log(`[FLASH LOG] Spirit Flash effect used. Priority passed to ${otherPlayer}.`);
     }
 
     // --- START: เพิ่ม Logic การจั่วการ์ดเข้ามา ---
@@ -576,5 +634,6 @@ module.exports = {
     applyTargetedEffect,
     selectTarget,
     confirmTargets,
-    confirmReveal
+    confirmReveal,
+    resolveMagicEffect
 };

@@ -2,6 +2,7 @@
 const { getCardLevel } = require('./utils.js');
 const { initiateDeckDiscard, drawCard } = require('./card.js'); // We will add card discard logic later
 
+
 function applyPowerUp(gameState, cardUid, power, duration) {
     const p1_key = 'player1';
     const p2_key = 'player2';

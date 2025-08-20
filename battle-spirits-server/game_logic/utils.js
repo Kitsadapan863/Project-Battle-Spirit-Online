@@ -198,25 +198,56 @@ function calculateTotalSymbols(spiritCard) {
 }
 
 /**
- * ตรวจสอบว่า targetCard มี Armor ป้องกัน sourceCard หรือไม่
- * @param {object} targetCard - การ์ดเป้าหมายที่กำลังจะโดนเอฟเฟกต์
- * @param {object} sourceCard - การ์ดที่เป็นต้นกำเนิดของเอฟเฟกต์
- * @param {object} gameState - สถานะเกมปัจจุบัน
- * @returns {boolean} - true ถ้ามีเกราะป้องกัน, false ถ้าไม่มี
+ * [อัปเกรด] ตรวจสอบว่า targetCard มี Armor/Immunity ป้องกัน sourceCard หรือไม่
+ * @param {object} targetCard - การ์ดเป้าหมาย
+ * @param {object} sourceCard - การ์ดต้นกำเนิดเอฟเฟกต์
+ * @param {string} targetOwnerKey - "player1" หรือ "player2" ของเจ้าของการ์ดเป้าหมาย
+ * @param {object} gameState - สถานะเกม
+ * @returns {boolean}
  */
-function isImmune(targetCard, sourceCard, gameState) {
-    if (!targetCard || !sourceCard || !targetCard.effects) {
+function isImmune(targetCard, sourceCard, targetOwnerKey, gameState) {
+    if (!targetCard || !sourceCard || !targetOwnerKey) {
         return false;
     }
 
-    const { level } = getCardLevel(targetCard);
-    const armorEffect = targetCard.effects.find(
-        (effect) => effect.keyword === 'armor' && effect.level.includes(level)
-    );
+    const sourceColor = sourceCard.color;
+    
+    // --- 1. ตรวจสอบเกราะ/Immunity ที่ติดตัวเป้าหมายเอง ---
+    if (targetCard.effects) {
+        const { level } = getCardLevel(targetCard);
+        const selfImmunity = targetCard.effects.find(
+            (effect) => (effect.keyword === 'armor' || effect.keyword === 'immunity') && effect.level.includes(level)
+        );
 
-    if (armorEffect && armorEffect.colors.includes(sourceCard.color)) {
-        console.log(`[ARMOR] ${targetCard.name} is immune to ${sourceCard.color} effects from ${sourceCard.name}.`);
-        return true;
+        if (selfImmunity && selfImmunity.colors.includes(sourceColor)) {
+            console.log(`[IMMUNITY] ${targetCard.name} is immune to ${sourceColor} effects due to its own ability.`);
+            return true;
+        }
+    }
+
+    // --- 2. ตรวจสอบ Aura ที่ให้เกราะ/Immunity จากการ์ดใบอื่นในสนาม ---
+    const ownerField = gameState[targetOwnerKey].field;
+    for (const auraCard of ownerField) {
+        if (!auraCard.effects || auraCard.uid === targetCard.uid) continue; // ข้ามตัวเอง
+
+        const { level: auraLevel } = getCardLevel(auraCard);
+        const auraEffect = auraCard.effects.find(
+            (effect) => effect.keyword === 'aura_grant_immunity' && effect.level.includes(auraLevel)
+        );
+
+        if (auraEffect) {
+            // ตรวจสอบว่า targetCard เข้าเงื่อนไขของ Aura หรือไม่ (เช่น เป็น Spirit สีขาว)
+            const filter = auraEffect.target_filter;
+            const targetMatchesFilter = 
+                (filter.color ? targetCard.color === filter.color : true) &&
+                (filter.type ? targetCard.type === filter.type : true);
+
+            // ถ้าเข้าเงื่อนไข และ Aura ป้องกันสีของ sourceCard ได้
+            if (targetMatchesFilter && auraEffect.colors.includes(sourceColor)) {
+                console.log(`[IMMUNITY] ${targetCard.name} is immune to ${sourceColor} effects from an aura by ${auraCard.name}.`);
+                return true;
+            }
+        }
     }
 
     return false;

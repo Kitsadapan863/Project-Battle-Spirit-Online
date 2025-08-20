@@ -1,6 +1,6 @@
 // game_logic/battle.js
 const { getSpiritLevelAndBP, calculateTotalSymbols, getCardLevel, isImmune  } = require('./utils.js');
-const { resolveTriggeredEffects } = require('./effects.js'); // Note: This will be the next file to create
+const { resolveTriggeredEffects, checkExhaustTriggers } = require('./effects.js'); // Note: This will be the next file to create
 const { destroyCard } = require('./card.js');
 const { checkGameOver } = require('./gameLoop.js');
 const { applyCrush } = require('./effectHandlers.js');
@@ -39,6 +39,7 @@ function declareAttack(gameState, playerKey, payload) {
     if (!attacker || attacker.isExhausted) return gameState;
     
     attacker.isExhausted = true;
+    gameState = checkExhaustTriggers(gameState, attacker, playerKey);
     console.log(`${playerKey} declares attack with ${attacker.name}`);
 
     // --- ส่วนที่ 1: ตรวจสอบคุณสมบัติการโจมตีก่อน (Clash, Target Attack) ---
@@ -125,6 +126,7 @@ function declareBlock(gameState, playerKey, payload) {
 
     if (blocker && !blocker.isExhausted) {
         blocker.isExhausted = true;
+        gameState = checkExhaustTriggers(gameState, attacker, playerKey);
         gameState.attackState.blockerUid = blockerUid;
 
         const attackerOwnerKey = playerKey === 'player1' ? 'player2' : 'player1';
@@ -246,7 +248,7 @@ function takeLifeDamage(gameState, playerKey) {
 
         // 2. จาก Spirit เหล่านั้น, ตรวจสอบว่ามีอย่างน้อย 1 ใบที่ "ไม่ติด Armor" ต่อผู้โจมตีหรือไม่
         const hasValidBlocker = potentialBlockers.some(blocker => 
-            !isImmune(blocker, attacker, gameState)
+            !isImmune(blocker, attacker, playerKey, gameState)
         );
         
         // 3. ถ้ามี Spirit ที่สามารถบล็อกได้ (และไม่ติด Armor) เหลืออยู่, ผู้เล่นจะถูกบังคับให้บล็อก

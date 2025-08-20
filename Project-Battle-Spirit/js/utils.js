@@ -134,19 +134,49 @@ export function getSpiritLevelAndBP(spiritCard, ownerKey, gameState) {
 /**
  * ตรวจสอบว่า targetCard มี Armor ป้องกัน sourceCard หรือไม่ (เวอร์ชัน Client)
  */
-export function isImmune(targetCard, sourceCard, gameState) {
-    if (!targetCard || !sourceCard || !targetCard.effects) {
+export function isImmune(targetCard, sourceCard, targetOwnerKey, gameState) {
+    if (!targetCard || !sourceCard || !targetOwnerKey) {
         return false;
     }
 
-    const { level } = getCardLevel(targetCard);
-    const armorEffect = targetCard.effects.find(
-        (effect) => effect.keyword === 'armor' && effect.level.includes(level)
-    );
+    const sourceColor = sourceCard.color;
+    
+    // --- 1. ตรวจสอบเกราะ/Immunity ที่ติดตัวเป้าหมายเอง ---
+    if (targetCard.effects) {
+        const { level } = getCardLevel(targetCard);
+        const selfImmunity = targetCard.effects.find(
+            (effect) => (effect.keyword === 'armor' || effect.keyword === 'immunity') && effect.level.includes(level)
+        );
 
-    if (armorEffect && armorEffect.colors.includes(sourceCard.color)) {
-        // ไม่ต้อง console.log ในฝั่ง client ก็ได้
-        return true;
+        if (selfImmunity && selfImmunity.colors.includes(sourceColor)) {
+            console.log(`[IMMUNITY] ${targetCard.name} is immune to ${sourceColor} effects due to its own ability.`);
+            return true;
+        }
+    }
+
+    // --- 2. ตรวจสอบ Aura ที่ให้เกราะ/Immunity จากการ์ดใบอื่นในสนาม ---
+    const ownerField = gameState[targetOwnerKey].field;
+    for (const auraCard of ownerField) {
+        if (!auraCard.effects || auraCard.uid === targetCard.uid) continue; // ข้ามตัวเอง
+
+        const { level: auraLevel } = getCardLevel(auraCard);
+        const auraEffect = auraCard.effects.find(
+            (effect) => effect.keyword === 'aura_grant_immunity' && effect.level.includes(auraLevel)
+        );
+
+        if (auraEffect) {
+            // ตรวจสอบว่า targetCard เข้าเงื่อนไขของ Aura หรือไม่ (เช่น เป็น Spirit สีขาว)
+            const filter = auraEffect.target_filter;
+            const targetMatchesFilter = 
+                (filter.color ? targetCard.color === filter.color : true) &&
+                (filter.type ? targetCard.type === filter.type : true);
+
+            // ถ้าเข้าเงื่อนไข และ Aura ป้องกันสีของ sourceCard ได้
+            if (targetMatchesFilter && auraEffect.colors.includes(sourceColor)) {
+                console.log(`[IMMUNITY] ${targetCard.name} is immune to ${sourceColor} effects from an aura by ${auraCard.name}.`);
+                return true;
+            }
+        }
     }
 
     return false;

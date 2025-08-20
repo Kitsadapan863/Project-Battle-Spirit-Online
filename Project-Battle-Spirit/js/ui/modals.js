@@ -22,10 +22,8 @@ export function updateAllModals(gameState, myPlayerKey, callbacks) {
         effectCostConfirmationModal: document.getElementById('effect-cost-confirmation-modal'),
         tributeSelectionModal: document.getElementById('tribute-selection-modal'), 
         revealModal: document.getElementById('reveal-modal'),    
-
+        negateModal: document.getElementById('negate-modal'),
     };
-
-    
 
     // --- 1. ซ่อน Modal ที่เป็น Action หลักทั้งหมดก่อน ---
     Object.values(modals).forEach(modal => {
@@ -53,7 +51,8 @@ export function updateAllModals(gameState, myPlayerKey, callbacks) {
         effectResolutionState,
         revealState,
         effectCostConfirmationState,
-        tributeState 
+        tributeState,
+        negateState 
     } = gameState;
 
     // --- เริ่มต้น if/else if chain ที่นี่ ---
@@ -84,7 +83,29 @@ export function updateAllModals(gameState, myPlayerKey, callbacks) {
         }
      
 
-    }else if (tributeState.isTributing && tributeState.summoningPlayer === myPlayerKey) {
+    }else if (negateState.isActive && negateState.negatingPlayer === myPlayerKey) {
+        modals.negateModal.classList.add('visible');
+        
+        // แสดงการ์ดเวทที่กำลังจะถูกใช้
+        const magicCardContainer = document.getElementById('negate-magic-card-container');
+        magicCardContainer.innerHTML = '';
+        if (negateState.magicCardToUse) {
+            const cardEl = createCardElement(negateState.magicCardToUse, 'viewer', negateState.magicCaster, gameState, myPlayerKey);
+            magicCardContainer.appendChild(cardEl);
+        }
+
+        // แสดง Spirit ที่สามารถใช้ Negate ได้
+        const spiritsContainer = document.getElementById('negating-spirits-container');
+        spiritsContainer.innerHTML = '';
+        negateState.negatingSpirits.forEach(spiritUid => {
+            const spiritCard = gameState[myPlayerKey].field.find(s => s.uid === spiritUid);
+            if (spiritCard) {
+                const spiritEl = createCardElement(spiritCard, 'field', myPlayerKey, gameState, myPlayerKey);
+                spiritsContainer.appendChild(spiritEl);
+            }
+        });
+    }
+    else if (tributeState.isTributing && tributeState.summoningPlayer === myPlayerKey) {
         modals.tributeSelectionModal.classList.add('visible');
         document.getElementById('confirm-tribute-btn').disabled = !tributeState.selectedTributeUid;
     }
@@ -196,6 +217,14 @@ export function updateAllModals(gameState, myPlayerKey, callbacks) {
                     else if (effect.keyword === 'cores_charge') {
                         return card.type.toLowerCase() === effect.target.type;
                     }
+                    else if (effect.keyword === 'flash_exhaust_self_for_bp_boost') {
+                        // 1. ดึงชื่อ Family ที่เอฟเฟกต์ต้องการ (เช่น "Armed Machine")
+                        const requiredFamily = effect.target?.family[0];
+                        if (!requiredFamily) return false; // ป้องกัน error ถ้าไม่มี family ระบุไว้
+
+                        // 2. ตรวจสอบว่า card ใบนี้เป็น Spirit และมี Family ตรงตามที่ต้องการหรือไม่
+                        return card.type === 'Spirit' && card.family?.includes(requiredFamily);
+                    }
                     // (เพิ่มเงื่อนไขสำหรับเอฟเฟกต์อื่นๆ ที่นี่ถ้าจำเป็น)
                     return false; // ถ้าไม่เข้าเงื่อนไขไหนเลย ก็ไม่นับ
                 }).length;
@@ -292,7 +321,6 @@ export function updateAllModals(gameState, myPlayerKey, callbacks) {
         }
     }
 
-    // --- 3. Modal ที่ทำงานแยกต่างหาก ---
     if (gameState.gameover) {
         modals.gameOverModal.classList.add('visible');
         const winnerText = gameState.player1.life <= 0 ? 'Player 2 Wins!' : 'Player 1 Wins!';

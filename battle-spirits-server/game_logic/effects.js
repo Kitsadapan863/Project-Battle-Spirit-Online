@@ -1,9 +1,9 @@
 // แก้ไขไฟล์ game_logic/effects.js ทั้งหมดตามนี้
 
-const { getSpiritLevelAndBP, getCardLevel } = require('./utils.js');
+const { getSpiritLevelAndBP, getCardLevel, isImmune } = require('./utils.js');
 const { applyCrush, applyClash, applyPowerUp, applyDiscard, applyDrawAndDiscard, applyAuraPowerUp } = require('./effectHandlers.js');
 const { applyWindstorm, applyGainCoreByWindstorm, applyMoveToDeckBottom} = require('./effectHandlers.js');
-
+const {returnToHand} = require('./card.js')
 
 
 // ฟังก์ชันใหม่: ใช้สำหรับทำงานตามเอฟเฟกต์ "เดียว" ที่ถูกเลือก
@@ -141,6 +141,25 @@ function applySingleEffect(gameState, card, effect, ownerKey, context) {
                 const { checkGameOver } = require('./gameLoop.js');
                 gameState = checkGameOver(gameState);
             }
+            break;
+        case 'mass_return_to_hand_by_bp':
+            console.log(`[EFFECTS] ${card.name} activates mass return to hand.`);
+            const bpThreshold = effect.bpOrLess;
+            const players = ['player1', 'player2'];
+
+            players.forEach(pKey => {
+                // สร้างสำเนาของ field ก่อนวนลูป เพราะ array จะถูกแก้ไข
+                const fieldCopy = [...gameState[pKey].field]; 
+                fieldCopy.forEach(targetCard => {
+                    if (targetCard.type === 'Spirit') {
+                        const { bp } = getSpiritLevelAndBP(targetCard, pKey, gameState);
+                        // ตรวจสอบ BP และเช็คว่าเป้าหมายติดเกราะป้องกันหรือไม่
+                        if (bp <= bpThreshold && !isImmune(targetCard, card, pKey, gameState)) {
+                            gameState = returnToHand(gameState, targetCard.uid, pKey).updatedGameState;
+                        }
+                    }
+                });
+            });
             break;
     }
     return gameState;
@@ -326,9 +345,141 @@ function cancelEffectCost(gameState, playerKey) {
     return gameState;
 }
 
+/**
+ * จัดการเมื่อผู้เล่นกดใช้ความสามารถ Flash จาก Spirit บนสนาม
+ */
+function activateSpiritFlashEffect(gameState, playerKey, payload) {
+    const { cardUid } = payload;
+    const player = gameState[playerKey];
+    const sourceCard = player.field.find(c => c.uid === cardUid);
+
+    // ตรวจสอบเงื่อนไขเบื้องต้น
+    if (!sourceCard || sourceCard.isExhausted || !gameState.flashState.isActive || gameState.flashState.priority !== playerKey) {
+        return gameState;
+    }
+
+    const { level } = getCardLevel(sourceCard);
+    const flashEffect = sourceCard.effects.find(
+        e => e.timing === 'flash' && e.level.includes(level)
+    );
+
+    if (!flashEffect) return gameState;
+
+    // ทำงานตาม keyword ของเอฟเฟกต์
+    if (flashEffect.keyword === 'flash_exhaust_self_for_bp_boost') {
+        // 1. สั่งให้ Spirit ที่ใช้ความสามารถ Exhausted
+        sourceCard.isExhausted = true;
+        gameState = checkExhaustTriggers(gameState, sourceCard, playerKey);
+        console.log(`[EFFECTS] ${sourceCard.name} exhausts itself to activate its Flash effect.`);
+
+        // 2. คำนวณ BP ที่จะเพิ่มให้ (ตาม BP ปัจจุบันของตัวเอง)
+        const { bp } = getSpiritLevelAndBP(sourceCard, playerKey, gameState);
+
+        // 3. เข้าสู่สถานะเลือกเป้าหมาย
+        gameState.targetingState = {
+            isTargeting: true,
+            forEffect: { ...flashEffect, power: bp }, // ส่งค่า BP ที่คำนวณได้ไปกับ forEffect
+            cardSourceUid: sourceCard.uid,
+            targetPlayer: playerKey,
+            selectedTargets: []
+        };
+    }
+    
+    return gameState;
+}
+
+/**
+ * จัดการเมื่อผู้เล่นตัดสินใจว่าจะ Negate Magic หรือไม่
+ */
+function confirmNegation(gameState, playerKey, payload) {
+    const { decision, spiritUid } = payload;
+    const negateState = gameState.negateState;
+
+    if (!negateState.isActive || negateState.negatingPlayer !== playerKey) {
+        return gameState;
+    }
+
+    const { magicCardToUse, magicCaster, magicEffectToUse } = negateState;
+
+    if (decision === 'negate' && spiritUid) {
+        // --- กรณีที่ผู้เล่นเลือกที่จะ Negate ---
+        const negatingSpirit = gameState[playerKey].field.find(s => s.uid === spiritUid);
+        if (negatingSpirit) {
+            // 1. จ่าย Cost (Exhaust ตัวเอง)
+            negatingSpirit.isExhausted = true;
+            console.log(`[NEGATE] ${negatingSpirit.name} exhausts to negate ${magicCardToUse.name}.`);
+
+            // 2. ย้าย Magic Card ที่ถูกยกเลิกไปที่ Trash ของผู้ร่าย
+            const casterHand = gameState[magicCaster].hand;
+            const cardIndex = casterHand.findIndex(c => c.uid === magicCardToUse.uid);
+            if (cardIndex > -1) {
+                const [negatedCard] = casterHand.splice(cardIndex, 1);
+                gameState[magicCaster].cardTrash.push(negatedCard);
+            }
+        }
+        // เมื่อ Negate สำเร็จ ให้เคลียร์ State และจบการทำงานทันที
+        gameState.negateState = { isActive: false, negatingPlayer: null, magicCardToUse: null, negatingSpirits: [] };
+        return gameState;
+
+    } else {
+        // --- กรณีที่ผู้เล่นเลือกที่จะ Pass (ไม่ Negate) ---
+        console.log(`[NEGATE] ${playerKey} chose not to negate. Resolving effect for ${magicCaster}.`);
+        
+        // เรียกใช้ฟังก์ชันกลางเพื่อทำงานตามเอฟเฟกต์
+        gameState = resolveMagicEffect(gameState, magicCaster, magicCardToUse, magicEffectToUse);
+        
+        // ย้าย Magic ที่ใช้แล้วไปกองทิ้ง
+        const casterHand = gameState[magicCaster].hand;
+        const cardIndex = casterHand.findIndex(c => c.uid === magicCardToUse.uid);
+        if (cardIndex > -1) {
+            const [usedCard] = casterHand.splice(cardIndex, 1);
+            gameState[magicCaster].cardTrash.push(usedCard);
+        }
+    }
+    
+    // Reset negateState
+    gameState.negateState = { isActive: false, negatingPlayer: null, magicCardToUse: null, negatingSpirits: [] };
+    return gameState;
+}
+/**
+ * ตรวจสอบและทำงานตาม Trigger "onFriendlySpiritExhausted"
+ */
+function checkExhaustTriggers(gameState, exhaustedSpirit, ownerKey) {
+    if (!exhaustedSpirit) return gameState;
+
+    // วนลูปหาการ์ดในสนามของผู้เล่นคนเดียวกัน
+    gameState[ownerKey].field.forEach(cardOnField => {
+        if (!cardOnField.effects) return;
+        
+        const { level } = getCardLevel(cardOnField);
+        const triggerEffect = cardOnField.effects.find(e => 
+            e.timing === 'onFriendlySpiritExhausted' && e.level.includes(level)
+        );
+
+        if (triggerEffect) {
+            // ตรวจสอบเงื่อนไขของ Trigger
+            const condition = triggerEffect.condition;
+            const isTargetFamily = exhaustedSpirit.family?.includes(condition.family);
+            const isNotSelf = condition.isNotSelf ? exhaustedSpirit.uid !== cardOnField.uid : true;
+
+            if (isTargetFamily && isNotSelf) {
+                console.log(`[TRIGGER] ${cardOnField.name}'s effect triggers due to ${exhaustedSpirit.name} exhausting.`);
+                // ทำงานตามเอฟเฟกต์
+                if (triggerEffect.keyword === 'refresh_self') {
+                    cardOnField.isExhausted = false;
+                }
+            }
+        }
+    });
+    return gameState;
+}
+
 module.exports = { 
     resolveTriggeredEffects, 
     resolveChosenEffect,
-    confirmEffectCost, // Export ฟังก์ชันใหม่
-    cancelEffectCost   // Export ฟังก์ชันใหม่
+    confirmEffectCost, 
+    cancelEffectCost,
+    activateSpiritFlashEffect,
+    confirmNegation,
+    checkExhaustTriggers  
 };

@@ -79,13 +79,12 @@ wss.on('connection', (ws) => {
                 const isTurnCorrect = gameState.turn === playerKey;
                 const isFlashAction = gameState.flashState.isActive && gameState.flashState.priority === playerKey;
                 const isDefendingAction = gameState.attackState.isAttacking && gameState.attackState.defender === playerKey;
-
-                // This new condition checks if the player is allowed to act because they are being targeted by an effect.
                 const isTargetingPlayer = gameState.targetingState.isTargeting && gameState.targetingState.targetPlayer === playerKey;
+                // เพิ่มเงื่อนไขใหม่: ตรวจสอบว่าเป็นผู้เล่นที่มีสิทธิ์ Negate หรือไม่
+                const isNegatingPlayer = gameState.negateState.isActive && gameState.negateState.negatingPlayer === playerKey;
 
-                // We add '!isTargetingPlayer' to the condition.
-                // Now, an action is only rejected if the player does NOT have turn, priority, defender status, AND is NOT the player being targeted.
-                if (!isTurnCorrect && !isFlashAction && !isDefendingAction && !isTargetingPlayer) {
+                // เพิ่ม !isNegatingPlayer เข้าไปในเงื่อนไขการปฏิเสธ
+                if (!isTurnCorrect && !isFlashAction && !isDefendingAction && !isTargetingPlayer && !isNegatingPlayer) {
                      console.log(`Action from ${playerKey} rejected: Not their turn/priority.`);
                      broadcastGameState(sessionId);
                      return;

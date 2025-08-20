@@ -121,6 +121,12 @@ gameBoard.addEventListener('click', (event) => {
     if (cardEl) {
         const cardId = cardEl.id;
 
+        // ตรวจจับการคลิกเพื่อใช้ Flash Ability ของ Spirit
+        if (cardEl.classList.contains('can-use-flash-ability')) {
+            sendActionToServer({ type: 'ACTIVATE_SPIRIT_FLASH_EFFECT', payload: { cardUid: cardId } });
+            return; // หยุดการทำงานทันทีเพื่อไม่ให้ไปชนกับ Logic อื่น
+        }
+
         if (localGameState.tributeState?.isTributing && cardEl.classList.contains('can-be-tribute')) {
             sendActionToServer({ type: 'SELECT_TRIBUTE', payload: { tributeUid: cardId } });
             return;
@@ -393,6 +399,28 @@ gameBoard.addEventListener('click', (event) => {
     document.getElementById('confirm-tribute-btn').addEventListener('click', (e) => {
         if (!e.target.disabled) {
             sendActionToServer({ type: 'CONFIRM_TRIBUTE' });
+        }
+    });
+
+    // ปุ่ม Pass (ไม่ Negate)
+    document.getElementById('pass-negation-btn').addEventListener('click', () => {
+        sendActionToServer({ 
+            type: 'CONFIRM_NEGATION', 
+            payload: { decision: 'pass' } 
+        });
+    });
+
+    // Container ของ Spirit ที่ใช้ Negate (ใช้ Event Delegation)
+    document.getElementById('negating-spirits-container').addEventListener('click', (event) => {
+        const spiritEl = event.target.closest('.card');
+        if (spiritEl) {
+            sendActionToServer({
+                type: 'CONFIRM_NEGATION',
+                payload: {
+                    decision: 'negate',
+                    spiritUid: spiritEl.id
+                }
+            });
         }
     });
     

@@ -119,6 +119,12 @@ export function createCardElement(cardData, location, owner, gameState, myPlayer
             if (canEvolve && isValidTimingForFlash) {
                 cardDiv.classList.add('can-evolve');
             }
+
+            // ตรวจสอบว่า Spirit มีความสามารถ Flash ที่ใช้งานได้หรือไม่
+            const hasFlashAbility = cardData.effects?.some(e => e.timing === 'flash');
+            if (isValidTimingForFlash && owner === myPlayerKey && !cardData.isExhausted && hasFlashAbility) {
+                cardDiv.classList.add('can-use-flash-ability');
+            }
         }
 
         const tributeState = gameState.tributeState;

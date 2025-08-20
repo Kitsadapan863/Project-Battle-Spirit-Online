@@ -486,7 +486,7 @@ module.exports.greenCards = [
     {
         id: 'magic-thorn-prison',
         name: 'Thorn Prison',
-        quantity: 3, // หรือตามจำนวนที่ต้องการ
+        quantity: 15, // หรือตามจำนวนที่ต้องการ
         image: `${pathsMagic}/Thorn Prison.webp`, // สร้าง Path รูปภาพให้ถูกต้อง
         cost: 4,
         symbol_cost: { "green": 2 },

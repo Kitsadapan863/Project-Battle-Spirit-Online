@@ -1144,3 +1144,44 @@ body {
     50% { box-shadow: 0 0 20px #9b59b6; }
     100% { box-shadow: 0 0 5px #9b59b6; }
 }
+
+.card.can-use-flash-ability {
+    border-color: #f1c40f; /* สีเหลืองทอง */
+    box-shadow: 0 0 15px #f1c40f;
+    animation: pulse-gold 1.5s infinite;
+}
+
+/* Styles for Negate Modal */
+.negate-modal {
+    width: 60%;
+    max-width: 700px;
+    border-color: #e74c3c; /* สีแดงเพื่อเตือน */
+}
+
+.negate-modal h3 {
+    color: #e74c3c;
+}
+
+#negating-spirits-container .card {
+    cursor: pointer;
+    border: 2px solid transparent;
+}
+
+#negating-spirits-container .card:hover {
+    border-color: #e74c3c;
+    transform: scale(1.05);
+}
+
+.negate-buttons {
+    margin-top: 20px;
+}
+
+#pass-negation-btn {
+    padding: 10px 20px;
+    font-size: 1rem;
+    background: linear-gradient(45deg, #6c757d, #5a6268);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+}
