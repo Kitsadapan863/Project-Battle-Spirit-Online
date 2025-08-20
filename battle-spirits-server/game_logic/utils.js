@@ -219,10 +219,27 @@ function isImmune(targetCard, sourceCard, targetOwnerKey, gameState) {
             (effect) => (effect.keyword === 'armor' || effect.keyword === 'immunity') && effect.level.includes(level)
         );
 
-        if (selfImmunity && selfImmunity.colors.includes(sourceColor)) {
-            console.log(`[IMMUNITY] ${targetCard.name} is immune to ${sourceColor} effects due to its own ability.`);
-            return true;
-        }
+        if (selfImmunity) {
+                let immunityColors = selfImmunity.colors;
+
+                // ถ้าเป็น Immunity: ∞ ให้คำนวณสีจากสนามคู่ต่อสู้
+                if (immunityColors === 'opponent_symbols') {
+                    const opponentKey = targetOwnerKey === 'player1' ? 'player2' : 'player1';
+                    const opponentSymbols = new Set(); // ใช้ Set เพื่อป้องกันสีซ้ำ
+                    gameState[opponentKey].field.forEach(card => {
+                        if (card.symbol) {
+                            Object.keys(card.symbol).forEach(color => opponentSymbols.add(color));
+                        }
+                    });
+                    immunityColors = Array.from(opponentSymbols);
+                    console.log(`[IMMUNITY ∞] ${targetCard.name} is currently immune to colors: [${immunityColors.join(', ')}]`);
+                }
+
+                if (Array.isArray(immunityColors) && immunityColors.includes(sourceCard.color)) {
+                    console.log(`[IMMUNITY] ${targetCard.name} is immune to ${sourceCard.color} effects.`);
+                    return true;
+                }
+            }
     }
 
     // --- 2. ตรวจสอบ Aura ที่ให้เกราะ/Immunity จากการ์ดใบอื่นในสนาม ---

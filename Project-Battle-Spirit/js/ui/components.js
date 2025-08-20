@@ -206,14 +206,14 @@ export function createCardElement(cardData, location, owner, gameState, myPlayer
                     }
                 }
             }
-            // --- Path 2: การเลือกเป้าหมายแบบพิเศษ (ใช้ condition) ---
-            else if (effect.keyword === 'addEffects') {
-                const nameCondition = effect.condition[0];
-                
-                if (cardData.type === 'Spirit' && isMyCard && cardData.name.includes(nameCondition)) {
-                    canBeTargeted = true;
+                // --- Path 2: การเลือกเป้าหมายแบบพิเศษ (ใช้ condition) ---
+                else if (effect.keyword === 'addEffects') {
+                    const nameCondition = effect.condition[0];
+                    
+                    if (cardData.type === 'Spirit' && isMyCard && cardData.name.includes(nameCondition)) {
+                        canBeTargeted = true;
+                    }
                 }
-            }
             }
 
             

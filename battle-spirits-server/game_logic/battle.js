@@ -33,6 +33,43 @@ function enterFlashTiming(gameState, timing) {
     return gameState;
 }
 
+// ฟังก์ชันใหม่: ใช้รวบรวมและจัดการเอฟเฟกต์ที่ทำงานพร้อมกัน
+function handleSimultaneousEffects(gameState, card, timings, ownerKey) {
+    if (!card || !card.effects) return gameState;
+
+    const { level } = getCardLevel(card);
+    let allTriggeredEffects = [];
+
+    // รวบรวมเอฟเฟกต์จากทุก timing ที่ระบุ
+    timings.forEach(timing => {
+        const triggered = card.effects.filter(effect => 
+            effect.timing === timing && effect.level.includes(level)
+        );
+        allTriggeredEffects.push(...triggered);
+    });
+
+    if (allTriggeredEffects.length === 0) {
+        return { gameState, hasEffects: false };
+    }
+
+    if (allTriggeredEffects.length === 1) {
+        gameState = applySingleEffect(gameState, card, allTriggeredEffects[0], ownerKey);
+        return { gameState, hasEffects: true };
+    }
+
+    // ถ้ามีมากกว่า 1 เอฟเฟกต์ ให้เข้าสู่สถานะให้ผู้เล่นเลือก
+    console.log(`[EFFECTS] Multiple effects triggered for ${card.name}. Awaiting player choice.`);
+    gameState.effectResolutionState = {
+        isActive: true,
+        playerKey: ownerKey,
+        cardUid: card.uid,
+        timing: 'simultaneous', // ระบุว่าเป็น timing แบบผสม
+        effectsToResolve: allTriggeredEffects.map((eff, i) => ({ ...eff, uniqueId: i })),
+        resolvedEffects: [],
+        context: {}
+    };
+    return { gameState, hasEffects: true };
+}
 function declareAttack(gameState, playerKey, payload) {
     const { attackerUid } = payload;
     const attacker = gameState[playerKey].field.find(s => s.uid === attackerUid);
@@ -88,29 +125,27 @@ function declareAttack(gameState, playerKey, payload) {
         }
     }
 
-    // --- ส่วนที่ 2: จัดการเอฟเฟกต์ "When Attacks" ทั้งหมดในที่เดียว (แก้ไขแล้ว) ---
-
     // 1. ตั้งค่าสถานะการโจมตีพื้นฐาน
     const defenderPlayerKey = (playerKey === 'player1') ? 'player2' : 'player1';
     gameState.attackState = { isAttacking: true, attackerUid, defender: defenderPlayerKey, blockerUid: null, isClash: spiritHasClash };
     
-    // 2. เรียกใช้ resolveTriggeredEffects ที่จะจัดการเอฟเฟกต์ "When Attacks" ทั้งหมด
-    // **รวมถึง [Assault] ด้วย** และจะเข้าสู่โหมดเลือกถ้ามีเอฟเฟกต์มากกว่า 1 อย่าง
+    // // รวบรวมเอฟเฟกต์ทั้ง onBattleStart และ whenAttacks มาจัดการพร้อมกัน
+    // const result = handleSimultaneousEffects(gameState, attacker, ['onBattleStart', 'whenAttacks'], playerKey);
+    // gameState = result.gameState;
+    
+    // // ถ้ามีเอฟเฟกต์ให้จัดการ (ไม่ว่าจะต้องเลือกหรือไม่) ให้หยุดรอ
+    // if (result.hasEffects) {
+    //     // ถ้าเกมเข้าสู่สถานะให้เลือก หรือรอ target ก็จะหยุดโดยอัตโนมัติ
+    //     // ถ้าเอฟเฟกต์ทำงานเสร็จแล้ว ก็ต้องรอให้ client อัปเดตก่อนไป flash step
+    //     return gameState;
+    // }
+
     gameState = resolveTriggeredEffects(gameState, attacker, 'whenAttacks', playerKey);
     
-    // 3. **จุดสำคัญ:** ถ้าเกมเข้าสู่สถานะให้เลือกเอฟเฟกต์ ให้หยุดการทำงานทันทีเพื่อรอผู้เล่น
-    // โค้ดส่วนนี้จะทำให้เกมรอ Action 'RESOLVE_CHOSEN_EFFECT' จาก Client
     if (gameState.effectResolutionState.isActive) {
         return gameState;
     }
 
-    // --- ส่วนที่ 3: ดำเนินเกมต่อหากไม่มีเอฟเฟกต์ให้เลือก หรือเลือกเสร็จแล้ว ---
-    // ถ้าโค้ดทำงานมาถึงตรงนี้ หมายความว่า:
-    // - ไม่มีเอฟเฟกต์ "When Attacks" เลย
-    // - มีแค่ 1 เอฟเฟกต์ และทำงานไปแล้ว (เช่น Crush อย่างเดียว หรือ Assault อย่างเดียว)
-    // - มีหลายเอฟเฟกต์ แต่ผู้เล่นเลือกจนหมดแล้ว
-    
-    // ตรวจสอบสถานะอื่นๆ ที่อาจจะขัดจังหวะ (เช่น รอเลือกเป้าหมาย) ก่อนที่จะเข้า Flash Timing
     if (!gameState.deckDiscardViewerState.isActive && !gameState.targetingState.isTargeting && !gameState.assaultState.canUse) {
         gameState = enterFlashTiming(gameState, 'beforeBlock');
     }

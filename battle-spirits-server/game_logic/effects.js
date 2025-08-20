@@ -116,7 +116,7 @@ function applySingleEffect(gameState, card, effect, ownerKey, context) {
                 console.log(`[EFFECTS] Cannot activate ${card.name}'s refresh effect, not enough core in reserve.`);
             }
             break;
-        case 'place_core_on_target' || 'cores_charge':
+        case 'place_core_on_target' || 'cores_charge' || 'boost_bp_by_exhausting_ally':
             console.log(`[EFFECTS] ${card.name} triggers 'place_core_on_target'. Entering targeting state.`);
             gameState.targetingState = {
                 isTargeting: true,
@@ -159,6 +159,21 @@ function applySingleEffect(gameState, card, effect, ownerKey, context) {
                         }
                     }
                 });
+            });
+            break;
+        case 'mass_return_opponent_to_hand_by_bp':
+            console.log(`[EFFECTS] ${card.name} activates mass return for opponent.`);
+            const bpThresholdOpponent = effect.bpOrLess;
+            const opponent = ownerKey === 'player1' ? 'player2' : 'player1';
+
+            const opponentFieldCopy = [...gameState[opponent].field];
+            opponentFieldCopy.forEach(targetCard => {
+                if (targetCard.type === 'Spirit') {
+                    const { bp } = getSpiritLevelAndBP(targetCard, opponent, gameState);
+                    if (bp <= bpThresholdOpponent && !isImmune(targetCard, card, opponent, gameState)) {
+                        gameState = returnToHand(gameState, targetCard.uid, opponent).updatedGameState;
+                    }
+                }
             });
             break;
     }

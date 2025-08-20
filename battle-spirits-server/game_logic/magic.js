@@ -405,6 +405,25 @@ function confirmTargets(gameState, playerKey) {
             }
         });
 
+    }else if (forEffect.keyword === 'boost_bp_by_exhausting_ally') {
+        const sourceCard = gameState[playerKey].field.find(c => c.uid === cardSourceUid);
+        
+        selectedTargets.forEach(targetUid => {
+            const allyToExhaust = gameState[playerKey].field.find(s => s.uid === targetUid);
+            if (sourceCard && allyToExhaust && !allyToExhaust.isExhausted) {
+                // 1. สั่งให้ Spirit ที่เลือก Exhausted
+                allyToExhaust.isExhausted = true;
+
+                // 2. คำนวณ BP ของ Spirit ที่เพิ่ง Exhausted
+                const { bp: bpToAdd } = getSpiritLevelAndBP(allyToExhaust, playerKey, gameState);
+
+                // 3. เพิ่ม BP ให้กับ sourceCard
+                if (bpToAdd > 0) {
+                    gameState = applyPowerUpEffect(gameState, sourceCard.uid, bpToAdd, forEffect.duration);
+                    console.log(`[EFFECT LOG] ${sourceCard.name} gains +${bpToAdd} BP by exhausting ${allyToExhaust.name}.`);
+                }
+            }
+        });
     }
     else if (forEffect.keyword === 'place_core_on_target') {
         selectedTargets.forEach(targetUid => {

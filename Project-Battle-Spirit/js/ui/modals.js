@@ -225,6 +225,10 @@ export function updateAllModals(gameState, myPlayerKey, callbacks) {
                         // 2. ตรวจสอบว่า card ใบนี้เป็น Spirit และมี Family ตรงตามที่ต้องการหรือไม่
                         return card.type === 'Spirit' && card.family?.includes(requiredFamily);
                     }
+                    else if (effect.keyword === 'boost_bp_by_exhausting_ally') {
+                        const requiredFamily = effect.target?.family[0];
+                        return card.type === 'Spirit' && !card.isExhausted && card.family?.includes(requiredFamily);
+                    }
                     // (เพิ่มเงื่อนไขสำหรับเอฟเฟกต์อื่นๆ ที่นี่ถ้าจำเป็น)
                     return false; // ถ้าไม่เข้าเงื่อนไขไหนเลย ก็ไม่นับ
                 }).length;
@@ -302,9 +306,9 @@ export function updateAllModals(gameState, myPlayerKey, callbacks) {
             
             // ตรวจสอบว่ามี Blocker ที่ "ไม่ติด Armor" หรือไม่
             const hasValidBlocker = potentialBlockers.some(blocker => 
-                !isImmune(blocker, attacker, gameState)
+                !isImmune(blocker, attacker, myPlayerKey, gameState)
             );
-            
+            console.log('hasValidBlocker:', hasValidBlocker)
             if (hasValidBlocker) {
                 // ถ้ามีตัวที่บล็อกได้จริงๆ ให้ปิดปุ่มรับดาเมจ
                 takeDamageBtn.disabled = true;
