@@ -5,14 +5,11 @@
             "type": "node",
             "request": "launch",
             "name": "Launch Battle Spirits Server",
-            "runtimeExecutable": "npm",
-            "runtimeArgs": [
-                "run-script",
-                "start"
-            ],
             "skipFiles": [
                 "<node_internals>/**"
-            ]
+            ],
+            "program": "${workspaceFolder}/battle-spirits-server/server.js",
+            "cwd": "${workspaceFolder}/battle-spirits-server"
         }
     ]
 }
