@@ -109,14 +109,19 @@ export function updateAllModals(gameState, myPlayerKey, callbacks) {
         modals.tributeSelectionModal.classList.add('visible');
         document.getElementById('confirm-tribute-btn').disabled = !tributeState.selectedTributeUid;
     }
-    else if (effectCostConfirmationState.isActive && effectCostConfirmationState.playerKey === myPlayerKey) { // <-- เพิ่ม else if นี้ (สำคัญมาก ต้องอยู่ลำดับต้นๆ)
+    else if (effectCostConfirmationState.isActive && effectCostConfirmationState.playerKey === myPlayerKey) {
         modals.effectCostConfirmationModal.classList.add('visible');
         const effect = effectCostConfirmationState.effect;
         const card = gameState[myPlayerKey].field.find(c => c.uid === effectCostConfirmationState.cardSourceUid);
         if (card && effect) {
             document.getElementById('effect-cost-title').textContent = `Activate ${card.name}'s Effect?`;
-            const effectDesc = effect.description.replace(/\n/g, ' '); // ทำให้เป็นบรรทัดเดียว
-            document.getElementById('effect-cost-prompt').textContent = `Pay ${effect.cost.count} core from your Reserve to activate: "${effectDesc}"`;
+            const effectDesc = effect.description.replace(/\n/g, ' ');
+
+            if (effect.cost && effect.cost.count > 0) {
+                document.getElementById('effect-cost-prompt').textContent = `Pay ${effect.cost.count} core to activate: "${effectDesc}"`;
+            } else {
+                document.getElementById('effect-cost-prompt').textContent = `Do you want to activate this effect? "${effectDesc}"`;
+            }
         }
     }
     else if (effectResolutionState.isActive && effectResolutionState.playerKey === myPlayerKey) {
@@ -210,7 +215,7 @@ export function updateAllModals(gameState, myPlayerKey, callbacks) {
                     if (effect.keyword === 'force_exhaust' || effect.keyword === 'windstorm') {
                         return card.type === 'Spirit' && !card.isExhausted;
                     }
-                    else if (effect.keyword === 'place_core_on_target') {
+                    else if (effect.keyword === 'place_core_on_target'|| 'power up') {
                         // เป้าหมายคือ Spirit ฝั่งเรา (scope: 'player')
                         return card.type.toLowerCase() === effect.target.type;
                     }
@@ -289,7 +294,7 @@ export function updateAllModals(gameState, myPlayerKey, callbacks) {
     else if (flashState.isActive && flashState.priority === myPlayerKey) {
         modals.flashOverlay.classList.add('visible');
         document.getElementById('flash-title').textContent = `Flash Timing (${flashState.priority}'s Priority)`;
-    }else if (attackState.isAttacking && attackState.defender === myPlayerKey && !flashState.isActive && !targetingState.isTargeting) {
+    }else if (attackState.isAttacking && attackState.defender === myPlayerKey && !flashState.isActive && !targetingState.isTargeting && !attackState.pendingEffects) {
         modals.defenseOverlay.classList.add('visible');
         const attackerPlayerKey = myPlayerKey === 'player1' ? 'player2' : 'player1';
         const attacker = gameState[attackerPlayerKey]?.field.find(s => s.uid === attackState.attackerUid);
@@ -299,27 +304,22 @@ export function updateAllModals(gameState, myPlayerKey, callbacks) {
             document.getElementById('defense-attacker-info').textContent = `Attacker: ${attacker.name} (BP: ${bp})`;
         }
 
-        // ++ เพิ่ม Logic การตรวจสอบ Clash เข้ามาตรงนี้ ++
         const takeDamageBtn = document.getElementById('take-damage-btn');
         if (attackState.isClash) {
             const potentialBlockers = gameState[myPlayerKey].field.filter(s => s.type === 'Spirit' && !s.isExhausted);
             
-            // ตรวจสอบว่ามี Blocker ที่ "ไม่ติด Armor" หรือไม่
             const hasValidBlocker = potentialBlockers.some(blocker => 
                 !isImmune(blocker, attacker, myPlayerKey, gameState)
             );
-            console.log('hasValidBlocker:', hasValidBlocker)
+            
             if (hasValidBlocker) {
-                // ถ้ามีตัวที่บล็อกได้จริงๆ ให้ปิดปุ่มรับดาเมจ
                 takeDamageBtn.disabled = true;
                 takeDamageBtn.textContent = 'Must Block!';
             } else {
-                // ถ้าไม่มีตัวบล็อก (หรือทุกตัวติด Armor) ก็ให้กดรับดาเมจได้
                 takeDamageBtn.disabled = false;
                 takeDamageBtn.textContent = 'Take Life Damage';
             }
         } else {
-            // ถ้าไม่ใช่ Clash ก็ให้ปุ่มทำงานปกติ
             takeDamageBtn.disabled = false;
             takeDamageBtn.textContent = 'Take Life Damage';
         }

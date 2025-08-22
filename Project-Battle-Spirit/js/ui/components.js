@@ -168,6 +168,17 @@ export function createCardElement(cardData, location, owner, gameState, myPlayer
                 if (cardData.type === 'Spirit' && owner === myPlayerKey && !cardData.isExhausted) {
                     canBeTargeted = true;
                 }
+            } else if (effect.keyword === 'boost_bp_by_exhausting_ally') {
+                const requiredFamily = effect.target?.family[0];
+                // เป้าหมายคือ Spirit ของเราเอง ที่ยังไม่เหนื่อย และมี Family ที่ถูกต้อง
+                if (
+                    cardData.type === 'Spirit' && 
+                    owner === myPlayerKey && 
+                    !cardData.isExhausted &&
+                    cardData.family?.includes(requiredFamily)
+                ) {
+                    canBeTargeted = true;
+                }
             } 
             // Logic เดิมสำหรับเอฟเฟกต์อื่นๆ
             else {

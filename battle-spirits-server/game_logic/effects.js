@@ -116,8 +116,17 @@ function applySingleEffect(gameState, card, effect, ownerKey, context) {
                 console.log(`[EFFECTS] Cannot activate ${card.name}'s refresh effect, not enough core in reserve.`);
             }
             break;
-        case 'place_core_on_target' || 'cores_charge' || 'boost_bp_by_exhausting_ally':
-            console.log(`[EFFECTS] ${card.name} triggers 'place_core_on_target'. Entering targeting state.`);
+        case 'boost_bp_by_exhausting_ally':
+            gameState.effectCostConfirmationState = {
+                isActive: true,
+                playerKey: ownerKey,
+                effect: effect,
+                cardSourceUid: card.uid
+            };
+            break;
+        case 'place_core_on_target':
+        case 'cores_charge' : 
+            console.log(`[EFFECTS] ${card.name} triggers '${effect.keyword}'. Entering targeting state.`);
             gameState.targetingState = {
                 isTargeting: true,
                 forEffect: effect,
@@ -209,16 +218,11 @@ function resolveTriggeredEffects(gameState, card, timing, ownerKey, context = {}
         return applySingleEffect(gameState, card, triggeredEffects[0], ownerKey, context);
     }
 
-    console.log(`[EFFECTS] Multiple effects triggered for ${card.name}. Awaiting player choice.`);
-    gameState.effectResolutionState = {
-        isActive: true,
-        playerKey: ownerKey,
-        cardUid: card.uid,
-        timing: timing,
-        effectsToResolve: triggeredEffects.map((eff, i) => ({ ...eff, uniqueId: i })),
-        resolvedEffects: [],
-        context: context
-    };
+    // ถ้ามีเอฟเฟกต์มากกว่า 1 ให้รันทั้งหมดตามลำดับ
+    console.log(`[EFFECTS] Multiple effects triggered for ${card.name}. Resolving all...`);
+    triggeredEffects.forEach(effect => {
+        gameState = applySingleEffect(gameState, card, effect, ownerKey, context);
+    });
     return gameState;
 }
 
@@ -272,9 +276,6 @@ function resolveChosenEffect(gameState, playerKey, payload) {
     return gameState;
 }
 
-/**
- * จัดการเมื่อผู้เล่นยืนยันการจ่ายค่าใช้จ่ายของเอฟเฟกต์
- */
 function confirmEffectCost(gameState, playerKey) {
     const confirmState = gameState.effectCostConfirmationState;
     if (!confirmState.isActive || confirmState.playerKey !== playerKey) return gameState;
@@ -283,80 +284,87 @@ function confirmEffectCost(gameState, playerKey) {
     const player = gameState[playerKey];
     const opponentKey = playerKey === 'player1' ? 'player2' : 'player1';
     let costPaid = false;
+    
+    const requiresCost = effect.cost && effect.cost.count > 0;
 
-    // 1. ตรวจสอบและจ่าย Cost ตาม 'from' ที่ระบุใน effect
-    if (effect.cost.from === 'reserve') {
-        if (player.reserve.length >= effect.cost.count) {
+    if (requiresCost) {
+        if (effect.cost.from === 'reserve' && player.reserve.length >= effect.cost.count) {
             for (let i = 0; i < effect.cost.count; i++) {
                 const [core] = player.reserve.splice(0, 1);
                 const destination = effect.cost.to || 'costTrash';
-                if (destination !== 'void') {
-                    player[destination].push(core);
-                }
+                if (destination !== 'void') player[destination].push(core);
             }
             costPaid = true;
-        }
-    } else if (effect.cost.from === 'spiritThis') {
-        const sourceCard = player.field.find(c => c.uid === cardSourceUid);
-        if (sourceCard && sourceCard.cores.length >= effect.cost.count) {
-            for (let i = 0; i < effect.cost.count; i++) {
-                const [core] = sourceCard.cores.splice(0, 1);
-                const destination = effect.cost.to || 'costTrash';
-                 if (destination !== 'void') {
-                    player[destination].push(core);
+        } else if (effect.cost.from === 'spiritThis') {
+            const sourceCard = player.field.find(c => c.uid === cardSourceUid);
+            if (sourceCard && sourceCard.cores.length >= effect.cost.count) {
+                for (let i = 0; i < effect.cost.count; i++) {
+                    const [core] = sourceCard.cores.splice(0, 1);
+                    const destination = effect.cost.to || 'costTrash';
+                     if (destination !== 'void') player[destination].push(core);
                 }
+                costPaid = true;
             }
-            costPaid = true;
         }
+    } else {
+        costPaid = true;
     }
 
-    // 2. ถ้าจ่าย Cost สำเร็จ ให้ทำงานตามเอฟเฟกต์
     if (costPaid) {
-        console.log(`[EFFECTS] Cost paid for ${effect.keyword}.`);
-
-        if (effect.keyword === 'return_to_hand_with_cost') {
-            gameState.targetingState = {
-                isTargeting: true,
-                forEffect: effect,
-                cardSourceUid: cardSourceUid,
-                targetPlayer: playerKey,
-                selectedTargets: []
-            };
+        console.log(`[EFFECTS] Cost paid or confirmed for ${effect.keyword}.`);
+        if (effect.keyword === 'boost_bp_by_exhausting_ally') {
+             gameState.targetingState = { isTargeting: true, forEffect: effect, cardSourceUid: cardSourceUid, targetPlayer: playerKey, selectedTargets: [] };
+        }
+        else if (effect.keyword === 'return_to_hand_with_cost') {
+            gameState.targetingState = { isTargeting: true, forEffect: effect, cardSourceUid: cardSourceUid, targetPlayer: playerKey, selectedTargets: [] };
         } else if (effect.keyword === 'deal_life_damage_with_cost') {
             const damage = effect.damage || 0;
-            console.log(`[EFFECTS] ${cardSourceUid} deals ${damage} damage to ${opponentKey}'s life.`);
             for (let i = 0; i < damage; i++) {
                 if (gameState[opponentKey].life > 0) {
                     gameState[opponentKey].life--;
                     gameState[opponentKey].reserve.push({ id: `core-from-life-${opponentKey}-${Date.now()}-${i}` });
                 }
             }
+            const { checkGameOver } = require('./gameLoop.js');
             gameState = checkGameOver(gameState);
         } else if (effect.keyword === 'refresh_with_cost') {
             const sourceCard = player.field.find(c => c.uid === cardSourceUid);
-            if (sourceCard) {
-                sourceCard.isExhausted = false;
-                console.log(`[EFFECTS] ${sourceCard.name} has been refreshed.`);
-            }
+            if (sourceCard) sourceCard.isExhausted = false;
         }
     } else {
         console.log(`[EFFECTS] Cost could not be paid for ${effect.keyword}.`);
     }
 
-    // 3. Reset สถานะการยืนยัน
     gameState.effectCostConfirmationState = { isActive: false, playerKey: null, effect: null, cardSourceUid: null };
+    
+    // --- START: MODIFIED SECTION ---
+    if (gameState.attackState.isAttacking && !gameState.flashState.isActive && !gameState.targetingState.isTargeting) {
+        console.log('[GAME FLOW] Optional effect confirmed during attack declaration. Proceeding to Flash Timing.');
+        gameState.attackState.pendingEffects = false;
+        const { enterFlashTiming } = require('./battle.js');
+        return enterFlashTiming(gameState, 'beforeBlock');
+    }
+    // --- END: MODIFIED SECTION ---
+
     return gameState;
 }
 
-/**
- * จัดการเมื่อผู้เล่นยกเลิกการจ่ายค่าใช้จ่าย
- */
 function cancelEffectCost(gameState, playerKey) {
     const confirmState = gameState.effectCostConfirmationState;
     if (!confirmState.isActive || confirmState.playerKey !== playerKey) return gameState;
 
     console.log(`[EFFECTS] Player canceled cost payment.`);
     gameState.effectCostConfirmationState = { isActive: false, playerKey: null, effect: null, cardSourceUid: null };
+    
+    // --- START: MODIFIED SECTION ---
+    if (gameState.attackState.isAttacking && !gameState.flashState.isActive && !gameState.targetingState.isTargeting) {
+        console.log('[GAME FLOW] Optional effect canceled during attack declaration. Proceeding to Flash Timing.');
+        gameState.attackState.pendingEffects = false;
+        const { enterFlashTiming } = require('./battle.js');
+        return enterFlashTiming(gameState, 'beforeBlock');
+    }
+    // --- END: MODIFIED SECTION ---
+
     return gameState;
 }
 
@@ -496,5 +504,6 @@ module.exports = {
     cancelEffectCost,
     activateSpiritFlashEffect,
     confirmNegation,
-    checkExhaustTriggers  
+    checkExhaustTriggers,
+    applySingleEffect  
 };

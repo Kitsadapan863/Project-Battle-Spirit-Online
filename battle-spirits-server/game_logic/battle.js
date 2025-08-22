@@ -1,6 +1,6 @@
 // game_logic/battle.js
 const { getSpiritLevelAndBP, calculateTotalSymbols, getCardLevel, isImmune  } = require('./utils.js');
-const { resolveTriggeredEffects, checkExhaustTriggers } = require('./effects.js'); // Note: This will be the next file to create
+const { resolveTriggeredEffects, checkExhaustTriggers, applySingleEffect } = require('./effects.js'); // Note: This will be the next file to create
 const { destroyCard } = require('./card.js');
 const { checkGameOver } = require('./gameLoop.js');
 const { applyCrush } = require('./effectHandlers.js');
@@ -52,24 +52,16 @@ function handleSimultaneousEffects(gameState, card, timings, ownerKey) {
         return { gameState, hasEffects: false };
     }
 
-    if (allTriggeredEffects.length === 1) {
-        gameState = applySingleEffect(gameState, card, allTriggeredEffects[0], ownerKey);
-        return { gameState, hasEffects: true };
-    }
+    // --- START: MODIFIED SECTION ---
+    // รันเอฟเฟกต์ทั้งหมดตามลำดับโดยไม่ต้องถามผู้เล่น
+    allTriggeredEffects.forEach(effect => {
+        gameState = applySingleEffect(gameState, card, effect, ownerKey);
+    });
 
-    // ถ้ามีมากกว่า 1 เอฟเฟกต์ ให้เข้าสู่สถานะให้ผู้เล่นเลือก
-    console.log(`[EFFECTS] Multiple effects triggered for ${card.name}. Awaiting player choice.`);
-    gameState.effectResolutionState = {
-        isActive: true,
-        playerKey: ownerKey,
-        cardUid: card.uid,
-        timing: 'simultaneous', // ระบุว่าเป็น timing แบบผสม
-        effectsToResolve: allTriggeredEffects.map((eff, i) => ({ ...eff, uniqueId: i })),
-        resolvedEffects: [],
-        context: {}
-    };
     return { gameState, hasEffects: true };
+    // --- END: MODIFIED SECTION ---
 }
+
 function declareAttack(gameState, playerKey, payload) {
     const { attackerUid } = payload;
     const attacker = gameState[playerKey].field.find(s => s.uid === attackerUid);
@@ -127,26 +119,19 @@ function declareAttack(gameState, playerKey, payload) {
 
     // 1. ตั้งค่าสถานะการโจมตีพื้นฐาน
     const defenderPlayerKey = (playerKey === 'player1') ? 'player2' : 'player1';
-    gameState.attackState = { isAttacking: true, attackerUid, defender: defenderPlayerKey, blockerUid: null, isClash: spiritHasClash };
-    
-    // // รวบรวมเอฟเฟกต์ทั้ง onBattleStart และ whenAttacks มาจัดการพร้อมกัน
-    // const result = handleSimultaneousEffects(gameState, attacker, ['onBattleStart', 'whenAttacks'], playerKey);
-    // gameState = result.gameState;
-    
-    // // ถ้ามีเอฟเฟกต์ให้จัดการ (ไม่ว่าจะต้องเลือกหรือไม่) ให้หยุดรอ
-    // if (result.hasEffects) {
-    //     // ถ้าเกมเข้าสู่สถานะให้เลือก หรือรอ target ก็จะหยุดโดยอัตโนมัติ
-    //     // ถ้าเอฟเฟกต์ทำงานเสร็จแล้ว ก็ต้องรอให้ client อัปเดตก่อนไป flash step
-    //     return gameState;
-    // }
+    gameState.attackState = { isAttacking: true, attackerUid, defender: defenderPlayerKey, blockerUid: null, isClash: spiritHasClash, pendingEffects: false };
 
-    gameState = resolveTriggeredEffects(gameState, attacker, 'whenAttacks', playerKey);
+    const result = handleSimultaneousEffects(gameState, attacker, ['onBattleStart', 'whenAttacks'], playerKey);
+    gameState = result.gameState;
     
-    if (gameState.effectResolutionState.isActive) {
-        return gameState;
-    }
+    const isBlocked = gameState.deckDiscardViewerState.isActive || 
+                      gameState.targetingState.isTargeting || 
+                      gameState.assaultState.canUse ||
+                      gameState.effectCostConfirmationState.isActive;
 
-    if (!gameState.deckDiscardViewerState.isActive && !gameState.targetingState.isTargeting && !gameState.assaultState.canUse) {
+    if (isBlocked) {
+        gameState.attackState.pendingEffects = true;
+    } else {
         gameState = enterFlashTiming(gameState, 'beforeBlock');
     }
     
@@ -161,15 +146,16 @@ function declareBlock(gameState, playerKey, payload) {
 
     if (blocker && !blocker.isExhausted) {
         blocker.isExhausted = true;
-        gameState = checkExhaustTriggers(gameState, attacker, playerKey);
+        gameState = checkExhaustTriggers(gameState, blocker, playerKey); // Corrected: Check triggers for the blocker
         gameState.attackState.blockerUid = blockerUid;
 
         const attackerOwnerKey = playerKey === 'player1' ? 'player2' : 'player1';
         const attacker = gameState[attackerOwnerKey].field.find(s => s.uid === gameState.attackState.attackerUid);
-
+        
         // 1. ตรวจสอบเอฟเฟกต์ 'whenBlocked' ของตัวโจมตี (เช่น Windstorm)
         if (attacker) {
-            gameState = resolveTriggeredEffects(gameState, attacker, 'whenBlocked', attackerOwnerKey);
+            let result = handleSimultaneousEffects(gameState, attacker, ['whenBlocked'], attackerOwnerKey); // Corrected: Use attacker's owner key
+            gameState = result.gameState;
         }
         
         // 2. ตรวจสอบเอฟเฟกต์ Crush ตอน Block (จาก Nexus "The H.Q.")
@@ -189,7 +175,8 @@ function declareBlock(gameState, playerKey, payload) {
         }
 
         // 3. ตรวจสอบเอฟเฟกต์ 'whenBlocks' ทั่วไปของตัวป้องกัน
-        gameState = resolveTriggeredEffects(gameState, blocker, 'whenBlocks', playerKey);
+        let blockerResult = handleSimultaneousEffects(gameState, blocker, ['onBattleStart','whenBlocks'], playerKey); // Corrected: Check blocker's effects
+        gameState = blockerResult.gameState;
         
         // 4. ถ้ามีเอฟเฟกต์ที่ต้องเลือกเป้าหมาย ให้หยุดรอ
         if (gameState.targetingState.isTargeting) {
@@ -410,20 +397,38 @@ function chooseAttackType(gameState, playerKey, payload) {
 
     // ปิดสถานะการเลือก
     gameState.attackChoiceState = { isActive: false, attackerUid: null };
+    const attacker = gameState[playerKey].field.find(s => s.uid === attackerUid);
 
     if (choice === 'spirit') {
-        // ถ้าเลือกโจมตี Spirit ให้เข้าสู่สถานะเลือกเป้าหมาย
         const opponentKey = playerKey === 'player1' ? 'player2' : 'player1';
-        const validTargets = gameState[opponentKey].field.filter(s => s.type === 'Spirit').map(s => s.uid);
-        gameState.attackTargetingState = { isActive: true, attackerUid: attackerUid, validTargets: validTargets };
+        // กรองหาเป้าหมายที่โจมตีได้ (ไม่ติด Armor/Immunity)
+        const validTargets = gameState[opponentKey].field.filter(
+            spirit => spirit.type === 'Spirit' && !isImmune(spirit, attacker, opponentKey, gameState)
+        ).map(s => s.uid);
+        
+        // ถ้ามีเป้าหมายที่โจมตีได้ ให้เข้าสู่สถานะเลือกเป้าหมาย
+        if (validTargets.length > 0) {
+            gameState.attackTargetingState = { 
+                isActive: true, 
+                attackerUid: attackerUid, 
+                validTargets: validTargets 
+            };
+        } else {
+            // ถ้าไม่มีเป้าหมายที่โจมตีได้เลย (ทุกตัวติด Armor) ให้กลับไปโจมตี Life แทน
+            console.log(`[TARGET ATTACK] No valid targets found for ${attacker.name}. Attacking life instead.`);
+            const defenderPlayerKey = playerKey === 'player1' ? 'player2' : 'player1';
+            attacker.isExhausted = true;
+            gameState.attackState = { isAttacking: true, attackerUid, defender: defenderPlayerKey, blockerUid: null, isClash: true };
+            gameState = resolveTriggeredEffects(gameState, attacker, 'whenAttacks', playerKey);
+            if (!gameState.deckDiscardViewerState.isActive) {
+                gameState = enterFlashTiming(gameState, 'beforeBlock');
+            }
+        }
     } else {
         // ถ้าเลือกโจมตี Life ให้ทำการโจมตีแบบปกติ
-        const attacker = gameState[playerKey].field.find(s => s.uid === attackerUid);
         const defenderPlayerKey = playerKey === 'player1' ? 'player2' : 'player1';
-        
         attacker.isExhausted = true;
-        gameState.attackState = { isAttacking: true, attackerUid, defender: defenderPlayerKey, blockerUid: null, isClash: true }; // สมมติว่าถ้า target ได้คือมี clash
-        
+        gameState.attackState = { isAttacking: true, attackerUid, defender: defenderPlayerKey, blockerUid: null, isClash: true };
         gameState = resolveTriggeredEffects(gameState, attacker, 'whenAttacks', playerKey);
         if (!gameState.deckDiscardViewerState.isActive) {
             gameState = enterFlashTiming(gameState, 'beforeBlock');

@@ -86,9 +86,6 @@ function confirmMagicPayment(gameState, playerKey) {
     }
 
     gameState = cleanupField(gameState);
-    console.log(`--- STARTING NEGATION CHECK ---`);
-    console.log(`Magic Card to check against: ${cardToUse.name}, Color: ${cardToUse.color}`);
-    console.log(`Checking for negating spirits on ${opponentPlayerKey}'s field...`);
     
     // 2. ตรวจสอบหาตัว Negate (หลังจากจ่าย Cost สำเร็จ)
     const negatingSpirits = gameState[opponentPlayerKey].field.filter(spirit => {
@@ -111,9 +108,7 @@ function confirmMagicPayment(gameState, playerKey) {
             magicEffectToUse: effectToUse,
             negatingSpirits: negatingSpirits.map(s => s.uid)
         };
-        // เคลียร์ state การจ่ายเงิน เพราะจ่ายเสร็จแล้ว
-        gameState.magicPaymentState = { isPaying: false, cardToUse: null, costToPay: 0, selectedCores: [] };
-        // หยุดรอ Action จากผู้เล่นอีกฝั่ง
+        gameState.magicPaymentState.isPaying = false; 
         return gameState;
     }
 
@@ -121,16 +116,19 @@ function confirmMagicPayment(gameState, playerKey) {
     console.log(`[MAGIC LOG] No negation found. Resolving effect for ${cardToUse.name}.`);
     gameState = resolveMagicEffect(gameState, playerKey, cardToUse, effectToUse);
 
-    // 5. ย้าย Magic ที่ใช้แล้วไปกองทิ้ง
-    const cardIndex = currentPlayer.hand.findIndex(c => c.uid === cardToUse.uid);
-    if (cardIndex > -1) {
-        const [usedCard] = currentPlayer.hand.splice(cardIndex, 1);
-        currentPlayer.cardTrash.push(usedCard);
+    // --- START: MODIFIED SECTION ---
+    if (gameState.targetingState.isTargeting) {
+        console.log(`[MAGIC LOG] Effect requires targeting. Pausing magic resolution.`);
+        gameState.magicPaymentState.isPaying = false;
+    } else {
+        const cardIndex = currentPlayer.hand.findIndex(c => c.uid === cardToUse.uid);
+        if (cardIndex > -1) {
+            const [usedCard] = currentPlayer.hand.splice(cardIndex, 1);
+            currentPlayer.cardTrash.push(usedCard);
+        }
+        gameState.magicPaymentState = { isPaying: false, payingPlayer: null, cardToUse: null, costToPay: 0, selectedCores: [] };
     }
-    
-    // 6. เคลียร์ state การจ่ายเงิน
-    gameState.magicPaymentState = { isPaying: false, cardToUse: null, costToPay: 0, selectedCores: [] };
-    
+    // --- END: MODIFIED SECTION ---
  
     return gameState;
 }
@@ -375,20 +373,18 @@ function confirmTargets(gameState, playerKey) {
     const opponentKey = playerKey === 'player1' ? 'player2' : 'player1';
     let destructionSuccessful = false; // สร้างตัวแปรเพื่อตรวจสอบความสำเร็จ
 
-    // หาการ์ดที่เป็นต้นกำเนิดของเอฟเฟกต์
     let sourceCard = null;
-    // 1. ค้นหาในสนามของทั้งสองฝั่งก่อน
-    sourceCard = gameState.player1.field.find(c => c.uid === cardSourceUid) || gameState.player2.field.find(c => c.uid === cardSourceUid);
+    const p1 = gameState.player1;
+    const p2 = gameState.player2;
+
+    sourceCard = p1.field.find(c => c.uid === cardSourceUid) || p2.field.find(c => c.uid === cardSourceUid);
     
-    // 2. ถ้าไม่เจอในสนาม (อาจเป็น Magic ที่กำลังร่าย) ให้หาจาก magicPaymentState
     if (!sourceCard && gameState.magicPaymentState.cardToUse?.uid === cardSourceUid) {
         sourceCard = gameState.magicPaymentState.cardToUse;
     }
 
-    // 3. Safety check: ถ้ายังหาไม่เจอ ให้หยุดทำงานเพื่อป้องกัน error
     if (!sourceCard) {
         console.error(`[ARMOR ERROR] Could not find the source card (uid: ${cardSourceUid}) for the effect.`);
-        // Reset state เพื่อไม่ให้เกมค้าง
         gameState.targetingState = { isTargeting: false, forEffect: null, cardSourceUid: null, selectedTargets: [] };
         return gameState;
     }
@@ -498,10 +494,13 @@ function confirmTargets(gameState, playerKey) {
     }
     else if (forEffect.keyword === 'power up') {
         selectedTargets.forEach(targetUid => {
-            const targetSpirit = gameState.player1.field.find(s => s.uid === targetUid) || gameState.player2.field.find(s => s.uid === targetUid);
-
-            // ตรวจสอบ Armor ก่อนเพิ่มพลัง
-            if (targetSpirit && !isImmune(targetSpirit, sourceCard, gameState)) {
+            let targetSpirit = gameState.player1.field.find(s => s.uid === targetUid);
+            let targetOwnerKey = 'player1';
+            if (!targetSpirit) {
+                targetSpirit = gameState.player2.field.find(s => s.uid === targetUid);
+                targetOwnerKey = 'player2';
+            }
+            if (targetSpirit && !isImmune(targetSpirit, sourceCard, targetOwnerKey, gameState)) {
                  gameState = applyPowerUpEffect(gameState, targetUid, forEffect.power, forEffect.duration);
             }
         });
@@ -580,21 +579,18 @@ function confirmTargets(gameState, playerKey) {
     // 1. ออกจากสถานะเลือกเป้าหมาย
     gameState.targetingState = { isTargeting: false, forEffect: null, cardSourceUid: null, selectedTargets: [] };
 
-    // หลังจากจัดการเป้าหมายเสร็จ, ตรวจสอบว่าเราต้องกลับไปเลือกเอฟเฟกต์ที่เหลือหรือไม่
+// หลังจากจัดการเป้าหมายแล้ว ให้ตรวจสอบและดำเนินเกมต่อ
     const resState = gameState.effectResolutionState;
-    if (resState.effectsToResolve && resState.effectsToResolve.length > 0) {
-        console.log('[EFFECTS] Resuming effect resolution after targeting.');
-        // "เปิด" หน้าต่างเลือกเอฟเฟกต์อีกครั้ง
-        resState.isActive = true; 
-        return gameState; // ส่งกลับเพื่อให้ Client แสดงหน้าต่างเลือกเอฟเฟกต์ที่เหลือ
-    }
-
-    if (gameState.attackState.postBlockAction === 'enterFlash') {
-        const { enterFlashTiming } = require('./battle.js');
-        console.log(`[BATTLE LOG] Post-block action found. Entering Flash Timing.`);
-        // เอาธงออก แล้วเริ่ม Flash Timing
-        delete gameState.attackState.postBlockAction; 
-        return enterFlashTiming(gameState, 'afterBlock');
+    if (resState && resState.isActive) {
+        // ถ้ายังอยู่ในระหว่างการ resolve chain, ให้เรียกตัวจัดการ effect ตัวถัดไป
+        // (จำเป็นต้อง import processNextEffectInQueue จาก effects.js)
+        // const { processNextEffectInQueue } = require('./effects.js');
+        // return processNextEffectInQueue(gameState);
+    } else if (gameState.attackState.isAttacking && !gameState.flashState.isActive) {
+        // ถ้าการเลือกเป้าหมายนี้เกิดตอนประกาศโจมตี ให้เข้า Flash Timing
+        console.log('[GAME FLOW] Targeting completed during attack declaration. Proceeding to Flash Timing.');
+        const { enterFlashTiming } = require('./battle.js'); // Local require to break circular dependency
+        return enterFlashTiming(gameState, 'beforeBlock');
     }
 
     // โค้ดนี้สำหรับจัดการกรณีที่ใช้ Magic ระหว่าง Flash Timing (เหมือนเดิม)
